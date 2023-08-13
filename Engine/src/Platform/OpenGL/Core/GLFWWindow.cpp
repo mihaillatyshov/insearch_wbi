@@ -60,7 +60,7 @@ namespace LM
         // glfwSetFramebufferSizeCallback
         // glfwSetDropCallback
 
-        glfwSwapInterval(0);
+        glfwSwapInterval(1);
 
         LOGI("OpenGL version: ", glGetString(GL_VERSION));
         LOGI("OpenGL vendor: ", glGetString(GL_VENDOR));

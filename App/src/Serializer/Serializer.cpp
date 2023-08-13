@@ -20,7 +20,7 @@ namespace LM
         nlohmann::json result;
 
         result[kAssetsPath] = _Project->m_AssetsPath;
-        result[kCatalogBaseFileName] = _Project->m_CatalogBaseFileName;
+        result[kCatalogBaseFileName] = _Project->m_Catalog.CatalogBaseFileName;
 
         return result;
     }
@@ -35,7 +35,7 @@ namespace LM
         try
         {
             _Project->m_AssetsPath = _Json[kAssetsPath];
-            SET_IF_CONTAINS_OR_RETURN_FALSE(_Project->m_CatalogBaseFileName, kCatalogBaseFileName);
+            SET_IF_CONTAINS_OR_RETURN_FALSE(_Project->m_Catalog.CatalogBaseFileName, kCatalogBaseFileName);
         }
         catch (...)
         {

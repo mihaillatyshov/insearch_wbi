@@ -2,15 +2,15 @@
 
 #include <filesystem>
 #include <fstream>
-#include <iostream>
 #include <thread>
 
 #include <imgui.h>
 
+#include "Engine/Utils/ConsoleLog.h"
 #include "Engine/Utils/FileDialogs.h"
 #include "Engine/Utils/utf8.h"
 
-#include <Python.h>
+#include "Python/PythonCommand.h"
 
 namespace LM
 {
@@ -26,15 +26,24 @@ namespace LM
 
         if (ImGui::Begin(U8("Настройка проекта")))
         {
-            ImGui::Text(U8("Папка ассетов: %s"), _Project->m_AssetsPath.c_str());
-            ImGui::Text(U8("Оригинал каталога: %s"), _Project->m_CatalogBaseFileName.c_str());
+            ImGui::Text(U8("Файл проекта: %s"), _Project->GetFileName().c_str());
+            ImGui::Text(U8("Папка ассетов: %s"), _Project->GetAssetsPath().c_str());
+            ImGui::Text(U8("Оригинал каталога: %s"), _Project->GetCatalogBaseFilename().c_str());
             if (ImGui::Button(U8("Изменить оригинал каталога")))
             {
                 if (std::string filename = FileDialogs::OpenFile(kFileDialogsFilter); filename != std::string())
                 {
-                    if (std::filesystem::copy_file(filename, _Project->GetCatalogFilename()))
+                    try
                     {
-                        _Project->m_CatalogBaseFileName = filename;
+                        std::filesystem::remove(_Project->GetCatalogFilename());
+                        if (std::filesystem::copy_file(filename, _Project->GetCatalogFilename()))
+                        {
+                            _Project->SetCatalogBaseFilename(filename);
+                        }
+                    }
+                    catch (const std::filesystem::filesystem_error& err)
+                    {
+                        LOGE("File copy error (", filename, "),    ", "filesystem error: ", err.what());
                     }
                 }
             }
@@ -42,18 +51,68 @@ namespace LM
             if (ImGui::Button("Test Python"))
             {
                 m_IsPythonRuning = true;
+                m_PythonBuffer = "";
                 ImGui::OpenPopup("Test Python");
 
-                std::thread thread([&]() {
-                    Py_Initialize();
+                std::thread thread(
+                    [&](std::string _CatalogFileName, std::string _RawImgPath, int _ImgQuality, bool _SplitPages) {
+                        std::string script = std::string(RES_FOLDER) + "assets/scripts/prepare_img_raw.py";
 
-                    PyRun_SimpleString("from time import time,ctime,sleep\n"
-                                       "print('[Python]: Today is',ctime(time()))\n"
-                                       "sleep(5)\n");
+                        PythonCommand pythonCommand(script);
+                        pythonCommand.AddArg(_CatalogFileName);
+                        pythonCommand.AddArg(_RawImgPath);
+                        pythonCommand.AddArg(_ImgQuality);
+                        pythonCommand.AddArg(_SplitPages);
 
-                    std::cout << "Py_FinalizeEx: " << Py_FinalizeEx() << std::endl;
-                    m_IsPythonRuning = false;
-                });
+                        LOGI("Start Exec");
+
+                        pythonCommand.Execute([&](const char* buffer) {
+                            std::lock_guard lock(m_PythonBufferMtx);
+                            m_PythonBuffer = buffer;
+                        });
+
+                        LOGI("End Exec");
+
+                        // Py_Initialize();
+
+                        // PyObject *pName, *pModule, *pFunc, *pArgs, *pValue;
+                        // PyObject* sys_path = PySys_GetObject("path");
+                        // PyList_Append(sys_path, PyUnicode_FromString(scriptsPath.c_str()));
+
+                        //// pName = PyUnicode_FromString("prepare_img_raw.py");
+                        // pModule = PyImport_ImportModule("prepare_img_raw.py");
+
+                        // if (pModule != NULL)
+                        //{
+
+                        //    Py_DECREF(pName);
+                        //    pFunc = PyObject_GetAttrString(pModule, (char*)"prepare_img_raw");
+                        //    std::string savePath = std::string(RES_FOLDER) + "assets/test/";
+                        //    pArgs = PyTuple_Pack(3, PyUnicode_FromString(savePath.c_str()), 1, true);
+                        //    pValue = PyObject_CallObject(pFunc, pArgs);
+                        //    auto result = _PyUnicode_AsString(pValue);
+                        //    std::cout << result << std::endl;
+                        //}
+                        // else
+                        //{
+                        //    PyErr_Print();
+                        //    std::cout << "Failed to load module" << std::endl;
+                        //}
+
+                        //// Run a simple file
+                        ///*FILE* PS criptFile = fopen(scriptsPath.c_str(), "r");
+                        // if (PScriptFile)
+                        // {
+                        //     PyRun_SimpleFile(PScriptFile, "test.py");
+                        //     fclose(PScriptFile);
+                        // }*/
+
+                        // std::cout << "Py_FinalizeEx: " << Py_FinalizeEx() << std::endl;
+
+                        m_IsPythonRuning = false;
+                    },
+                    _Project->GetCatalogFilename(), _Project->GetRawImgPath(), _Project->GetImgQuality(),
+                    _Project->GetCatalogSplitPages());
                 thread.detach();
             }
 
@@ -65,6 +124,9 @@ namespace LM
                 ImGui::Text(U8("Работает скрипт преобразования pdf в картинки"));
                 ImGui::Text(U8("Это может занять несколько минут"));
                 ImGui::Text(U8("После его завершения можно закрыть это окно"));
+                ImGui::Separator();
+
+                DrawPythonBuffer();
 
                 ImGui::Text("\n");
                 ImGui::Separator();
@@ -80,6 +142,12 @@ namespace LM
             }
         }
         ImGui::End();
+    }
+
+    void SetupProject::DrawPythonBuffer()
+    {
+        std::lock_guard lock(m_PythonBufferMtx);
+        ImGui::Text(m_PythonBuffer.c_str());
     }
 
 }    // namespace LM

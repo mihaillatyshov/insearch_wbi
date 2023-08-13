@@ -10,7 +10,10 @@ set(SOURCES     src/main.cpp
     
     src/EditorLayer.cpp                     src/EditorLayer.h    
     
+    src/Python/PythonCommand.cpp            src/Python/PythonCommand.h
+
     src/Project/Project.cpp                 src/Project/Project.h
+    src/Project/Catalog.cpp                 src/Project/Catalog.h
 
     src/ImGui/Tables/Table.cpp              src/ImGui/Tables/Table.h
     src/ImGui/Overlays/Overlay.cpp          src/ImGui/Overlays/Overlay.h

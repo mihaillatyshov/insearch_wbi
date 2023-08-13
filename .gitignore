@@ -5,3 +5,5 @@ assets/projects/
 assets/settings/
 test_projects/
 build/
+**/.mypy_cache
+**/__pycache__
