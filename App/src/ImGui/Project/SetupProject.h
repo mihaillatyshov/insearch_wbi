@@ -19,7 +19,8 @@ namespace LM
         inline void Close() { m_IsOpen = false; }
 
     protected:
-        void ExecutePython(const char* cmd);
+        void DrawCatalog(Ref<Project> _Project);
+
         void DrawPythonBuffer();
 
     protected:

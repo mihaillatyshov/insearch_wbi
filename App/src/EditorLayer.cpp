@@ -7,16 +7,16 @@
 
 #include "Engine/Core/Application.h"
 #include "Engine/Utils/ConsoleLog.h"
-#include "Engine/Utils/FileDialogs.h"
 #include "Engine/Utils/json.hpp"
 #include "Engine/Utils/utf8.h"
+
+#include "ImGui/Overlays/Overlay.h"
+#include "ImGui/Overlays/ScriptPopup.h"
 #include "ImGui/Tables/Table.h"
 #include "Serializer/Serializer.h"
 
 namespace LM
 {
-
-    const FileDialogs::Filter kFileDialogsFilter { "InSearch Project (*.lmproj)", "*.lmproj" };
 
     void EditorLayer::OnImGuiRender()
     {
@@ -120,82 +120,37 @@ namespace LM
         ImGui::End();
 
         m_SetupProjectWindow.Draw(m_Project);
-        m_Overlay.Draw();
+        Overlay::Get()->Draw();
+        ScriptPopup::Get()->Draw();
 
         ImGui::ShowDemoWindow();
     }
 
     void EditorLayer::OpenProject()
     {
-        if (std::string filename = FileDialogs::OpenFile(kFileDialogsFilter); filename != std::string())
+        if (Ref<Project> project = Project::Open(); project != Project::s_ProjectNotOpen)
         {
-            Ref<Project> newProject = CreateRef<Project>(filename);
-            std::ifstream infile(filename);
-            if (!infile.is_open())
-            {
-                m_Overlay.Start(std::format("{}\n{}", U8("Не удалось открыть проект"), filename));
-                return;
-            }
-            try
-            {
-                nlohmann::json json;
-                infile >> json;
-                if (!Serializer::DeSerialize(newProject, json))
-                {
-                    m_Overlay.Start(std::format("{}\n{}", U8("Не верный формат проекта"), filename));
-                    return;
-                }
-                m_Project = newProject;
-                m_SetupProjectWindow.Open();
-                m_Overlay.Start(std::format("{}\n{}", U8("Проект успешно открыт"), filename));
-            }
-            catch (...)
-            {
-                m_Overlay.Start(std::format("{}\n{}", U8("Ошибка во время чтения формата json"), filename));
-            }
+            m_Project = project;
+            m_SetupProjectWindow.Open();
         }
     }
 
     void EditorLayer::NewProject()
     {
-        m_Project = CreateRef<Project>();
-        m_SetupProjectWindow.Open();
-    }
-
-    static void WriteJsonToFile(std::string_view _FileName, nlohmann::json _Json)
-    {
-        std::ofstream fout(_FileName.data());
-        if (!fout.is_open())
+        if (Ref<Project> project = Project::New(); project != Project::s_ProjectNotOpen)
         {
-            LOGW("Can't open file (", _FileName, ") to save project!");
-            return;
-        }
-        fout << std::setw(4) << _Json;
-        fout.close();
-    }
-
-    void EditorLayer::SaveProject()
-    {
-        if (m_Project != Ref<Project>())
-        {
-            if (m_Project->GetFileName() == std::string())
-            {
-                m_Project->SetFileName(FileDialogs::SaveFile(kFileDialogsFilter));
-            }
-
-            if (m_Project->GetFileName() == std::string())
-            {
-                return;
-            }
-            WriteJsonToFile(m_Project->GetFileName(), Serializer::Serialize(m_Project));
+            m_Project = project;
+            m_SetupProjectWindow.Open();
         }
     }
+
+    void EditorLayer::SaveProject() { Project::Save(m_Project); }
 
     void EditorLayer::SaveProjectAs()
     {
         // TODO: Save and copy assets
     }
 
-    void EditorLayer::CloseProject() { m_Project = Ref<Project>(); }
+    void EditorLayer::CloseProject() { m_Project = Project::s_ProjectNotOpen; }
 
 }    // namespace LM

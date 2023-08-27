@@ -17,6 +17,7 @@ set(SOURCES     src/main.cpp
 
     src/ImGui/Tables/Table.cpp              src/ImGui/Tables/Table.h
     src/ImGui/Overlays/Overlay.cpp          src/ImGui/Overlays/Overlay.h
+    src/ImGui/Overlays/ScriptPopup.cpp      src/ImGui/Overlays/ScriptPopup.h
     src/ImGui/Project/SetupProject.cpp      src/ImGui/Project/SetupProject.h
     
     src/Serializer/Serializer.cpp           src/Serializer/Serializer.h

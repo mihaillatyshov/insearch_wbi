@@ -9,7 +9,7 @@ namespace LM
     {
         bool NeedRebuild = false;
         bool SplitPages = false;  
-        std::string CatalogBaseFileName;
+        std::string BaseFileName;
         int ImgQuality = 1;
     };
 

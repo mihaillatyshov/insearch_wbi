@@ -1,15 +1,10 @@
-from pdf2image import convert_from_path
-from psutil import cpu_count
-from PIL import Image
-
 import sys
 
-utf8stdout = open(1, 'w', encoding='utf-8', closefd=False)                                                              # fd 1 is stdout
+from pdf2image import convert_from_path
+from PIL import Image
+from psutil import cpu_count
 
-
-def print_to_cpp(string: str):
-    print(string, file=utf8stdout, flush=True)
-
+from base import print_to_cpp
 
 if (len(sys.argv) < 5):
     print_to_cpp("Скрипт не выполнен (не хватает агрументов)")

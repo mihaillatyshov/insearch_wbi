@@ -1,9 +1,9 @@
 #pragma once
 
 #include "Engine/Layers/Layer.h"
-#include "Project/Project.h"
+
 #include "ImGui/Project/SetupProject.h"
-#include "ImGui/Overlays/Overlay.h"
+#include "Project/Project.h"
 
 namespace LM
 {
@@ -24,7 +24,5 @@ namespace LM
         Ref<Project> m_Project;
 
         SetupProject m_SetupProjectWindow;
-
-        Overlay m_Overlay;
     };
 }    // namespace LM

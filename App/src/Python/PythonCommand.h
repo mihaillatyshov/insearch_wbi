@@ -10,7 +10,7 @@ namespace LM
     class PythonCommand
     {
     public:
-        PythonCommand(std::string_view _Script);
+        PythonCommand(std::string_view _Script, std::function<void(void)> _EndCallback = nullptr);
 
         void AddArg(std::string_view _Arg);
         void AddArg(bool _Arg);
@@ -26,6 +26,7 @@ namespace LM
     protected:
         std::string m_Script;
         std::vector<std::string> m_Args;
+        std::function<void(void)> m_EndCallback;
     };
 
 }
