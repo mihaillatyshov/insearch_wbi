@@ -2,6 +2,8 @@
 
 #include <imgui.h>
 
+#include "Engine/Utils/ConsoleLog.h"
+
 namespace LM
 {
 
@@ -20,7 +22,8 @@ namespace LM
 
     void Overlay::Draw()
     {
-        if (std::chrono::system_clock::now() >= m_EndTimePoint)
+        const auto elapsedTime = m_EndTimePoint - std::chrono::system_clock::now();
+        if (elapsedTime <= 0s)
         {
             return;
         }
@@ -45,6 +48,13 @@ namespace LM
         if (ImGui::Begin("##Overlay", nullptr, window_flags))
         {
             m_ImGuiFunction();
+            ImGui::Separator();
+            const auto elapsedTimeMs = std::chrono::duration_cast<std::chrono::milliseconds>(elapsedTime).count();
+            ImGui::Text("Click to close    %d:%03d", elapsedTimeMs / 1000, elapsedTimeMs % 1000);
+            if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+            {
+                m_EndTimePoint = std::chrono::system_clock::now();
+            }
         }
         ImGui::End();
     }

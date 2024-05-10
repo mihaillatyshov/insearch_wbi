@@ -2,12 +2,12 @@
 
 #include "imgui.h"
 
-#include "Engine/Utils/utf8.h"
 #include "Engine/Utils/ConsoleLog.h"
+#include "Engine/Utils/utf8.h"
 
 namespace LM
 {
-    void ScriptPopup::OpenPopup(const ScriptOpenPopupProps& _Props)
+    void ScriptPopup::OpenPopup(const PythonCommand& _Command, const ScriptPopupProps& _Props)
     {
         m_IsScriptRuning = true;
         m_ScriptBuffer = "";
@@ -23,7 +23,7 @@ namespace LM
 
                 m_IsScriptRuning = false;
             },
-            _Props.Command);
+            _Command);
         thread.detach();
     }
 
@@ -32,7 +32,7 @@ namespace LM
         if (m_NeedOpenPopup)
         {
             ImGui::OpenPopup(m_Props.WindowName.c_str());
-            m_NeedOpenPopup = false;     
+            m_NeedOpenPopup = false;
         }
 
         ImVec2 center = ImGui::GetMainViewport()->GetCenter();
@@ -52,7 +52,15 @@ namespace LM
             ImGui::Text("\n");
             ImGui::Separator();
 
-            ImGui::BeginDisabled(m_IsScriptRuning);
+            bool isScriptRunning = m_IsScriptRuning.load();
+
+            if (m_Props.EndCallback && !isScriptRunning)
+            {
+                m_Props.EndCallback();
+                m_Props.EndCallback = nullptr;
+            }
+
+            ImGui::BeginDisabled(isScriptRunning);
             if (ImGui::Button(U8("Закрыть"), ImVec2(120, 0)))
             {
                 ImGui::CloseCurrentPopup();
@@ -65,7 +73,6 @@ namespace LM
 
     void ScriptPopup::DrawScriptBuffer()
     {
-
         std::lock_guard lock(m_ScriptBufferMtx);
         ImGui::Text(m_ScriptBuffer.c_str());
     }

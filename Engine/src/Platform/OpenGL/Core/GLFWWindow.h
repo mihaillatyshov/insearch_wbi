@@ -15,7 +15,8 @@ namespace LM
 
         virtual uint32_t GetWidth() const override { return m_Data.Width; }
         virtual uint32_t GetHeight() const override { return m_Data.Height; }
-
+        virtual float GetMonitorScale() const override { return m_Data.MonitorScale; }
+        
         virtual void OnUpdate() override;
 
         void SetEventCallback(const EventCallbackFn& callback) override { m_Data.EventCallback = callback; }
@@ -31,6 +32,7 @@ namespace LM
         {
             WindowData(const WindowProps& _Props) : WindowProps(_Props) { }
             EventCallbackFn EventCallback;
+            float MonitorScale = 1.0f;
         };
 
         GLFWwindow* m_Window;

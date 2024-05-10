@@ -1,22 +1,46 @@
 #include "EditorLayer.h"
 
-#include <fstream>
-#include <iomanip>
-
-#include <imgui.h>
+#include "ImGui/Overlays/Overlay.h"
+#include "ImGui/Overlays/ScriptPopup.h"
+#include "ImGui/Project/PageView/PageViewManager.h"
+#include "ImGui/Tables/Table.h"
+#include "Serializer/Serializer.h"
 
 #include "Engine/Core/Application.h"
 #include "Engine/Utils/ConsoleLog.h"
 #include "Engine/Utils/json.hpp"
 #include "Engine/Utils/utf8.h"
 
-#include "ImGui/Overlays/Overlay.h"
-#include "ImGui/Overlays/ScriptPopup.h"
-#include "ImGui/Tables/Table.h"
-#include "Serializer/Serializer.h"
+#include <imgui.h>
+
+#include <fstream>
+#include <iomanip>
 
 namespace LM
 {
+
+    const std::string kLastProjectPath = "./assets/last_project.json";
+    const std::string kJsonLastProjectPath = "folder";
+
+    EditorLayer::EditorLayer()
+    {
+        std::ifstream infile(kLastProjectPath);
+        if (!infile.is_open())
+        {
+            LOGI("Last project file not found");
+            return;
+        }
+
+        nlohmann::json json;
+        infile >> json;
+
+        if (Ref<Project> project = Project::Open(json[kJsonLastProjectPath]); project != Project::s_ProjectNotOpen)
+        {
+            LOGI("Opened last project: ", project->GetCatalogFilename());
+            m_Project = project;
+            m_SetupProjectWindow.Open();
+        }
+    }
 
     void EditorLayer::OnImGuiRender()
     {
@@ -119,7 +143,16 @@ namespace LM
         }
         ImGui::End();
 
+        if (m_CreateNewProject.Draw())
+        {
+            m_Project = m_CreateNewProject.GetNewProject();
+            m_CreateNewProject.Close();
+            m_SetupProjectWindow.Open();
+            SaveLastProjectPath();
+        }
+
         m_SetupProjectWindow.Draw(m_Project);
+        PageViewManager::Get()->DrawViews(m_Project);
         Overlay::Get()->Draw();
         ScriptPopup::Get()->Draw();
 
@@ -132,25 +165,65 @@ namespace LM
         {
             m_Project = project;
             m_SetupProjectWindow.Open();
+            SaveLastProjectPath();
         }
     }
 
     void EditorLayer::NewProject()
     {
-        if (Ref<Project> project = Project::New(); project != Project::s_ProjectNotOpen)
+        m_CreateNewProject.Open();
+        /*if (Ref<Project> project = Project::New(); project != Project::s_ProjectNotOpen)
         {
             m_Project = project;
             m_SetupProjectWindow.Open();
-        }
+        }*/
     }
 
-    void EditorLayer::SaveProject() { Project::Save(m_Project); }
+    void EditorLayer::SaveProject()
+    {
+        Project::Save(m_Project);
+        SaveLastProjectPath();
+    }
 
     void EditorLayer::SaveProjectAs()
     {
         // TODO: Save and copy assets
     }
 
-    void EditorLayer::CloseProject() { m_Project = Project::s_ProjectNotOpen; }
+    void EditorLayer::CloseProject()
+    {
+        ClearLastProjectPath();
+        m_Project = Project::s_ProjectNotOpen;
+    }
+
+    void EditorLayer::SaveLastProjectPath()
+    {
+        if (m_Project == Project::s_ProjectNotOpen)
+        {
+            return;
+        }
+
+        std::ofstream fout(kLastProjectPath);
+        if (!fout.is_open())
+        {
+            LOGW("Can't save last project path");
+            return;
+        }
+
+        nlohmann::json json;
+        json[kJsonLastProjectPath] = m_Project->GetPathInFolder(Project::s_ProjectFileName);
+
+        fout << std::setw(4) << json;
+    }
+
+    void EditorLayer::ClearLastProjectPath()
+    {
+        if (m_Project == Project::s_ProjectNotOpen)
+        {
+            return;
+        }
+
+        std::filesystem::remove(m_Project->GetPathInFolder(Project::s_ProjectFileName));
+    }
 
 }    // namespace LM

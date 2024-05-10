@@ -1,8 +1,8 @@
 #pragma once
 
-#include <vector>
-#include <string>
 #include <functional>
+#include <string>
+#include <vector>
 
 namespace LM
 {
@@ -10,10 +10,11 @@ namespace LM
     class PythonCommand
     {
     public:
-        PythonCommand(std::string_view _Script, std::function<void(void)> _EndCallback = nullptr);
+        PythonCommand(std::string_view _Script);
 
         void AddArg(std::string_view _Arg);
         void AddArg(bool _Arg);
+        void AddArg(float _Arg);
         void AddArg(int _Arg);
 
         void Execute(std::function<void(const char*)> _LinePrintCallback = nullptr);
@@ -26,7 +27,6 @@ namespace LM
     protected:
         std::string m_Script;
         std::vector<std::string> m_Args;
-        std::function<void(void)> m_EndCallback;
     };
 
-}
+}    // namespace LM

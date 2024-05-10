@@ -42,29 +42,14 @@ namespace LM
         // io.ConfigFlags |= ImGuiConfigFlags_ViewportsNoMerge;
 
 #if USE_CUSTOM_FONT
-        ImFontConfig config;
-        for (int i = 0; i < 9; ++i)
-        {
-            std::cout << std::string(RES_FOLDER + regFont) << std::endl;
-            io.Fonts->AddFontFromFileTTF(std::string(RES_FOLDER + regFont).c_str(), 12.0f * (1.0f + 0.5 * i), &config, io.Fonts->GetGlyphRangesCyrillic());
-        }
 
-        std::ifstream infile(std::string(RES_FOLDER + settingsFile).c_str());
-        m_SizeId = 4;
-        if (infile.is_open())
-        {
-            nlohmann::json data = nlohmann::json::parse(infile);
-            std::cout << data << std::endl;
-            if (data.contains("size") && data["size"].is_number_unsigned())
-            {
-                m_SizeId = data["size"];
-            }
-        }
-        m_SizeId = glm::clamp(m_SizeId, 0, io.Fonts->Fonts.size() - 1);
-        io.FontDefault = io.Fonts->Fonts[m_SizeId];
+        SetFontSizeByMonitorScale(Application::Get().GetWindow().GetMonitorScale());
+        m_ChangeSize = true;
+        ChangeFontSize(false);
+
 #endif
 
-        //ImFontGlyphRangesBuilder
+        // ImFontGlyphRangesBuilder
 
         /*
         auto grb = ImFontAtlas::GetGlyphRangesCyrillic();
@@ -113,25 +98,27 @@ namespace LM
     {
         EventDispatcher dispatcher(e);
 
-        dispatcher.Dispatch<KeyReleasedEvent>([&](KeyReleasedEvent& event) {
-            bool control = Input::IsKeyPressed(LM::Key::LeftControl) || Input::IsKeyPressed(LM::Key::RightControl);
-            bool shift = Input::IsKeyPressed(LM::Key::LeftShift) || Input::IsKeyPressed(LM::Key::RightShift);
-            {
-                if (control && shift)
-                {
-                    if (event.GetKeyCode() == LM::Key::Minus)
-                    {
-                        --m_SizeId;
-                        m_ChangeSize = true;
-                    }
-                    if (event.GetKeyCode() == LM::Key::Equal)
-                    {
-                        ++m_SizeId;
-                        m_ChangeSize = true;
-                    }
-                }
-                return false;
-            }
+        dispatcher.Dispatch<WindowMonitorScaleChangedEvent>([&](WindowMonitorScaleChangedEvent& event) {
+            SetFontSizeByMonitorScale(event.GetScale());
+            m_ChangeSize = true;
+            // bool control = Input::IsKeyPressed(LM::Key::LeftControl) || Input::IsKeyPressed(LM::Key::RightControl);
+            // bool shift = Input::IsKeyPressed(LM::Key::LeftShift) || Input::IsKeyPressed(LM::Key::RightShift);
+            //{
+            //     if (control && shift)
+            //     {
+            //         if (event.GetKeyCode() == LM::Key::Minus)
+            //         {
+            //             --m_SizeId;
+            //             m_ChangeSize = true;
+            //         }
+            //         if (event.GetKeyCode() == LM::Key::Equal)
+            //         {
+            //             ++m_SizeId;
+            //             m_ChangeSize = true;
+            //         }
+            //     }
+            return false;
+            // }
         });
 
         if (m_BlockEvents)
@@ -144,7 +131,7 @@ namespace LM
 
     void ImGuiLayer::Begin()
     {
-        ChangeSize();
+        ChangeFontSize(true);
 
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
@@ -204,16 +191,43 @@ namespace LM
         colors[ImGuiCol_TitleBgCollapsed] = ImVec4 { 0.15f, 0.1505f, 0.151f, 1.0f };
     }
 
-    void ImGuiLayer::ChangeSize()
+    void ImGuiLayer::ChangeFontSize(bool _NeedUpdateFontTexture)
     {
 #if USE_CUSTOM_FONT
         if (m_ChangeSize)
         {
             ImGuiIO& io = ImGui::GetIO();
-            m_SizeId = glm::clamp(m_SizeId, 0, io.Fonts->Fonts.size() - 1);
-            io.FontDefault = io.Fonts->Fonts[m_SizeId];
+
+            ImFontConfig config;
+
+            bool isFontExists = m_Fonts.contains(m_FontSize);
+
+            ImFont* font = nullptr;
+
+            if (isFontExists)
+            {
+                font = m_Fonts[m_FontSize];
+            }
+            else
+            {
+                font = io.Fonts->AddFontFromFileTTF(regFont.c_str(), static_cast<float>(m_FontSize), &config,
+                                                    io.Fonts->GetGlyphRangesCyrillic());
+                m_Fonts[m_FontSize] = font;
+            }
+            io.FontDefault = font;
+
+            if (_NeedUpdateFontTexture && !isFontExists)
+            {
+                io.Fonts->Build();
+                ImGui_ImplOpenGL3_DestroyFontsTexture();
+                ImGui_ImplOpenGL3_CreateFontsTexture();
+            }
+
+            LOGI("Font size: ", m_FontSize);
+
             m_ChangeSize = false;
         }
+
 #endif
     }
 

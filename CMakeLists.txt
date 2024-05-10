@@ -6,6 +6,8 @@ endif()
 
 project(InSearchCreator VERSION 1.0)
 
+option(STATIC "Set to ON to build xlnt as a static library instead of a shared library" ON)
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 

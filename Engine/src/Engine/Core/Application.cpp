@@ -1,10 +1,12 @@
 #include "Application.h"
 
-#include <filesystem>
+#include <nfd.hpp>
 
 #include "Engine/Core/Inputs.h"
 #include "Engine/Events/EventDispatcher.h"
 #include "Engine/Utils/ConsoleLog.h"
+
+#include <filesystem>
 
 namespace LM
 {
@@ -15,7 +17,9 @@ namespace LM
     {
         CORE_ASSERT(!s_Instance, "Application already exists!");
         s_Instance = this;
+        
         LOG_INIT();
+        NFD_Init();
 
         // Set working directory here
         if (!m_Specification.WorkingDirectory.empty())
@@ -30,7 +34,7 @@ namespace LM
         PushOverlay(m_ImGuiLayer);
     }
 
-    Application::~Application() { }
+    Application::~Application() { NFD_Quit(); }
 
     void Application::PushLayer(Layer* layer)
     {

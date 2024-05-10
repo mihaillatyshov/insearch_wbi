@@ -31,25 +31,16 @@ namespace LM
         return true;
     }
 
-    Project::Project(std::string_view _FileName) : m_FileName(_FileName) { }
+    Project::Project(std::string_view _Folder) : m_Folder(_Folder) { }
 
-    Ref<Project> Project::New()
+    Ref<Project> Project::New(std::string_view _Folder, std::string_view _Name)
     {
-        std::string filename = FileDialogs::SaveFile(kFileDialogsFilter);
-        if (filename == std::string())
+        std::filesystem::path folder = std::filesystem::path(_Folder) / std::filesystem::path(_Name);
+        Ref<Project> project = Ref<Project>(new Project(folder.string()));
+
+        if (std::filesystem::create_directories(project->m_Folder) && Save(project))
         {
-            return s_ProjectNotOpen;
-        }
-
-        Ref<Project> project = Ref<Project>(new Project(filename));
-
-        const auto time = std::chrono::current_zone()->to_local(std::chrono::system_clock::now());
-        project->m_AssetsPath =
-            std::string(RES_FOLDER) + "assets/projects/" + std::format("{:%Y_%m_%d__%H_%M_%OS}", time) + "/";
-
-        if (Save(project))
-        {
-            std::filesystem::create_directories(project->m_AssetsPath);
+            project->m_LastBuildCatalog = Catalog::CreateDefaultLastBuildCatalog();
             return project;
         }
 
@@ -64,12 +55,17 @@ namespace LM
             return s_ProjectNotOpen;
         }
 
-        Ref<Project> project = Ref<Project>(new Project(filename));
+        return Open(filename);
+    }
 
-        std::ifstream infile(filename);
+    Ref<Project> Project::Open(std::string _FileName)
+    {
+        Ref<Project> project = Ref<Project>(new Project());
+
+        std::ifstream infile(_FileName);
         if (!infile.is_open())
         {
-            Overlay::Get()->Start(Format(U8("Не удалось открыть проект: \n{}"), filename));
+            Overlay::Get()->Start(Format(U8("Не удалось открыть проект: \n{}"), _FileName));
             return s_ProjectNotOpen;
         }
 
@@ -80,15 +76,18 @@ namespace LM
 
             if (!Serializer::DeSerialize(project, json))
             {
-                Overlay::Get()->Start(Format(U8("Не верный формат проекта: \n{}"), filename));
+                Overlay::Get()->Start(Format(U8("Не верный формат проекта: \n{}"), _FileName));
                 return s_ProjectNotOpen;
             }
-            Overlay::Get()->Start(Format(U8("Проект успешно открыт: \n{}"), filename));
+            project->m_LastBuildCatalog =
+                project->m_Catalog.NeedRebuild ? Catalog::CreateDefaultLastBuildCatalog() : project->m_Catalog;
+            Overlay::Get()->Start(Format(U8("Проект успешно открыт: \n{}"), _FileName));
+
             return project;
         }
         catch (...)
         {
-            Overlay::Get()->Start(Format(U8("Ошибка во время чтения формата json: \n{}"), filename));
+            Overlay::Get()->Start(Format(U8("Ошибка во время чтения формата json: \n{}"), _FileName));
         }
 
         return s_ProjectNotOpen;
@@ -96,19 +95,103 @@ namespace LM
 
     bool Project::Save(Ref<Project> _Project)
     {
-        if (_Project == s_ProjectNotOpen || _Project->GetFileName() == std::string())
+        if (_Project == s_ProjectNotOpen || _Project->GetFolder().empty())
         {
             return false;
         }
 
-        return WriteJsonToFile(_Project->GetFileName(), Serializer::Serialize(_Project));
+        return WriteJsonToFile(_Project->GetPathInFolder(s_ProjectFileName), Serializer::Serialize(_Project));
     }
 
-    std::string Project::GetRawImgPath() const
+    const std::string Project::GetPathInFolder(std::string_view _Path) const
     {
-        std::string imgPath = m_AssetsPath + "raw_img/";
-        std::filesystem::create_directories(imgPath);
-        return imgPath;
+        return (std::filesystem::path(m_Folder) / std::filesystem::path(_Path)).string();
+    }
+
+    std::string Project::GetPathInFolderAndCreateDirs(std::string_view _Path) const
+    {
+        std::string path = GetPathInFolder(_Path);
+        std::filesystem::create_directories(path);
+        return path;
+    }
+
+    std::string Project::GetRawImgPath() const { return GetPathInFolderAndCreateDirs("data/catalog/raw_img/"); }
+
+    std::string Project::GetRawImgPrevPath() const
+    {
+        return GetPathInFolderAndCreateDirs("data/catalog/prev_raw_img/");
+    }
+
+    std::string Project::GetCutByPatternImgsPath() const
+    {
+        return GetPathInFolderAndCreateDirs("data/catalog/cut_by_pattern_img/");
+    }
+
+    std::string Project::GetCutByPatternImgsPrevPath() const
+    {
+        return GetPathInFolderAndCreateDirs("data/catalog/prev_cut_by_pattern_img/");
+    }
+
+    std::string Project::GetRawExcelPath() const { return GetPathInFolderAndCreateDirs("data/catalog/raw_xlsx/"); }
+
+    bool Project::IsPageInGeneratedCatalogExcludePages(uint32_t _PageId) const
+    {
+        const auto itPageId =
+            std::find(m_GeneratedCatalogExcludePages.begin(), m_GeneratedCatalogExcludePages.end(), _PageId);
+        return itPageId != m_GeneratedCatalogExcludePages.end();
+    }
+
+    bool Project::AddGeneratedCatalogExcludePage(uint32_t _PageId)
+    {
+        if (IsPageInGeneratedCatalogExcludePages(_PageId))
+        {
+            return false;
+        }
+
+        m_GeneratedCatalogExcludePages.push_back(_PageId);
+        std::sort(m_GeneratedCatalogExcludePages.begin(), m_GeneratedCatalogExcludePages.end());
+
+        return true;
+    }
+
+    bool Project::RemoveGeneratedCatalogExcludePage(uint32_t _PageId)
+    {
+        if (!IsPageInGeneratedCatalogExcludePages(_PageId))
+        {
+            return false;
+        }
+
+        m_GeneratedCatalogExcludePages.erase(
+            std::find(m_GeneratedCatalogExcludePages.begin(), m_GeneratedCatalogExcludePages.end(), _PageId));
+
+        return true;
+    }
+
+    void Project::OnGenCatalogRawImgs()
+    {
+        m_LastBuildCatalog = m_Catalog;
+        m_Catalog.IsGenerated = true;
+        m_Catalog.NeedRebuild = false;
+        m_GenImgsByCutPattern.NeedRebuild = true;
+    }
+
+    void Project::OnGenImgsByCutPattern()
+    {
+        m_GenImgsByCutPattern.IsGenerated = true;
+        m_GenImgsByCutPattern.NeedRebuild = false;
+        m_GenImgsByCutPattern.Version = 0;
+
+        if (m_GenRawExcel.UseCutPattern)
+        {
+            m_GenRawExcel.NeedRebuild = true;
+        }
+    }
+
+    void Project::OnGenRawExcel()
+    {
+        m_GenRawExcel.IsGenerated = true;
+        m_GenRawExcel.NeedRebuild = false;
+        m_GenRawExcel.Version = 0;
     }
 
 }    // namespace LM

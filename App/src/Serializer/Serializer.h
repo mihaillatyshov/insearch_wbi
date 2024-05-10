@@ -29,6 +29,12 @@ namespace LM
         template <typename T>
         concept JsonSimpleType = Integral<T> || FloatingPoint<T> || StringLike<T>;
 
+        template <typename T>
+        concept Vec2 = std::is_same_v<T, glm::vec2>;
+
+        template <typename T>
+        concept Array = std::is_array_v<T>;
+
     }    // namespace Concept
 
     template <typename Class, typename T>
@@ -53,7 +59,7 @@ namespace LM
         return PropertyImpl<Class, T> { _Member, _Name, _IsRequired };
     }
 
-#define PROPERTY(CLASS, MEMBER) property(&CLASS::MEMBER, #MEMBER)
+#define PROPERTY(CLASS, MEMBER)         property(&CLASS::MEMBER, #MEMBER)
 #define PROPERTY_NOT_REQ(CLASS, MEMBER) property(&CLASS::MEMBER, #MEMBER, false)
 
     template <typename T, T... S, typename F>
@@ -96,6 +102,27 @@ namespace LM
             }
 
             template <typename SerializerPropertiesBank, typename T>
+                requires Concept::Vec2<T>
+            static nlohmann::json ToJson(const T& _Object)
+            {
+                nlohmann::json result;
+                result["x"] = _Object.x;
+                result["y"] = _Object.y;
+                return result;
+            }
+
+            template <typename SerializerPropertiesBank, typename T>
+            static nlohmann::json ToJson(const std::vector<T>& _Object)
+            {
+                nlohmann::json result = nlohmann::json::array();
+                for (const auto& item : _Object)
+                {
+                    result.push_back(ToJson<SerializerPropertiesBank>(item));
+                }
+                return result;
+            }
+
+            template <typename SerializerPropertiesBank, typename T>
             static nlohmann::json ToJson(const T& _Object)
             {
                 nlohmann::json result;
@@ -116,6 +143,22 @@ namespace LM
             static void FromJson(T& _Object, const nlohmann::json& _Json)
             {
                 _Object = _Json;
+            }
+
+            template <typename SerializerPropertiesBank, typename T>
+                requires Concept::Vec2<T>
+            static void FromJson(T& _Object, const nlohmann::json& _Json)
+            {
+                _Object = { _Json["x"], _Json["y"] };
+            }
+
+            template <typename SerializerPropertiesBank, typename T>
+            static void FromJson(std::vector<T>& _Object, const nlohmann::json& _Json)
+            {
+                for (const auto& item : _Json)
+                {
+                    _Object.push_back(item);
+                }
             }
 
             template <typename SerializerPropertiesBank, typename T>
@@ -154,17 +197,56 @@ namespace LM
             }
 
             template <>
+            static constexpr auto GetProperties<GenRawExcel>()
+            {
+                return std::make_tuple(                                        //
+                    property(&GenRawExcel::UseCutPattern, "UseCutPattern"),    //
+                    property(&GenRawExcel::IsGenerated, "IsGenerated"),        //
+                    property(&GenRawExcel::NeedRebuild, "NeedRebuild"),        //
+                    property(&GenRawExcel::Version, "Version"));
+            }
+
+            template <>
+            static constexpr auto GetProperties<GenImgsByCutPattern>()
+            {
+                return std::make_tuple(                                            //
+                    property(&GenImgsByCutPattern::IsGenerated, "IsGenerated"),    //
+                    property(&GenImgsByCutPattern::NeedRebuild, "NeedRebuild"),    //
+                    property(&GenImgsByCutPattern::Version, "Version"));
+            }
+
+            template <>
             static constexpr auto GetProperties<Project>()
             {
-                return std::make_tuple(property(&Project::m_AssetsPath, "AssetsPath"),
-                                       property(&Project::m_Catalog, "Catalog"));
+                return std::make_tuple(                                                                           //
+                    property(&Project::m_Folder, "Folder"),                                                       //
+                    property(&Project::m_Catalog, "Catalog"),                                                     //
+                    property(&Project::m_GeneratedCatalogExcludePages, "GeneratedCatalogExcludePages", false),    //
+                    property(&Project::m_GenImgsByCutPattern, "GenImgsByCutPattern"),                             //
+                    property(&Project::m_GenRawExcel, "GenRawExcel"));
             }
 
             template <>
             static constexpr auto GetProperties<Catalog>()
             {
-                return std::make_tuple(PROPERTY(Catalog, BaseFileName), PROPERTY(Catalog, ImgQuality),
-                                       PROPERTY(Catalog, SplitPages), PROPERTY(Catalog, NeedRebuild));
+                return std::make_tuple(                                              //
+                    property(&Catalog::BaseFileName, "BaseFileName"),                //
+                    property(&Catalog::ImgQuality, "ImgQuality"),                    //
+                    property(&Catalog::SplitPages, "SplitPages"),                    //
+                    property(&Catalog::NeedRebuild, "NeedRebuild"),                  //
+                    property(&Catalog::IsGenerated, "IsGenerated"),                  //
+                    property(&Catalog::BotRightCutPattern, "BotRightCutPattern"),    //
+                    property(&Catalog::TopLeftCutPattern, "TopLeftCutPattern"));
+            }
+
+            template <>
+            static constexpr auto GetProperties<CatalogCutPattern>()
+            {
+                return std::make_tuple(                                    //
+                    property(&CatalogCutPattern::PageId, "PageId"),        //
+                    property(&CatalogCutPattern::PointMin, "PointMin"),    //
+                    property(&CatalogCutPattern::PointMax, "PointMax"),    //
+                    property(&CatalogCutPattern::CenterPoint, "CenterPoint"));
             }
         };
     };

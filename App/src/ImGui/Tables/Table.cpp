@@ -2,10 +2,13 @@
 
 #include <format>
 #include <iostream>
+#include <string>
 
 #include <imgui.h>
+#include <xlnt/xlnt.hpp>
 
 #include "Engine/Utils/ConsoleLog.h"
+#include "Engine/Utils/utf8.h"
 
 namespace LM
 {
@@ -14,7 +17,7 @@ namespace LM
 
     void Table::DrawTable()
     {
-        ImVec2 cursorBegin = ImGui::GetCursorPos();
+        /*ImVec2 cursorBegin = ImGui::GetCursorPos();
         ImGui::TextColored(ImVec4(1.0f, 0.0f, 1.0f, 1.0f), "tttt");
         ImGui::SameLine();
         ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "tttt");
@@ -24,6 +27,30 @@ namespace LM
         if (ImGui::InvisibleButton("drag area", ImVec2(ts.x, ImGui::GetFrameHeight())))
         {
             LOGE("Clicked invisible button");
+        }*/
+
+        if (ImGui::Button(U8("Test Excel")))
+        {
+            xlnt::workbook wb;
+            xlnt::worksheet ws = wb.active_sheet();
+            ws.cell("A1").value(5);
+            ws.cell("B2").value("string data");
+
+            if (xlnt::cell::type::number == ws.cell({ 1, 1 }).data_type())
+            {
+                LOGW("xlnt::cell::type::number == ws.cell({ 1, 1 }).data_type()");
+            }
+
+            if (xlnt::cell::type::shared_string == ws.cell({ 2, 2 }).data_type())
+            {
+                LOGW("xlnt::cell::type::shared_string == ws.cell({ 2, 2 }).data_type()");
+            }
+            if (xlnt::cell::type::inline_string == ws.cell({ 2, 2 }).data_type())
+            {
+                LOGW("xlnt::cell::type::inline_string == ws.cell({ 2, 2 }).data_type()");
+            }
+            ws.freeze_panes({ 2, 2 });
+            //wb.save("example.xlsx");
         }
 
         ImGui::Separator();
@@ -31,7 +58,6 @@ namespace LM
         static ImGuiTableFlags tableFlags =
             ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY;
         static char textBuf[kCellsCount][256] = { "hi1", "hi2 sasdadsdsaadsadssddsa", "hi3 dsdsad" };
-        static char disabledBuff[1] = "";
 
         static bool setFocus = false;
 
@@ -41,30 +67,10 @@ namespace LM
         static ImVec2 cellPadding { cellSize, cellSize };
         static ImVec2 itemSpacing { cellSize * 2.0f, cellSize * 2.0f };
 
-        ImGui::SetNextItemWidth(-FLT_MIN);
-        if (selectedCellId > 0)
-        {
-            if (setFocus)
-            {
-                ImGui::SetKeyboardFocusHere();
-                setFocus = false;
-            }
-            ImGui::InputText("##cell", textBuf[(selectedCellId - 1) % kCellsCount], 256, ImGuiInputTextFlags_None);
-        }
-        else
-        {
-            ImGui::BeginDisabled();
-            ImGui::InputText("##cell", disabledBuff, 1);
-            ImGui::EndDisabled();
-        }
-
         // ImGui::PushStyleColor(ImGuiCol_FrameBg, 0);
         ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, cellPadding);
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, itemSpacing);
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, { 0.0f, 4.0f });
-
-        // ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, { 0.0f, 0.0f });
-        // ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 0.0f, 0.0f });
 
         if (ImGui::BeginTable("table", kCellsCount + 1, ImGuiTableFlags_SizingFixedFit | tableFlags))
         {
@@ -81,18 +87,13 @@ namespace LM
                                         0.0f, cell);
             }
 
-            // ImGui::TableSetupScrollFreeze(0, 1);
+            ImGui::TableSetupScrollFreeze(1, 1);
 
-            for (int row = 0; row < 115; row++)
+            for (int row = 0; row < 155; row++)
             {
                 ImGui::TableNextColumn();
-                ImGui::PushID(0);
 
-                ImGui::BeginDisabled();
-                ImGui::SetNextItemWidth(1.0f);
-                ImGui::InputText("##cell_test", disabledBuff, 1);
-                ImGui::SameLine();
-                ImGui::EndDisabled();
+                ImGui::PushID(0);
                 ImGui::Text("%d", row);
                 ImGui::PopID();
 
@@ -103,35 +104,34 @@ namespace LM
                     ImGui::PushID(std::to_string(cellId).c_str());
                     ImGui::BeginGroup();
                     ImVec2 ts = ImGui::CalcTextSize(textBuf[cell]);
-                    if (selectedCellId == cellId)
+                    ImGui::SetNextItemWidth(ts.x + 20.0f);
+                    if (ImGui::InputText("##cell", textBuf[cell], 256, ImGuiInputTextFlags_NoHorizontalScroll))
                     {
-                        ImGui::SetNextItemWidth(ts.x + 20.0f);
-                        // ImGui::GetContentRegionAvail()
-                        ImGui::InputText("##cell", textBuf[cell], 256, ImGuiInputTextFlags_NoHorizontalScroll);
+                        LOGE("I C");
                     }
-                    else
+                    if (ImGui::IsItemActivated())
                     {
-                        if (ImGui::Selectable(textBuf[cell % kCellsCount], false, ImGuiSelectableFlags_None,
-                                              { ts.x + 20.0f, 0.0f }))
-                        {
-                            if (selectedCellId == cellId)
-                            {
-                                selectedCellId = -1;
-                            }
-                            else
-                            {
-                                selectedCellId = cellId;
-                                setFocus = true;
-                            }
-                        }
+                        LOGE("I A");
+                    }
+                    if (ImGui::IsItemDeactivated())
+                    {
+                        LOGE("I D");
+                    }
+                    if (ImGui::IsItemFocused())
+                    {
+                        LOGE("I F");
                     }
 
-                    ImGui::SameLine();
-                    ImGui::Text("Test text");
                     ImGui::EndGroup();
                     ImGui::PopID();
-                    if (ImGui::BeginPopupContextItem(
-                            std::to_string(cellId).c_str()))    // <-- use last item id as popup id
+
+                    if (ImGui::IsItemHovered())
+                    {
+                        ImGui::SetTooltip("Right-click to open popup");
+                    }
+
+                    // use last item id as popup id
+                    if (ImGui::BeginPopupContextItem(std::to_string(cellId).c_str()))
                     {
                         ImGui::Text("This a popup for!");
                         if (ImGui::Button("Close"))
@@ -139,10 +139,6 @@ namespace LM
                             ImGui::CloseCurrentPopup();
                         }
                         ImGui::EndPopup();
-                    }
-                    if (ImGui::IsItemHovered())
-                    {
-                        ImGui::SetTooltip("Right-click to open popup");
                     }
                 }
             }

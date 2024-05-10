@@ -16,11 +16,7 @@ namespace LM
     {
         std::string WindowName = "";
         std::function<void(void)> PopupDesc = nullptr;
-    };
-
-    struct ScriptOpenPopupProps : public ScriptPopupProps
-    {
-        PythonCommand Command;
+        std::function<void(void)> EndCallback = nullptr;
     };
 
     class ScriptPopup
@@ -32,7 +28,7 @@ namespace LM
             return instance;
         }
 
-        void OpenPopup(const ScriptOpenPopupProps& _Props);
+        void OpenPopup(const PythonCommand& _Command, const ScriptPopupProps& _Props);
 
         void Draw();
 

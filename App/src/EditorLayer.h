@@ -1,9 +1,10 @@
 #pragma once
 
-#include "Engine/Layers/Layer.h"
-
+#include "ImGui/Project/CreateNewProject.h"
 #include "ImGui/Project/SetupProject.h"
 #include "Project/Project.h"
+
+#include "Engine/Layers/Layer.h"
 
 namespace LM
 {
@@ -11,6 +12,8 @@ namespace LM
     class EditorLayer : public Layer
     {
     public:
+        EditorLayer();
+
         void OnImGuiRender() override;
 
     protected:
@@ -20,9 +23,13 @@ namespace LM
         void SaveProjectAs();
         void CloseProject();
 
+        void SaveLastProjectPath();
+        void ClearLastProjectPath();
+
     protected:
         Ref<Project> m_Project;
 
         SetupProject m_SetupProjectWindow;
+        CreateNewProject m_CreateNewProject;
     };
 }    // namespace LM

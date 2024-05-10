@@ -8,6 +8,123 @@
 namespace LM
 {
 
+    bool glfw_get_window_monitor(GLFWmonitor** monitor, GLFWwindow* window)
+    {
+        bool success = false;
+
+        int window_rectangle[4] = { 0 };
+        glfwGetWindowPos(window, &window_rectangle[0], &window_rectangle[1]);
+        glfwGetWindowSize(window, &window_rectangle[2], &window_rectangle[3]);
+
+        int monitors_size = 0;
+        GLFWmonitor** monitors = glfwGetMonitors(&monitors_size);
+
+        GLFWmonitor* closest_monitor = NULL;
+        int max_overlap_area = 0;
+
+        for (int i = 0; i < monitors_size; ++i)
+        {
+            int monitor_position[2] = { 0 };
+            glfwGetMonitorPos(monitors[i], &monitor_position[0], &monitor_position[1]);
+
+            const GLFWvidmode* monitor_video_mode = glfwGetVideoMode(monitors[i]);
+
+            int monitor_rectangle[4] = {
+                monitor_position[0],
+                monitor_position[1],
+                monitor_video_mode->width,
+                monitor_video_mode->height,
+            };
+
+            if (!(((window_rectangle[0] + window_rectangle[2]) < monitor_rectangle[0]) ||
+                  (window_rectangle[0] > (monitor_rectangle[0] + monitor_rectangle[2])) ||
+                  ((window_rectangle[1] + window_rectangle[3]) < monitor_rectangle[1]) ||
+                  (window_rectangle[1] > (monitor_rectangle[1] + monitor_rectangle[3]))))
+            {
+                int intersection_rectangle[4] = { 0 };
+
+                // x, width
+                if (window_rectangle[0] < monitor_rectangle[0])
+                {
+                    intersection_rectangle[0] = monitor_rectangle[0];
+
+                    if ((window_rectangle[0] + window_rectangle[2]) < (monitor_rectangle[0] + monitor_rectangle[2]))
+                    {
+                        intersection_rectangle[2] =
+                            (window_rectangle[0] + window_rectangle[2]) - intersection_rectangle[0];
+                    }
+                    else
+                    {
+                        intersection_rectangle[2] = monitor_rectangle[2];
+                    }
+                }
+                else
+                {
+                    intersection_rectangle[0] = window_rectangle[0];
+
+                    if ((monitor_rectangle[0] + monitor_rectangle[2]) < (window_rectangle[0] + window_rectangle[2]))
+                    {
+                        intersection_rectangle[2] =
+                            (monitor_rectangle[0] + monitor_rectangle[2]) - intersection_rectangle[0];
+                    }
+                    else
+                    {
+                        intersection_rectangle[2] = window_rectangle[2];
+                    }
+                }
+
+                // y, height
+                if (window_rectangle[1] < monitor_rectangle[1])
+                {
+                    intersection_rectangle[1] = monitor_rectangle[1];
+
+                    if ((window_rectangle[1] + window_rectangle[3]) < (monitor_rectangle[1] + monitor_rectangle[3]))
+                    {
+                        intersection_rectangle[3] =
+                            (window_rectangle[1] + window_rectangle[3]) - intersection_rectangle[1];
+                    }
+                    else
+                    {
+                        intersection_rectangle[3] = monitor_rectangle[3];
+                    }
+                }
+                else
+                {
+                    intersection_rectangle[1] = window_rectangle[1];
+
+                    if ((monitor_rectangle[1] + monitor_rectangle[3]) < (window_rectangle[1] + window_rectangle[3]))
+                    {
+                        intersection_rectangle[3] =
+                            (monitor_rectangle[1] + monitor_rectangle[3]) - intersection_rectangle[1];
+                    }
+                    else
+                    {
+                        intersection_rectangle[3] = window_rectangle[3];
+                    }
+                }
+
+                // int overlap_area = intersection_rectangle[3] * intersection_rectangle[4];
+                int overlap_area = intersection_rectangle[2] * intersection_rectangle[3];
+
+                if (overlap_area > max_overlap_area)
+                {
+                    closest_monitor = monitors[i];
+                    max_overlap_area = overlap_area;
+                }
+            }
+        }
+
+        if (closest_monitor)
+        {
+            *monitor = closest_monitor;
+            success = true;
+        }
+
+        // true: monitor contains the monitor the window is most on
+        // false: monitor is unmodified
+        return success;
+    }
+
     GLFWWindow::GLFWWindow(const WindowProps& _Props) : m_Data(_Props) { Init(); }
 
     GLFWWindow::~GLFWWindow()
@@ -41,6 +158,14 @@ namespace LM
             LOGE("Failed to create window!");
             return false;
         }
+
+        GLFWmonitor* nowMonitor = NULL;
+        if (!glfw_get_window_monitor(&nowMonitor, m_Window))
+        {
+            nowMonitor = glfwGetPrimaryMonitor();
+        }
+        glfwGetMonitorContentScale(nowMonitor, NULL, &m_Data.MonitorScale);
+        LOGI("Current monitor: ", nowMonitor, "    scale: ", m_Data.MonitorScale);
 
         glfwMakeContextCurrent(m_Window);
         glfwSetWindowUserPointer(m_Window, &m_Data);
@@ -79,6 +204,25 @@ namespace LM
         // });
 
         // Set GLFW callbacks
+        glfwSetWindowPosCallback(m_Window, [](GLFWwindow* window, int xpos, int ypos) {
+            WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
+
+            GLFWmonitor* nowMonitor = NULL;
+            if (!glfw_get_window_monitor(&nowMonitor, window))
+            {
+                nowMonitor = glfwGetPrimaryMonitor();
+            }
+            float newScale = 1.0f;
+            glfwGetMonitorContentScale(nowMonitor, NULL, &newScale);
+
+            if (newScale != data.MonitorScale)
+            {
+                data.MonitorScale = newScale;
+                WindowMonitorScaleChangedEvent event(newScale);
+                data.EventCallback(event);
+            }
+        });
+
         glfwSetWindowSizeCallback(m_Window, [](GLFWwindow* window, int width, int height) {
             WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
             data.Width = width;
@@ -86,6 +230,21 @@ namespace LM
 
             WindowResizeEvent event(width, height);
             data.EventCallback(event);
+
+            GLFWmonitor* nowMonitor = NULL;
+            if (!glfw_get_window_monitor(&nowMonitor, window))
+            {
+                nowMonitor = glfwGetPrimaryMonitor();
+            }
+            float newScale = 1.0f;
+            glfwGetMonitorContentScale(nowMonitor, NULL, &newScale);
+
+            if (newScale != data.MonitorScale)
+            {
+                data.MonitorScale = newScale;
+                WindowMonitorScaleChangedEvent event(newScale);
+                data.EventCallback(event);
+            }
         });
 
         glfwSetWindowCloseCallback(m_Window, [](GLFWwindow* window) {

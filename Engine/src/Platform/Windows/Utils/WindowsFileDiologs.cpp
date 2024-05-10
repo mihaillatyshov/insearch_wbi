@@ -1,6 +1,7 @@
 #include "Engine/Utils/FileDialogs.h"
 
 #include "Engine/Core/Application.h"
+#include "Engine/Utils/utf8.h"
 
 #include <Windows.h>
 #include <commdlg.h>
@@ -17,7 +18,19 @@ namespace LM
 {
 
     constexpr size_t kFileSize = 1024;
-    constexpr size_t kCurrentDirSize = 1024;
+    constexpr size_t kCurrentDirSize = 2048;
+
+    static WCHAR currentDir[kCurrentDirSize] = { 0 };
+    static bool IsFirstCustomCurrentDirectory() { return wcslen(currentDir) == 0; }
+
+    static WCHAR* GetCustomCurrentDirectory()
+    {
+        if (wcslen(currentDir) == 0)
+        {
+            GetCurrentDirectoryW(kCurrentDirSize, currentDir);
+        }
+        return currentDir;
+    }
 
     static const wchar_t* CreateFilterString(const FileDialogs::Filter& filter)
     {
@@ -51,9 +64,9 @@ namespace LM
         ofn.hwndOwner = glfwGetWin32Window((GLFWwindow*)Application::Get().GetWindow().GetNativeWindow());
         ofn.lpstrFile = szFile;
         ofn.nMaxFile = sizeof(szFile);
-        if (GetCurrentDirectoryW(kCurrentDirSize, currentDir))
+        if (IsFirstCustomCurrentDirectory())
         {
-            ofn.lpstrInitialDir = currentDir;
+            ofn.lpstrInitialDir = GetCustomCurrentDirectory();
         }
         ofn.lpstrFilter = CreateFilterString(filter);
         ofn.nFilterIndex = 1;
@@ -80,9 +93,9 @@ namespace LM
         ofn.hwndOwner = glfwGetWin32Window((GLFWwindow*)Application::Get().GetWindow().GetNativeWindow());
         ofn.lpstrFile = szFile;
         ofn.nMaxFile = sizeof(szFile);
-        if (GetCurrentDirectoryW(kCurrentDirSize, currentDir))
+        if (IsFirstCustomCurrentDirectory())
         {
-            ofn.lpstrInitialDir = currentDir;
+            ofn.lpstrInitialDir = GetCustomCurrentDirectory();
         }
         ofn.lpstrFilter = CreateFilterString(filter);
         ofn.nFilterIndex = 1;

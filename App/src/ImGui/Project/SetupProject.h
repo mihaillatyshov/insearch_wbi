@@ -13,6 +13,8 @@ namespace LM
     class SetupProject
     {
     public:
+        SetupProject();
+
         void Draw(Ref<Project> _Project);
 
         inline void Open() { m_IsOpen = true; }
@@ -20,15 +22,14 @@ namespace LM
 
     protected:
         void DrawCatalog(Ref<Project> _Project);
+        void DrawImgsByCutPattern(Ref<Project> _Project);
+        void DrawGenRawExcel(Ref<Project> _Project);
 
-        void DrawPythonBuffer();
-
+        void GenCatalogRawImages(Ref<Project> _Project);
+        void GenImgsByCutPattern(Ref<Project> _Project);
+        void GenRawExcel(Ref<Project> _Project);
     protected:
         bool m_IsOpen = false;
-
-        std::atomic_bool m_IsPythonRuning;
-        std::mutex m_PythonBufferMtx;
-        std::string m_PythonBuffer;
     };
 
 }    // namespace LM

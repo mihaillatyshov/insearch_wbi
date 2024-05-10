@@ -16,14 +16,13 @@ namespace LM
     #define popen  _popen
 #endif
 
-    PythonCommand::PythonCommand(std::string_view _Script, std::function<void(void)> _EndCallback)
-        : m_Script(_Script),
-          m_EndCallback(_EndCallback)
-    { }
+    PythonCommand::PythonCommand(std::string_view _Script) : m_Script(_Script) { }
 
     void PythonCommand::AddArg(std::string_view _Arg) { m_Args.emplace_back(_Arg); }
 
     void PythonCommand::AddArg(bool _Arg) { m_Args.emplace_back(_Arg ? "1" : "0"); }
+
+    void PythonCommand::AddArg(float _Arg) { m_Args.emplace_back(std::to_string(_Arg)); }
 
     void PythonCommand::AddArg(int _Arg) { m_Args.emplace_back(std::to_string(_Arg)); }
 
@@ -43,7 +42,7 @@ namespace LM
         std::string result;
         for (const auto& arg : m_Args)
         {
-            result += arg + " ";
+            result += '"' + arg + '"' + ' ';
         }
         return result;
     }
@@ -67,11 +66,6 @@ namespace LM
             {
                 _LinePrintCallback(buffer.data());
             }
-        }
-
-        if (m_EndCallback)
-        {
-            m_EndCallback();
         }
     }
 
