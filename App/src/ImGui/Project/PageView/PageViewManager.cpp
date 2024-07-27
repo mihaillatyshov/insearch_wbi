@@ -52,6 +52,11 @@ namespace LM
             --m_PageId;
         }
         ImGui::SameLine();
+
+        ImGui::SetNextItemWidth(ImGui::GetFontSize() * 10.0f);
+        ImGui::DragInt("##PageIdInput", &m_PageId, 0.01f, 0, filesCount - 1);
+        ImGui::SameLine();
+
         if (ImGui::Button(">", buttonSize))
         {
             ++m_PageId;

@@ -1,0 +1,100 @@
+{
+    "simple_add_list": [
+        { "name": "manuf", "values": [{ "index": [3, 4, 5, 6, 7, 8, 9, 10, 11], "value": "AMATI" }], "pos": 1 },
+        { "name": "app1", "values": [{ "index": [3, 4, 5, 6, 7, 8, 9, 10, 11], "value": "PMK" }] },
+        { "name": "coating", "values": [{ "index": [3, 4, 5, 6, 7, 8, 9, 10, 11], "value": "ALCRSIN" }] },
+        { "name": "sep", "values": [{ "index": [3, 4, 5, 6, 7, 8, 9, 10, 11], "value": 0 }] },
+        { "name": "cnsc", "values": [{ "index": [3, 4, 5, 6, 7, 8, 9, 10, 11], "value": 0 }] },
+        { "name": "cxsc", "values": [{ "index": [3, 4, 5, 6, 7, 8, 9, 10, 11], "value": 0 }] },
+        { "name": "adintws", "values": [{ "index": [3, 4, 5, 6, 7, 8, 9, 10, 11], "value": "WORKPIECE" }] },
+        { "name": "grade", "values": [{ "index": [3, 4, 5, 6, 7, 8, 9, 10, 11], "value": "Super MG" }] },
+        { "name": "substrate", "values": [{ "index": [3, 4, 5, 6, 7, 8, 9, 10, 11], "value": "Super MG" }] },
+        { "name": "mgro", "values": [{ "index": [3, 4, 5, 6, 7, 8, 9, 10, 11], "value": "VHM" }] },
+        { "name": "tpt", "values": [{ "index": [4], "value": "P" }], "ignore_warns": true },
+        { "name": "tctr", "values": [{ "index": [4], "value": "H6" }], "ignore_warns": true },
+        { "name": "surfacepropose", "values": [{ "index": [5], "value": "INTERNAL" }], "ignore_warns": true },
+        { "name": "axgsup", "values": [{ "index": [5], "value": 1 }], "ignore_warns": true },
+        {
+            "name": "releasepack",
+            "values": [{ "index": [3, 4, 5, 6, 7, 8, 9, 10, 11], "value": "2023/Amati Форма Точности" }]
+        },
+        {
+            "name": "hand",
+            "values": [
+                { "index": [3, 4, 6, 7, 8, 9, 10, 11], "value": "R" },
+                { "index": [5], "value": "L" }
+            ]
+        },
+        {
+            "name": "kapr",
+            "values": [
+                { "index": [6], "value": 98 },
+                { "index": [7], "value": 96 },
+                { "index": [8], "value": 90 },
+                { "index": [9, 10, 11], "value": 100 }
+            ],
+            "ignore_warns": true
+        },
+        {
+            "name": "bapr",
+            "values": [
+                { "index": [6], "value": 22 },
+                { "index": [7], "value": 47 },
+                { "index": [8, 9, 10, 11], "value": 8 }
+            ],
+            "ignore_warns": true
+        },
+        {
+            "name": "serie",
+            "values": [
+                { "index": [3], "value": "MGR" },
+                { "index": [4], "value": "MIR" },
+                { "index": [5], "value": "MFR" },
+                { "index": [6], "value": "MPR" },
+                { "index": [7], "value": "MQR" },
+                { "index": [8], "value": "MUR" },
+                { "index": [9], "value": "MTR" },
+                { "index": [10, 11], "value": "MMR" }
+            ]
+        },
+        {
+            "name": "constr",
+            "values": [
+                { "index": [3], "value": "ctd_tsmb_radial_groove" },
+                { "index": [4], "value": "ctd_tsmb_thread" },
+                { "index": [5], "value": "ctd_tsmb_face_groove" },
+                { "index": [6, 7, 8, 9, 10, 11], "value": "ctd_tsmb_turn" }
+            ]
+        }
+    ],
+    "simple_rename_list": [
+        { "index": [3, 4, 5, 6, 7, 8, 9, 10, 11], "src_name": "D", "dst_name": "dcon" },
+        { "index": [3, 4, 6, 8], "src_name": "F", "dst_name": "wf3" },
+        { "index": [5, 7, 9, 10, 11], "src_name": "F", "dst_name": "wf" },
+        { "index": [3, 4, 5, 6, 7, 8, 9, 10, 11], "src_name": "ОБОЗНАЧЕНИЕ", "dst_name": "model" },
+        { "index": [3, 6, 7, 8, 9, 10, 11], "src_name": "H", "dst_name": "wf2" },
+        { "index": [3, 5], "src_name": "B", "dst_name": "cw" },
+        { "index": [3, 4, 5, 6, 7, 8, 9, 10, 11], "src_name": "l", "dst_name": "ohn" },
+        { "index": [4], "src_name": "L", "dst_name": "oal" },
+        { "index": [3, 5, 6, 7, 8, 9, 10, 11], "src_name": "L", "dst_name": "lf" },
+        { "index": [4], "src_name": "alpha", "dst_name": "pna" },
+        { "index": [4], "src_name": "h", "dst_name": "cf" },
+        { "index": [5], "src_name": "h", "dst_name": "wb" },
+        { "index": [4], "src_name": "S", "dst_name": "wf2" },
+        { "index": [5], "src_name": "T", "dst_name": "lu" },
+        { "index": [7, 8, 9, 10, 11], "src_name": "R", "dst_name": "re" },
+        { "index": [7, 8, 9, 10, 11], "src_name": "Dmin", "dst_name": "dmin" }
+    ],
+    "constr_rename_list": {},
+    "per_page_calc_list": [
+        { "name": "wb", "index": [3, 4, 6, 8], "exec": "result.append(df['wf3'][i] - df['wf2'][i])" },
+        { "name": "thft", "index": [4], "exec": "result.append('VP' + str(df['pna'][i]))" },
+        { "name": "psir", "index": [6, 7, 8, 9, 10, 11], "exec": "result.append(90 - df['kapr'][i])" },
+        {
+            "name": "adintms",
+            "index": [3, 4, 5, 6, 7, 8, 9, 10, 11],
+            "exec": "result.append('AMATI_DCON:' + str(df['dcon'][i]))"
+        }
+    ],
+    "per_constr_calc_list": {}
+}
