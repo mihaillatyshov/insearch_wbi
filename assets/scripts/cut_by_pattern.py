@@ -1,6 +1,8 @@
+from concurrent.futures import Future, ThreadPoolExecutor
 import os
 import json
-from typing import TypedDict
+from typing import Any, TypedDict
+from psutil import cpu_count                                                                                            # type: ignore
 
 import cv2
 from cv2.typing import Point
@@ -70,6 +72,9 @@ def split_img(img_path: os.DirEntry[str], pattern_1, pattern_2, pattern_offsets:
 
     res_img = imgcv[min_y:max_y, min_x:max_x]
 
+    if not res_img.size:
+        return False
+
     res_img = cv2.cvtColor(res_img, cv2.COLOR_BGR2GRAY)
     res_img = cv2.GaussianBlur(res_img, (3, 3), 0)
     res_img = cv2.threshold(res_img, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
@@ -110,6 +115,7 @@ def create_pattern_and_get_pixel_offset(img_path: str, save_filename: str, perc_
 
 def split_by_pattern(args: Args):
     result: list[str] = []
+    threads_to_use = max(1, cpu_count() - 1)
 
     os.makedirs(args.tmp_path, exist_ok=True)
     os.makedirs(args.save_path, exist_ok=True)
@@ -129,12 +135,23 @@ def split_by_pattern(args: Args):
 
     pattern_1 = read_cv_file(pattern_paths[0])
     pattern_2 = read_cv_file(pattern_paths[1])
-    for filename in os.scandir(args.in_img_path):
-        if filename.is_file():
-            if not split_img(filename, pattern_1, pattern_2, pattern_offsets, args.save_path, args.prev_save_path,
-                             args.treshold):
-                print_to_cpp(f"Возможна неточность в: {filename.name}")
-                result.append(filename.name.split(".")[0])
+    cut_filenames: list[str] = []
+    cut_futures: list[Future] = []
+    with ThreadPoolExecutor(max_workers=threads_to_use) as e:
+        for filename in os.scandir(args.in_img_path):
+            if filename.is_file():
+                cut_filenames.append(filename.name)
+                cut_futures.append(
+                    e.submit(split_img, filename, pattern_1, pattern_2, pattern_offsets, args.save_path,
+                             args.prev_save_path, args.treshold))
+            # if not split_img(filename, pattern_1, pattern_2, pattern_offsets, args.save_path, args.prev_save_path,
+            #                  args.treshold):
+            # print_to_cpp(f"Возможна неточность в: {filename.name}")
+            # result.append(filename.name.split(".")[0])
+
+    for i, (res_future, res_filename) in enumerate(zip(cut_futures, cut_filenames)):
+        if not res_future.result():
+            result.append(res_filename.split(".")[0])
 
     print_to_cpp("Возможны неточности в: " + " ".join(result))
 

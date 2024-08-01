@@ -16,6 +16,8 @@ namespace LM
 
     Application* CreateApplication(ApplicationCommandLineArgs args)
     {
+        std::cout << "Create Application start" << std::endl;
+
         ApplicationSpecification spec;
         spec.Name = "InSearch Editor";
         spec.CommandLineArgs = args;

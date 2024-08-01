@@ -18,7 +18,7 @@ namespace LM
             [&](PythonCommand command) {
                 command.Execute([&](const char* buffer) {
                     std::lock_guard lock(m_ScriptBufferMtx);
-                    m_ScriptBuffer = buffer;
+                    m_ScriptBuffer += buffer;
                 });
 
                 m_IsScriptRuning = false;
@@ -47,9 +47,14 @@ namespace LM
             }
 
             ImGui::Separator();
+
+            ImGui::BeginChild("ChildL", ImVec2(0, 260), false,
+                              ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_HorizontalScrollbar);
             ImGui::Text("\n");
             DrawScriptBuffer();
             ImGui::Text("\n");
+            ImGui::EndChild();
+
             ImGui::Separator();
 
             bool isScriptRunning = m_IsScriptRuning.load();
@@ -74,6 +79,6 @@ namespace LM
     void ScriptPopup::DrawScriptBuffer()
     {
         std::lock_guard lock(m_ScriptBufferMtx);
-        ImGui::Text(m_ScriptBuffer.c_str());
+        ImGui::TextUnformatted(m_ScriptBuffer.c_str());
     }
 }    // namespace LM

@@ -1,14 +1,16 @@
 # exclude_test_data 0.png,1.png,102.png,2.png,3.png,4.png,5.png
+from concurrent.futures import Future, ThreadPoolExecutor
 import os
 import json
 import time
 
 from img2table.document import PDF, Image                                                                               # type: ignore
-from img2table.ocr import TesseractOCR, EasyOCR                                                                         # type: ignore
+from img2table.ocr import EasyOCR, PaddleOCR                                                                            # type: ignore
 
 from psutil import cpu_count                                                                                            # type: ignore
 
 from base import ArgsBase, parse_args, print_to_cpp, file_format_img, read_cv_file
+from mytesseract import TesseractOCR
 
 
 class Args(ArgsBase):
@@ -19,9 +21,12 @@ class Args(ArgsBase):
 
 
 threads_to_use = max(1, cpu_count() - 1)
-# ocr = TesseractOCR(n_threads=threads_to_use, lang="eng+rus", psm=6)
+ocr = TesseractOCR(n_threads=threads_to_use,
+                   lang="eng+rus",
+                   psm=6,
+                   tessdata_dir=r"C:\Work\WBI\insearch_wbi\assets\tessdata\tessdata_best")
 
-ocr = EasyOCR()
+# ocr = EasyOCR()
 
 # ocr = PaddleOCR()
 
@@ -58,20 +63,40 @@ def extract_tables_to_xlsx(args: Args):
 
     os.makedirs(args.save_path, exist_ok=True)
 
-    for filename in os.scandir(args.in_img_path):
-        if filename.is_file():
-            if filename.name in exclude_files:
-                print_to_cpp(f"Пропускается файл: {filename.name}")
-                continue
-            if (not extract_from_img(filename, args.save_path, args.min_confidence)):
-                print_to_cpp(f"Не удалось обработать: {filename.name}")
-                result.append(filename.name.split(".")[0])
+    # for filename in os.scandir(args.in_img_path):
+    #     if filename.is_file():
+    #         if filename.name in exclude_files:
+    #             print_to_cpp(f"Пропускается файл: {filename.name}")
+    #             continue
+    #         if (not extract_from_img(filename, args.save_path, args.min_confidence)):
+    #             print_to_cpp(f"Не удалось обработать: {filename.name}")
+    #             result.append(filename.name.split(".")[0])
 
-    print_to_cpp(f"Не удалось обработать: " + " ".join(result))
+    # print_to_cpp("Не удалось обработать: " + " ".join(result))
+
+    parsed_filenames: list[str] = []
+    parsed_futures: list[Future] = []
+    with ThreadPoolExecutor(max_workers=threads_to_use) as e:
+        for filename in os.scandir(args.in_img_path):
+            if filename.is_file():
+                if filename.name in exclude_files:
+                    print_to_cpp(f"Пропускается файл: {filename.name}")
+                    continue
+                parsed_filenames.append(filename.name)
+                parsed_futures.append(e.submit(extract_from_img, filename, args.save_path, args.min_confidence))
+                # if (not extract_from_img(filename, args.save_path, args.min_confidence)):
+                #     print_to_cpp(f"Не удалось обработать: {filename.name}")
+                #     result.append(filename.name.split(".")[0])
+
+    for i, (res_future, res_filename) in enumerate(zip(parsed_futures, parsed_filenames)):
+        if not res_future.result():
+            result.append(res_filename.split(".")[0])
+
+    print_to_cpp("Не удалось обработать: " + " ".join(result))
 
 
-# python .\extract_tables_to_xlsx.py C:/Coding/works/wbi/insearch_wbi/assets/projects/2023_08_15__18_31_58/cut_img/ C:/Coding/works/wbi/insearch_wbi/assets/projects/2023_08_15__18_31_58/xlsx_raw/ 6 0.png,1.png,102.png,2.png,3.png,4.png,5.png
+# python .\\extract_tables_to_xlsx.py C:/Coding/works/wbi/insearch_wbi/assets/projects/2023_08_15__18_31_58/cut_img/ C:/Coding/works/wbi/insearch_wbi/assets/projects/2023_08_15__18_31_58/xlsx_raw/ 6 0.png,1.png,102.png,2.png,3.png,4.png,5.png
 extract_tables_to_xlsx(parse_args(Args))
-   # ! python .\extract_tables_to_xlsx.py C:\Coding\works\wbi\ProjectsISC\Amati_2023_10_30\data\catalog\cut_img C:\Coding\works\wbi\ProjectsISC\Amati_2023_10_30\data\catalog\first_xlsx 6 none
+   # ! python .\\extract_tables_to_xlsx.py C:\\Coding\\works\\wbi\\ProjectsISC\\Amati_2023_10_30\\data\\catalog\\cut_img C:\\Coding\\works\\wbi\\ProjectsISC\\Amati_2023_10_30\\data\\catalog\\first_xlsx 6 none
 
-   # ! python -O -OO .\extract_tables_to_xlsx.py "C:\Coding\works\wbi\ProjectsISC\data/catalog/cut_by_pattern_img/" "C:\Coding\works\wbi\ProjectsISC\project.lmproj" "C:\Coding\works\wbi\ProjectsISC\data/catalog/raw_xlsx/" "6"
+   # ! python -O -OO .\\extract_tables_to_xlsx.py "C:\\Coding\\works\\wbi\\ProjectsISC\\data/catalog/cut_by_pattern_img/" "C:\\Coding\\works\\wbi\\ProjectsISC\\project.lmproj" "C:\\Coding\\works\\wbi\\ProjectsISC\\data/catalog/raw_xlsx/" "6"

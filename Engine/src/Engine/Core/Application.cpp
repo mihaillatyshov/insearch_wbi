@@ -15,16 +15,24 @@ namespace LM
 
     Application::Application(const ApplicationSpecification& specification) : m_Specification(specification)
     {
+        LOG_INIT();
+        LOGI("Application constructor start");
+
         CORE_ASSERT(!s_Instance, "Application already exists!");
         s_Instance = this;
-        
-        LOG_INIT();
+
         NFD_Init();
 
         // Set working directory here
         if (!m_Specification.WorkingDirectory.empty())
         {
             std::filesystem::current_path(m_Specification.WorkingDirectory);
+        }
+
+        if (specification.CommandLineArgs.Count == 2)
+        {
+            LOGI("CommadLineWorkingDirectory: ", specification.CommandLineArgs.Args[1]);
+            std::filesystem::current_path(specification.CommandLineArgs.Args[1]);
         }
 
         m_Window = Window::Create(WindowProps { m_Specification.Name });

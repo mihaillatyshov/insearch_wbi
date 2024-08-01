@@ -7,8 +7,8 @@ endif()
 project(Engine VERSION 1.0)
 
 set(SOURCES     
-    src/Engine/Core/Application.h           src/Engine/Core/Application.cpp         
-    src/Engine/Core/Window.h                src/Engine/Core/Window.cpp              
+    src/Engine/Core/Application.h                               src/Engine/Core/Application.cpp         
+    src/Engine/Core/Window.h                                    src/Engine/Core/Window.cpp              
     src/Engine/Core/Base.h
     src/Engine/Core/Timestep.h
     src/Engine/Core/Inputs.h
@@ -16,9 +16,13 @@ set(SOURCES
     src/Engine/Core/KeyCodes.h          
     src/Engine/Core/EntryPoint.h          
     src/Engine/Core/MouseCodes.h
+    
+    src/Engine/ImGui/imgui_impl_glfw.h                          src/Engine/ImGui/imgui_impl_glfw.cpp
+    src/Engine/ImGui/imgui_impl_opengl3.h                       src/Engine/ImGui/imgui_impl_opengl3.cpp
+    src/Engine/ImGui/imgui_impl_opengl3_loader.h            
 
-    src/Engine/Textures/Texture2D.h         src/Engine/Textures/Texture2D.cpp
-    src/Engine/Textures/TextureLoader.h     src/Engine/Textures/TextureLoader.cpp
+    src/Engine/Textures/Texture2D.h                             src/Engine/Textures/Texture2D.cpp
+    src/Engine/Textures/TextureLoader.h                         src/Engine/Textures/TextureLoader.cpp
     
     src/Engine/Events/Event.h
     src/Engine/Events/KeyEvent.h
@@ -26,13 +30,13 @@ set(SOURCES
     src/Engine/Events/WindowEvent.h
     src/Engine/Events/EventDispatcher.h 
     
-    src/Engine/Layers/Layer.h               src/Engine/Layers/Layer.cpp             
-    src/Engine/Layers/LayerStack.h          src/Engine/Layers/LayerStack.cpp        
-    src/Engine/Layers/ImGuiLayer.h          src/Engine/Layers/ImGuiLayer.cpp        
+    src/Engine/Layers/Layer.h                                   src/Engine/Layers/Layer.cpp             
+    src/Engine/Layers/LayerStack.h                              src/Engine/Layers/LayerStack.cpp        
+    src/Engine/Layers/ImGuiLayer.h                              src/Engine/Layers/ImGuiLayer.cpp        
 
-    # src/Engine/Utils/Timer.h
-    # src/Engine/Utils/DataLoading.h
-    src/Engine/Utils/ConsoleLog.h           src/Engine/Utils/ConsoleLog.cpp         
+    # src/Engine/Utils/Timer.h          
+    # src/Engine/Utils/DataLoading.h            
+    src/Engine/Utils/ConsoleLog.h                               src/Engine/Utils/ConsoleLog.cpp         
     src/Engine/Utils/FileDialogs.h
     src/Engine/Utils/json.hpp
     src/Engine/Utils/utf8.h
@@ -66,7 +70,7 @@ include(FetchContent)
 FetchContent_Declare(
     glfw
     GIT_REPOSITORY https://github.com/glfw/glfw.git
-    GIT_TAG dd8a678a66f1967372e5a5e3deac41ebf65ee127
+    GIT_TAG b35641f4a3c62aa86a0b3c983d163bc0fe36026d
 )
 FetchContent_MakeAvailable(glfw)
 

@@ -70,7 +70,7 @@ namespace LM
             s_Instance = Ref<ConsoleLog>(new ConsoleLog());
             std::unique_lock Lock(s_Instance->m_Mtx);
 #ifdef _WIN32
-            std::system("cls");
+            //std::system("cls");
 #endif
         }
 

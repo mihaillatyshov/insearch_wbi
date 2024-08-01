@@ -28,6 +28,10 @@ namespace LM
             glfwGetMonitorPos(monitors[i], &monitor_position[0], &monitor_position[1]);
 
             const GLFWvidmode* monitor_video_mode = glfwGetVideoMode(monitors[i]);
+            if (monitor_video_mode == nullptr)
+            {
+                continue;
+            }
 
             int monitor_rectangle[4] = {
                 monitor_position[0],

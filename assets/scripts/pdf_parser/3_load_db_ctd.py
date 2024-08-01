@@ -58,6 +58,7 @@ xl_file_dso = openpyxl.Workbook()
 dso_sheet = xl_file_dso.active
 dso_sheet.title = 'first'
 xl_file_dso.save(dest_export_path)
+xl_file_dso.close()
 
 ## Подключаемся к БД
 co, cu = open_connection()

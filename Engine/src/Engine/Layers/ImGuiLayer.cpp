@@ -5,15 +5,15 @@
 #include <imgui.h>
 #include <imgui_internal.h>
 
-#include <backends/imgui_impl_glfw.h>
-#include <backends/imgui_impl_opengl3.h>
+#include <Engine/ImGui/imgui_impl_glfw.h>
+#include <Engine/ImGui/imgui_impl_opengl3.h>
 
 #include "Engine/Core/Application.h"
 #include "Engine/Core/Inputs.h"
 #include "Engine/Events/EventDispatcher.h"
 #include "Engine/Utils/json.hpp"
 
-// TEMPORARY
+// TODO: Remove TEMPORARY
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 
@@ -193,6 +193,11 @@ namespace LM
 
     void ImGuiLayer::ChangeFontSize(bool _NeedUpdateFontTexture)
     {
+        if (m_FontSize == 0)
+        {
+            return;
+        }
+
 #if USE_CUSTOM_FONT
         if (m_ChangeSize)
         {
