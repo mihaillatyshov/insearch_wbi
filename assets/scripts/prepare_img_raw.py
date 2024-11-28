@@ -68,6 +68,7 @@ def prepare_img_raw(args: Args):
     pdf_info = pdfinfo_from_bytes(pdf_bytes)
     # * print("pdfinfo_from_bytes: ", pdfinfo_from_bytes(pdf_bytes))
     start_page = 1                                                                                                      # * pdfinfo_from_bytes["Page_rot"] ???
+
     for i in range(pdf_info["Pages"]):
         print_to_cpp(f"Конвертируется страница ({i})")
         img = convert_from_bytes(pdf_bytes,

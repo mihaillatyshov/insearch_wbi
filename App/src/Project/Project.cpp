@@ -1,17 +1,17 @@
 #include "Project/Project.h"
 
-#include <chrono>
-#include <filesystem>
-#include <format>
-#include <fstream>
+#include "ImGui/Overlays/Overlay.h"
+#include "Serializer/Serializer.h"
 
 #include "Engine/Utils/ConsoleLog.h"
 #include "Engine/Utils/FileDialogs.h"
 #include "Engine/Utils/json.hpp"
 #include "Engine/Utils/utf8.h"
 
-#include "ImGui/Overlays/Overlay.h"
-#include "Serializer/Serializer.h"
+#include <chrono>
+#include <filesystem>
+#include <format>
+#include <fstream>
 
 namespace LM
 {
@@ -23,7 +23,7 @@ namespace LM
         std::ofstream fout(_FileName.data());
         if (!fout.is_open())
         {
-            Overlay::Get()->Start(Format(U8("ÕÂ Û‰‡ÎÓÒ¸ ÒÓı‡ÌËÚ¸ ÔÓÂÍÚ: \n{}"), _FileName));
+            Overlay::Get()->Start(Format("–ù–µ —É–¥–∞–ª–æ—Å—å —Å–æ—Ö—Ä–∞–Ω–∏—Ç—å –ø—Ä–æ–µ–∫—Ç: \n{}", _FileName));
             return false;
         }
         fout << std::setw(4) << _Json;
@@ -65,7 +65,7 @@ namespace LM
         std::ifstream infile(_FileName);
         if (!infile.is_open())
         {
-            Overlay::Get()->Start(Format(U8("ÕÂ Û‰‡ÎÓÒ¸ ÓÚÍ˚Ú¸ ÔÓÂÍÚ: \n{}"), _FileName));
+            Overlay::Get()->Start(Format("–ù–µ —É–¥–∞–ª–æ—Å—å –æ—Ç–∫—Ä—ã—Ç—å –ø—Ä–æ–µ–∫—Ç: \n{}", _FileName));
             return s_ProjectNotOpen;
         }
 
@@ -76,18 +76,18 @@ namespace LM
 
             if (!Serializer::DeSerialize(project, json))
             {
-                Overlay::Get()->Start(Format(U8("ÕÂ ‚ÂÌ˚È ÙÓÏ‡Ú ÔÓÂÍÚ‡: \n{}"), _FileName));
+                Overlay::Get()->Start(Format("–ù–µ –≤–µ—Ä–Ω—ã–π —Ñ–æ—Ä–º–∞—Ç –ø—Ä–æ–µ–∫—Ç–∞: \n{}", _FileName));
                 return s_ProjectNotOpen;
             }
             project->m_LastBuildCatalog =
                 project->m_Catalog.NeedRebuild ? Catalog::CreateDefaultLastBuildCatalog() : project->m_Catalog;
-            Overlay::Get()->Start(Format(U8("œÓÂÍÚ ÛÒÔÂ¯ÌÓ ÓÚÍ˚Ú: \n{}"), _FileName));
+            Overlay::Get()->Start(Format("–ü—Ä–æ–µ–∫—Ç —É—Å–ø–µ—à–Ω–æ –æ—Ç–∫—Ä—ã—Ç: \n{}", _FileName));
 
             return project;
         }
         catch (...)
         {
-            Overlay::Get()->Start(Format(U8("Œ¯Ë·Í‡ ‚Ó ‚ÂÏˇ ˜ÚÂÌËˇ ÙÓÏ‡Ú‡ json: \n{}"), _FileName));
+            Overlay::Get()->Start(Format("–û—à–∏–±–∫–∞ –≤–æ –≤—Ä–µ–º—è —á—Ç–µ–Ω–∏—è —Ñ–æ—Ä–º–∞—Ç–∞ json: \n{}", _FileName));
         }
 
         return s_ProjectNotOpen;

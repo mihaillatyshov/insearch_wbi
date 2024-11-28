@@ -30,7 +30,7 @@ namespace LM
 
     protected:
         virtual std::string GetBasePath() const override { return m_Project->GetRawImgPrevPath(); }
-        virtual const char* GetWindowName() const override { return U8("Начальные картинки"); }
+        virtual const char* GetWindowName() const override { return "РќР°С‡Р°Р»СЊРЅС‹Рµ РєР°СЂС‚РёРЅРєРё"; }
 
         virtual void DrawTopMenuExtras() override;
         virtual void DrawExtras() override;

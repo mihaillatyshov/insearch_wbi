@@ -15,7 +15,6 @@ namespace LM
 {
 
     class Serializer;
-    class NewSerializer;
 
     class Project
     {
@@ -107,7 +106,6 @@ namespace LM
 
     public:
         friend Serializer;
-        friend NewSerializer;
 
         static inline const Ref<Project> s_ProjectNotOpen = Ref<Project>();
         static inline const std::string s_ProjectFileName = "project.lmproj";

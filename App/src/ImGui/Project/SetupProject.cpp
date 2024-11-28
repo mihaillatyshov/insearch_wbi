@@ -30,31 +30,30 @@ namespace LM
             return;
         }
 
-        if (ImGui::Begin(U8("Настройка проекта")))
+        if (ImGui::Begin("Настройка проекта"))
         {
-            if (ImGui::TreeNodeEx(U8("Базовые пути"), ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed))
+            if (ImGui::TreeNodeEx("Базовые пути", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed))
             {
-                ImGui::Text(U8("Папка проекта: %s"), _Project->GetFolder().c_str());
+                ImGui::Text("Папка проекта: %s", _Project->GetFolder().c_str());
 
                 ImGui::TreePop();
             }
 
-            if (ImGui::TreeNodeEx(U8("Настройки каталога"), ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed))
+            if (ImGui::TreeNodeEx("Настройки каталога", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed))
             {
                 DrawCatalog(_Project);
 
                 ImGui::TreePop();
             }
 
-            if (ImGui::TreeNodeEx(U8("Обрезание по паттерну"),
-                                  ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed))
+            if (ImGui::TreeNodeEx("Обрезание по паттерну", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed))
             {
                 DrawImgsByCutPattern(_Project);
 
                 ImGui::TreePop();
             }
 
-            if (ImGui::TreeNodeEx(U8("Генерация первого Excel"),
+            if (ImGui::TreeNodeEx("Генерация первого Excel",
                                   ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed))
             {
                 DrawGenRawExcel(_Project);
@@ -67,8 +66,8 @@ namespace LM
 
     void SetupProject::DrawCatalog(Ref<Project> _Project)
     {
-        ImGui::Text(U8("Оригинал каталога: %s"), _Project->GetCatalogBaseFilename().c_str());
-        if (ImGui::Button(U8("Изменить оригинал каталога")))
+        ImGui::Text("Оригинал каталога: %s", _Project->GetCatalogBaseFilename().c_str());
+        if (ImGui::Button("Изменить оригинал каталога"))
         {
             if (std::string filename = FileDialogs::OpenFile(kFileDialogsFilter); filename != std::string())
             {
@@ -83,27 +82,27 @@ namespace LM
                 catch (const std::filesystem::filesystem_error& err)
                 {
                     Overlay::Get()->Start(
-                        Format(U8("Не удалось изменить файл каталога: \n{} \nПричина: {}"), filename, err.what()));
+                        Format("Не удалось изменить файл каталога: \n{} \nПричина: {}", filename, err.what()));
                     LOGE("File copy error (", filename, "),    ", "filesystem error: ", err.what());
                 }
             }
         }
 
         bool splitPages = _Project->GetCatalogSplitPages();
-        if (ImGui::Checkbox(U8("Разделить страницу на две картинки"), &splitPages))
+        if (ImGui::Checkbox("Разделить страницу на две картинки", &splitPages))
         {
             _Project->SetCatalogSplitPages(splitPages);
         }
 
         int multi = _Project->GetCatalogImgQuality();
-        if (ImGui::SliderInt(U8("Качество картинки"), &multi, 1, 6))
+        if (ImGui::SliderInt("Качество картинки", &multi, 1, 6))
         {
             _Project->SetCatalogImgQuality(multi);
         }
 
         ImGui::Spacing();
 
-        if (ImGui::Button(U8("Сгенерировать картинки из PDF")))
+        if (ImGui::Button("Сгенерировать картинки из PDF"))
         {
             GenCatalogRawImages(_Project);
         }
@@ -111,7 +110,7 @@ namespace LM
         if (_Project->GetCatalogNeedRebuild() && _Project->GetCatalogBaseFilename() != std::string())
         {
             ImGui::SameLine();
-            ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), U8("Каталог нужно перегенерировать"));
+            ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Каталог нужно перегенерировать");
         }
     }
 
@@ -119,17 +118,17 @@ namespace LM
     {
         if (_Project->GetCatalogTopLeftPattern().IsExists())
         {
-            ImGui::Text(U8("Верхний левый паттерн"));
-            ImGui::Text(U8("На странице: %d"), _Project->GetCatalogTopLeftPattern().PageId);
+            ImGui::Text("Верхний левый паттерн");
+            ImGui::Text("На странице: %d", _Project->GetCatalogTopLeftPattern().PageId);
         }
 
         if (_Project->GetCatalogBotRightPattern().IsExists())
         {
-            ImGui::Text(U8("Нижний правый паттерн"));
-            ImGui::Text(U8("На странице: %d"), _Project->GetCatalogBotRightPattern().PageId);
+            ImGui::Text("Нижний правый паттерн");
+            ImGui::Text("На странице: %d", _Project->GetCatalogBotRightPattern().PageId);
         }
 
-        if (ImGui::Button(U8("Обрезать каталог по паттернам")))
+        if (ImGui::Button("Обрезать каталог по паттернам"))
         {
             GenImgsByCutPattern(_Project);
         }
@@ -137,19 +136,19 @@ namespace LM
         if (_Project->GetIsCatalogGenerated() && _Project->GetImgsByCutPatternNeedRebuild())
         {
             ImGui::SameLine();
-            ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), U8("Картинки нужно обрезать"));
+            ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Картинки нужно обрезать");
         }
     }
 
     void SetupProject::DrawGenRawExcel(Ref<Project> _Project)
     {
         bool useCutPatterntImgs = _Project->GetRawExcelUseCutPatternImgs();
-        if (ImGui::Checkbox(U8("Использовать обрезанные картинки"), &useCutPatterntImgs))
+        if (ImGui::Checkbox("Использовать обрезанные картинки", &useCutPatterntImgs))
         {
             _Project->SetRawExcelUseCutPatternImgs(useCutPatterntImgs);
         }
 
-        if (ImGui::Button(U8("Сгенерировать Excel")))
+        if (ImGui::Button("Сгенерировать Excel"))
         {
             GenRawExcel(_Project);
         }
@@ -157,7 +156,7 @@ namespace LM
         if (_Project->GetIsImgsByCutPatternGenerated() && _Project->GetRawExcelNeedRebuild())
         {
             ImGui::SameLine();
-            ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), U8("Файлы Excel нужно перегенерировать"));
+            ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Файлы Excel нужно перегенерировать");
         }
     }
 
@@ -165,7 +164,7 @@ namespace LM
     {
         if (_Project->GetCatalogBaseFilename() == std::string())
         {
-            Overlay::Get()->Start(U8("Каталог не выбран!"));
+            Overlay::Get()->Start("Каталог не выбран!");
             return;
         }
 
@@ -179,37 +178,36 @@ namespace LM
         pythonCommand.AddArg(_Project->GetCatalogImgQuality());
         pythonCommand.AddArg(_Project->GetCatalogSplitPages());
 
-        ScriptPopup::Get()->OpenPopup(pythonCommand,
-                                      { U8("Генерация картинок из PDF"),
-                                        []() {
-                                            ImGui::Text(U8("Работает скрипт преобразования pdf в картинки"));
-                                            ImGui::Text(U8("Это может занять несколько минут"));
-                                            ImGui::Text(U8("После его завершения можно закрыть это окно"));
-                                        },
-                                        [=]() {
-                                            _Project->OnGenCatalogRawImgs();
-                                            Project::Save(_Project);
-                                            TextureManager::RemoveAll();
-                                        } });
+        ScriptPopup::Get()->OpenPopup(pythonCommand, { "Генерация картинок из PDF",
+                                                       []() {
+                                                           ImGui::Text("Работает скрипт преобразования pdf в картинки");
+                                                           ImGui::Text("Это может занять несколько минут");
+                                                           ImGui::Text("После его завершения можно закрыть это окно");
+                                                       },
+                                                       [=]() {
+                                                           _Project->OnGenCatalogRawImgs();
+                                                           Project::Save(_Project);
+                                                           TextureManager::RemoveAll();
+                                                       } });
     }
 
     void SetupProject::GenImgsByCutPattern(Ref<Project> _Project)
     {
         if (!_Project->GetCatalogTopLeftPattern().IsExists())
         {
-            Overlay::Get()->Start(U8("Левый верхний паттерн отсутствует!"));
+            Overlay::Get()->Start("Левый верхний паттерн отсутствует!");
             return;
         }
 
         if (!_Project->GetCatalogBotRightPattern().IsExists())
         {
-            Overlay::Get()->Start(U8("Правый нижний паттерн отсутствует!"));
+            Overlay::Get()->Start("Правый нижний паттерн отсутствует!");
             return;
         }
 
         if (!_Project->GetIsCatalogGenerated())
         {
-            Overlay::Get()->Start(U8("Каталог не сгенерирован!"));
+            Overlay::Get()->Start("Каталог не сгенерирован!");
             return;
         }
 
@@ -226,18 +224,17 @@ namespace LM
         pythonCommand.AddArg(_Project->GetCatalogSplitPages());
         pythonCommand.AddArg("0.99");
 
-        ScriptPopup::Get()->OpenPopup(pythonCommand,
-                                      { U8("Обрезание картинок каталога"),
-                                        []() {
-                                            ImGui::Text(U8("Работает скрипт обрезания картинок"));
-                                            ImGui::Text(U8("Это может занять несколько минут"));
-                                            ImGui::Text(U8("После его завершения можно закрыть это окно"));
-                                        },
-                                        [=]() {
-                                            _Project->OnGenImgsByCutPattern();
-                                            Project::Save(_Project);
-                                            TextureManager::RemoveAll();
-                                        } });
+        ScriptPopup::Get()->OpenPopup(pythonCommand, { "Обрезание картинок каталога",
+                                                       []() {
+                                                           ImGui::Text("Работает скрипт обрезания картинок");
+                                                           ImGui::Text("Это может занять несколько минут");
+                                                           ImGui::Text("После его завершения можно закрыть это окно");
+                                                       },
+                                                       [=]() {
+                                                           _Project->OnGenImgsByCutPattern();
+                                                           Project::Save(_Project);
+                                                           TextureManager::RemoveAll();
+                                                       } });
     }
 
     void SetupProject::GenRawExcel(Ref<Project> _Project)
@@ -245,13 +242,13 @@ namespace LM
         bool useCutPatterntImgs = _Project->GetRawExcelUseCutPatternImgs();
         if (!_Project->GetIsImgsByCutPatternGenerated() && useCutPatterntImgs)
         {
-            Overlay::Get()->Start(U8("Обрезаные картинки по паттерну не сгенерированы!"));
+            Overlay::Get()->Start("Обрезаные картинки по паттерну не сгенерированы!");
             return;
         }
 
         if (!_Project->GetIsCatalogGenerated() && !useCutPatterntImgs)
         {
-            Overlay::Get()->Start(U8("Каталог не сгенерирован!"));
+            Overlay::Get()->Start("Каталог не сгенерирован!");
             return;
         }
 
@@ -264,17 +261,16 @@ namespace LM
         pythonCommand.AddArg(_Project->GetRawExcelPath());
         pythonCommand.AddArg(6);
 
-        ScriptPopup::Get()->OpenPopup(pythonCommand,
-                                      { U8("Генерация Excel из картинок"),
-                                        []() {
-                                            ImGui::Text(U8("Работает скрипт генерации Excel"));
-                                            ImGui::Text(U8("Это может занять несколько минут"));
-                                            ImGui::Text(U8("После его завершения можно закрыть это окно"));
-                                        },
-                                        [=]() {
-                                            _Project->OnGenRawExcel();
-                                            Project::Save(_Project);
-                                        } });
+        ScriptPopup::Get()->OpenPopup(pythonCommand, { "Генерация Excel из картинок",
+                                                       []() {
+                                                           ImGui::Text("Работает скрипт генерации Excel");
+                                                           ImGui::Text("Это может занять несколько минут");
+                                                           ImGui::Text("После его завершения можно закрыть это окно");
+                                                       },
+                                                       [=]() {
+                                                           _Project->OnGenRawExcel();
+                                                           Project::Save(_Project);
+                                                       } });
     }
 
 }    // namespace LM

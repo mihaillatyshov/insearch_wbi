@@ -29,7 +29,7 @@ namespace LM
             LOGE("Clicked invisible button");
         }*/
 
-        if (ImGui::Button(U8("Test Excel")))
+        if (ImGui::Button("Test Excel"))
         {
             xlnt::workbook wb;
             xlnt::worksheet ws = wb.active_sheet();
@@ -50,7 +50,7 @@ namespace LM
                 LOGW("xlnt::cell::type::inline_string == ws.cell({ 2, 2 }).data_type()");
             }
             ws.freeze_panes({ 2, 2 });
-            //wb.save("example.xlsx");
+            // wb.save("example.xlsx");
         }
 
         ImGui::Separator();

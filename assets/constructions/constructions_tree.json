@@ -1,0 +1,2208 @@
+{
+    "nodes": [
+        {
+            "key": "boring_system",
+            "img_link": "entity_image/boring_system.jpg",
+            "text": "Расточные системы и их элементы",
+            "level_name": "entities",
+            "nodes": [
+                {
+                    "key": "boring_system_adapters",
+                    "img_link": "toolgroup_image/boring_system_adapters.png",
+                    "toolgroup_rushort": "Переходники и адаптеры",
+                    "text": "Адаптеры и переходники расточных систем",
+                    "level_name": "toolgroups",
+                    "nodes": [
+                        {
+                            "key": "ctd_bs_adapter1",
+                            "img_link": "constr_image/ctd_bs_adapter1.png",
+                            "drw_link": "constr_drawing/ctd_bs_adapter1.png",
+                            "constr_rushort": "Переходник-удлинитель",
+                            "text": "Переходник-удлинитель расточной системы",
+                            "level_name": "constrs",
+                            "qty": 0
+                        }
+                    ]
+                },
+                {
+                    "key": "boring_system_arbors",
+                    "img_link": "toolgroup_image/boring_system_arbors.png",
+                    "toolgroup_rushort": "Оправки и патроны расточных систем",
+                    "text": "Базовые оправки и патроны к расточным системам ",
+                    "level_name": "toolgroups",
+                    "nodes": [
+                        {
+                            "key": "ctd_bs_arbor",
+                            "img_link": "constr_image/ctd_bs_arbor.png",
+                            "drw_link": "constr_drawing/ctd_bs_arbor.png",
+                            "constr_rushort": "Базовая оправка",
+                            "text": "Базовая оправка расточной системы",
+                            "level_name": "constrs",
+                            "qty": 0
+                        }
+                    ]
+                },
+                {
+                    "key": "boring_system_bridges",
+                    "img_link": "toolgroup_image/boring_system_bridges.png",
+                    "toolgroup_rushort": "Борштанги расточных систем",
+                    "text": "Борштанги расточных систем",
+                    "level_name": "toolgroups",
+                    "nodes": [
+                        {
+                            "key": "ctd_bs_bridge",
+                            "img_link": "constr_image/ctd_bs_bridge.png",
+                            "drw_link": "constr_drawing/ctd_bs_bridge.png",
+                            "constr_rushort": "Борштанга для расточной системы",
+                            "text": "Борштанга для расточной системы",
+                            "level_name": "constrs",
+                            "qty": 0
+                        }
+                    ]
+                },
+                {
+                    "key": "boring_system_heads",
+                    "img_link": "toolgroup_image/boring_system_heads.png",
+                    "toolgroup_rushort": "Головки расточные",
+                    "text": "Головки расточных систем",
+                    "level_name": "toolgroups",
+                    "nodes": [
+                        {
+                            "key": "ctd_bs_head",
+                            "img_link": "constr_image/ctd_bs_head.png",
+                            "drw_link": "constr_drawing/ctd_bs_head.png",
+                            "constr_rushort": "Расточная головка",
+                            "text": "Расточная головка для кассет или/и резцов",
+                            "level_name": "constrs",
+                            "qty": 5
+                        }
+                    ]
+                },
+                {
+                    "key": "boring_system_cartridges",
+                    "img_link": "toolgroup_image/boring_system_cartridges.png",
+                    "toolgroup_rushort": "Картриджи и резцы расточных систем",
+                    "text": "Картриджи и резцы расточных систем",
+                    "level_name": "toolgroups",
+                    "nodes": [
+                        {
+                            "key": "ctd_bs_cart_adj",
+                            "img_link": "constr_image/ctd_bs_cart_adj.png",
+                            "drw_link": "constr_drawing/ctd_bs_cart_adj.png",
+                            "constr_rushort": "Регулируемый картридж с пластиной",
+                            "text": "Регулируемый картридж с пластиной",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_bs_cart_head",
+                            "img_link": "constr_image/ctd_bs_cart_head.png",
+                            "drw_link": "constr_drawing/ctd_bs_cart_head.png",
+                            "constr_rushort": "Регулируемый резец с пластиной",
+                            "text": "Регулируемый резец с пластиной",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_bs_carte",
+                            "img_link": "constr_image/ctd_bs_carte.png",
+                            "drw_link": "constr_drawing/ctd_bs_carte.png",
+                            "constr_rushort": "Нерегулируемый картридж для расточной системы",
+                            "text": "Нерегулируемый картридж для расточной системы",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_bs_carti_indexable",
+                            "img_link": "constr_image/ctd_bs_carti_indexable.png",
+                            "drw_link": "constr_drawing/ctd_bs_carti_indexable.png",
+                            "constr_rushort": "Нерегулируемый расточной резец",
+                            "text": "Нерегулируемый расточной сборный резец",
+                            "level_name": "constrs",
+                            "qty": 7
+                        },
+                        {
+                            "key": "ctd_bs_carti_solid",
+                            "img_link": "constr_image/ctd_bs_carti_solid.png",
+                            "drw_link": "constr_drawing/ctd_bs_carti_solid.png",
+                            "constr_rushort": "Нерегулируемый расточной цельный резец",
+                            "text": "Нерегулируемый расточной цельный резец",
+                            "level_name": "constrs",
+                            "qty": 3
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "key": "connector",
+            "img_link": "entity_image/connector.jpg",
+            "text": "Соединительные элементы",
+            "level_name": "entities",
+            "nodes": [
+                {
+                    "key": "cartridges",
+                    "img_link": "toolgroup_image/cartridges.png",
+                    "toolgroup_rushort": "Картриджи",
+                    "text": "Картриджи",
+                    "level_name": "toolgroups",
+                    "nodes": [
+                        {
+                            "key": "ctd_mi_cap",
+                            "img_link": "constr_image/ctd_mi_cap.png",
+                            "drw_link": "constr_drawing/ctd_mi_cap.png",
+                            "constr_rushort": "Насадка для сборных фрез",
+                            "text": "Насадка для сборных фрез",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_mi_cartmill1",
+                            "img_link": "constr_image/ctd_mi_cartmill1.png",
+                            "drw_link": "constr_drawing/ctd_mi_cartmill1.png",
+                            "constr_rushort": "Картридж фрезерный",
+                            "text": "Картридж для сборных фрез",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_tca",
+                            "img_link": "constr_image/ctd_tca.png",
+                            "drw_link": "constr_drawing/ctd_tca.png",
+                            "constr_rushort": "Картридж расточной по ISO 5611",
+                            "text": "Резец-вставка (картридж расточной)",
+                            "level_name": "constrs",
+                            "qty": 0
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "key": "cutting_elements",
+            "img_link": "entity_image/cutting_elements.jpg",
+            "text": "Сменные режущие элементы",
+            "level_name": "entities",
+            "nodes": [
+                {
+                    "key": "multi_tooth_inserts",
+                    "img_link": "toolgroup_image/multi_tooth_inserts.png",
+                    "toolgroup_rushort": "Многозубые режущие насадки",
+                    "text": "Многозубые режущие насадки",
+                    "level_name": "toolgroups",
+                    "nodes": [
+                        {
+                            "key": "ctd_mko_radial_groove",
+                            "img_link": "constr_image/ctd_mko_radial_groove.png",
+                            "drw_link": "constr_drawing/ctd_mko_radial_groove.png",
+                            "constr_rushort": "Многозубая насадка для обработки радиальных канавок и отрезки",
+                            "text": "Насадка-пластина фрезерная для обработки радиальных канавок и отрезки",
+                            "level_name": "constrs",
+                            "qty": 56
+                        },
+                        {
+                            "key": "ctd_mko_tslots",
+                            "img_link": "constr_image/ctd_mko_tslots.png",
+                            "drw_link": "constr_drawing/ctd_mko_tslots.png",
+                            "constr_rushort": "Многозубая насадка для обработки Т-образных пазов",
+                            "text": "Насадка-пластина фрезерная для обработки Т-образных пазов",
+                            "level_name": "constrs",
+                            "qty": 0
+                        }
+                    ]
+                },
+                {
+                    "key": "inserts",
+                    "img_link": "toolgroup_image/inserts.png",
+                    "toolgroup_rushort": "Пластины",
+                    "text": "Пластины",
+                    "level_name": "toolgroups",
+                    "nodes": [
+                        {
+                            "key": "ctd_inserts",
+                            "img_link": "constr_image/ctd_inserts.png",
+                            "drw_link": "constr_drawing/ctd_inserts.png",
+                            "constr_rushort": "Сменная многогранная пластина",
+                            "text": "Пластина сменная многогранная режущая",
+                            "level_name": "constrs",
+                            "qty": 121397
+                        },
+                        {
+                            "key": "ctd_inserts_dh1",
+                            "img_link": "constr_image/ctd_inserts_dh1.png",
+                            "drw_link": "constr_drawing/ctd_inserts_dh1.png",
+                            "constr_rushort": "Головка (центр. пластина) сверлильная",
+                            "text": "Головка (центральная пластина) сверлильная",
+                            "level_name": "constrs",
+                            "qty": 170
+                        },
+                        {
+                            "key": "ctd_inserts_drilling",
+                            "img_link": "constr_image/ctd_inserts_drilling.png",
+                            "drw_link": "constr_drawing/ctd_inserts_drilling.png",
+                            "constr_rushort": "Пластина сменная сверлильная",
+                            "text": "Пластина сменная режущая сверлильная",
+                            "level_name": "constrs",
+                            "qty": 4267
+                        },
+                        {
+                            "key": "ctd_inserts_grooving",
+                            "img_link": "constr_image/ctd_inserts_grooving.png",
+                            "drw_link": "constr_drawing/ctd_inserts_grooving.png",
+                            "constr_rushort": "Пластина для обработки канавок",
+                            "text": "Пластины устанавливаемые на державки для обработки канавок",
+                            "level_name": "constrs",
+                            "qty": 26888
+                        },
+                        {
+                            "key": "ctd_inserts_plungturning",
+                            "img_link": "constr_image/ctd_inserts_plungturning.png",
+                            "drw_link": "constr_drawing/ctd_inserts_plungturning.png",
+                            "constr_rushort": "Пластина для обратного точения",
+                            "text": "Пластина для наружного обратного точения",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_inserts_threading",
+                            "img_link": "constr_image/ctd_inserts_threading.png",
+                            "drw_link": "constr_drawing/ctd_inserts_threading.png",
+                            "constr_rushort": "Пластина резьбовая",
+                            "text": "Пластина резьбовая",
+                            "level_name": "constrs",
+                            "qty": 46799
+                        },
+                        {
+                            "key": "ctd_inserts_threading_2surf",
+                            "img_link": "constr_image/ctd_inserts_threading_2surf.png",
+                            "drw_link": "constr_drawing/ctd_inserts_threading_2surf.png",
+                            "constr_rushort": "Пластина для внутренних и наружных резьб",
+                            "text": "Пластина для наружных и внутренних резьб",
+                            "level_name": "constrs",
+                            "qty": 41
+                        }
+                    ]
+                },
+                {
+                    "key": "small_claw_inserts",
+                    "img_link": "toolgroup_image/small_claw_inserts.png",
+                    "toolgroup_rushort": "Насадки режущие",
+                    "text": "Режущие насадки",
+                    "level_name": "toolgroups",
+                    "nodes": [
+                        {
+                            "key": "ctd_tko_back_boring",
+                            "img_link": "constr_image/ctd_tko_back_boring.png",
+                            "drw_link": "constr_drawing/ctd_tko_back_boring.png",
+                            "constr_rushort": "Насадка режущая для обратной расточки",
+                            "text": "Насадка-пластина для обратного растачивания",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_tko_chamfer_preparting",
+                            "img_link": "constr_image/ctd_tko_chamfer_preparting.png",
+                            "drw_link": "constr_drawing/ctd_tko_chamfer_preparting.png",
+                            "constr_rushort": "Насадка режущая для обработки фасок",
+                            "text": "Насадка-пластина для обработки фасок или подготовки к отрезке",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_tko_face_fullround",
+                            "img_link": "constr_image/ctd_tko_face_fullround.png",
+                            "drw_link": "constr_drawing/ctd_tko_face_fullround.png",
+                            "constr_rushort": "Насадка режущая для обработки полнорадиусных торцовых канавок",
+                            "text": "Насадка-пластина для обработки полнорадиусных торцовых канавок",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_tko_face_groove",
+                            "img_link": "constr_image/ctd_tko_face_groove.png",
+                            "drw_link": "constr_drawing/ctd_tko_face_groove.png",
+                            "constr_rushort": "Насадка режущая для обработки торцовых канавок",
+                            "text": "Насадка-пластина для обработки торцовых канавок",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_tko_radial_fullround",
+                            "img_link": "constr_image/ctd_tko_radial_fullround.png",
+                            "drw_link": "constr_drawing/ctd_tko_radial_fullround.png",
+                            "constr_rushort": "Насадка режущая для обработки полнорадиусных радиальных канавок",
+                            "text": "Насадка-пластина для обработки полнорадиусных радиальных канавок",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_tko_radial_groove",
+                            "img_link": "constr_image/ctd_tko_radial_groove.png",
+                            "drw_link": "constr_drawing/ctd_tko_radial_groove.png",
+                            "constr_rushort": "Насадка режущая для обработки радиальных канавок",
+                            "text": "Насадка-пластина для обработки радиальных канавок",
+                            "level_name": "constrs",
+                            "qty": 73
+                        },
+                        {
+                            "key": "ctd_tko_thread",
+                            "img_link": "constr_image/ctd_tko_thread.png",
+                            "drw_link": "constr_drawing/ctd_tko_thread.png",
+                            "constr_rushort": "Насадка режущая для обработки резьбы",
+                            "text": "Насадка-пластина для обработки резьб",
+                            "level_name": "constrs",
+                            "qty": 50
+                        },
+                        {
+                            "key": "ctd_tko_turn",
+                            "img_link": "constr_image/ctd_tko_turn.png",
+                            "drw_link": "constr_drawing/ctd_tko_turn.png",
+                            "constr_rushort": "Насадка режущая для расточки",
+                            "text": "Насадка-пластина для растачивания",
+                            "level_name": "constrs",
+                            "qty": 0
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "key": "drill",
+            "img_link": "entity_image/drill.jpg",
+            "text": "Сверлильные инструменты",
+            "level_name": "entities",
+            "nodes": [
+                {
+                    "key": "indexable_drills",
+                    "img_link": "toolgroup_image/indexable_drills.png",
+                    "toolgroup_rushort": "Свёрла сборные",
+                    "text": "Сборные свёрла",
+                    "level_name": "toolgroups",
+                    "nodes": [
+                        {
+                            "key": "ctd_die_2",
+                            "img_link": "constr_image/ctd_die_2.png",
+                            "drw_link": "constr_drawing/ctd_die_2.png",
+                            "constr_rushort": "Сверло сборное с двумя пластинами",
+                            "text": "Сверло сборное с двумя пластинами",
+                            "level_name": "constrs",
+                            "qty": 71
+                        },
+                        {
+                            "key": "ctd_die_c2",
+                            "img_link": "constr_image/ctd_die_c2.png",
+                            "drw_link": "constr_drawing/ctd_die_c2.png",
+                            "constr_rushort": "Сверло сборное с двумя пластинами и пилотным сверло",
+                            "text": "Сверло сборное с двумя пластинами и центральным пилотным сверлом",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_die_f1",
+                            "img_link": "constr_image/ctd_die_f1.png",
+                            "drw_link": "constr_drawing/ctd_die_f1.png",
+                            "constr_rushort": "Сверло сборное с центр. вставкой и фланцем",
+                            "text": "Сверло сборное с центральной пластиной или головкой с фланцем",
+                            "level_name": "constrs",
+                            "qty": 48
+                        },
+                        {
+                            "key": "ctd_die_o1",
+                            "img_link": "constr_image/ctd_die_o1.png",
+                            "drw_link": "constr_drawing/ctd_die_o1.png",
+                            "constr_rushort": "Сверло сборное с центр. вставкой без фланца",
+                            "text": "Сверло сборное с центральной пластиной или головкой без фланца",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_dih_f1",
+                            "img_link": "constr_image/ctd_dih_f1.png",
+                            "drw_link": "constr_drawing/ctd_dih_f1.png",
+                            "constr_rushort": "Сверло сборное ввинчиваемое",
+                            "text": "Сверло сборное ввинчиваемое",
+                            "level_name": "constrs",
+                            "qty": 0
+                        }
+                    ]
+                },
+                {
+                    "key": "solid_drills",
+                    "img_link": "toolgroup_image/solid_drills.png",
+                    "toolgroup_rushort": "Свёрла цельные",
+                    "text": "Цельные свёрла",
+                    "level_name": "toolgroups",
+                    "nodes": [
+                        {
+                            "key": "ctd_ds1",
+                            "img_link": "constr_image/ctd_ds1.png",
+                            "drw_link": "constr_drawing/ctd_ds1.png",
+                            "constr_rushort": "Сверло цельное спиральное",
+                            "text": "Сверло цельное спиральное",
+                            "level_name": "constrs",
+                            "qty": 185446
+                        },
+                        {
+                            "key": "ctd_ds2",
+                            "img_link": "constr_image/ctd_ds2.png",
+                            "drw_link": "constr_drawing/ctd_ds2.png",
+                            "constr_rushort": "Сверло цельное с прямыми канавками",
+                            "text": "Сверло цельное с прямыми канавками",
+                            "level_name": "constrs",
+                            "qty": 6
+                        },
+                        {
+                            "key": "ctd_ds3",
+                            "img_link": "constr_image/ctd_ds3.png",
+                            "drw_link": "constr_drawing/ctd_ds3.png",
+                            "constr_rushort": "Сверло цельное трёхзубое",
+                            "text": "Сверло цельное трёхзубое",
+                            "level_name": "constrs",
+                            "qty": 87
+                        },
+                        {
+                            "key": "ctd_ds4",
+                            "img_link": "constr_image/ctd_ds4.png",
+                            "drw_link": "constr_drawing/ctd_ds4.png",
+                            "constr_rushort": "Сверло с коническим хвостовиком",
+                            "text": "Сверло цельное спиральное с коническим хвостовиком",
+                            "level_name": "constrs",
+                            "qty": 799
+                        },
+                        {
+                            "key": "ctd_ds5",
+                            "img_link": "constr_image/ctd_ds5.png",
+                            "drw_link": "constr_drawing/ctd_ds5.png",
+                            "constr_rushort": "Сверло центровочное",
+                            "text": "Сверло центровочное",
+                            "level_name": "constrs",
+                            "qty": 3282
+                        },
+                        {
+                            "key": "ctd_ds6",
+                            "img_link": "constr_image/ctd_ds6.png",
+                            "drw_link": "constr_drawing/ctd_ds6.png",
+                            "constr_rushort": "Ступенчатое сверло",
+                            "text": "Цельное ступенчатое сверло",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_dsp",
+                            "img_link": "constr_image/ctd_dsp.png",
+                            "drw_link": "constr_drawing/ctd_dsp.png",
+                            "constr_rushort": "Сверло пилотное",
+                            "text": "Сверло пилотное центровочное для сборных свёрл",
+                            "level_name": "constrs",
+                            "qty": 0
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "key": "mill",
+            "img_link": "entity_image/mill.jpg",
+            "text": "Фрезерные инструменты",
+            "level_name": "entities",
+            "nodes": [
+                {
+                    "key": "solid_burs",
+                    "img_link": "toolgroup_image/solid_burs.png",
+                    "toolgroup_rushort": "Борфрезы",
+                    "text": "Борфрезы",
+                    "level_name": "toolgroups",
+                    "nodes": [
+                        {
+                            "key": "ctd_burr",
+                            "img_link": "constr_image/ctd_burr.png",
+                            "drw_link": "constr_drawing/ctd_burr.png",
+                            "constr_rushort": "Борфреза цельная",
+                            "text": "Борфреза цельная",
+                            "level_name": "constrs",
+                            "qty": 503
+                        }
+                    ]
+                },
+                {
+                    "key": "gravers",
+                    "img_link": "toolgroup_image/gravers.png",
+                    "toolgroup_rushort": "Гравёры",
+                    "text": "Гравёры",
+                    "level_name": "toolgroups",
+                    "nodes": [
+                        {
+                            "key": "ctd_graver",
+                            "img_link": "constr_image/ctd_graver.png",
+                            "drw_link": "constr_drawing/ctd_graver.png",
+                            "constr_rushort": "Гравёр",
+                            "text": "Гравёр",
+                            "level_name": "constrs",
+                            "qty": 0
+                        }
+                    ]
+                },
+                {
+                    "key": "solid_mill_heads",
+                    "img_link": "toolgroup_image/solid_mill_heads.png",
+                    "toolgroup_rushort": "Головки фрезерные",
+                    "text": "Фрезерные головки для обработки уступов и фасок",
+                    "level_name": "toolgroups",
+                    "nodes": [
+                        {
+                            "key": "ctd_mh1",
+                            "img_link": "constr_image/ctd_mh1.png",
+                            "drw_link": "constr_drawing/ctd_mh1.png",
+                            "constr_rushort": "Головка фрезерная с фаской или без нее",
+                            "text": "Головка фрезерная с плоским торцом",
+                            "level_name": "constrs",
+                            "qty": 108
+                        },
+                        {
+                            "key": "ctd_mha1",
+                            "img_link": "constr_image/ctd_mha1.png",
+                            "drw_link": "constr_drawing/ctd_mha1.png",
+                            "constr_rushort": "Головка фрезерная для обработки фасок",
+                            "text": "Головка фрезерная для обработки фасок",
+                            "level_name": "constrs",
+                            "qty": 11
+                        },
+                        {
+                            "key": "ctd_mha3",
+                            "img_link": "constr_image/ctd_mha3.png",
+                            "drw_link": "constr_drawing/ctd_mha3.png",
+                            "constr_rushort": "Головка фрезерная для обработки галтелей",
+                            "text": "Головка фрезерная для обработки галтелей",
+                            "level_name": "constrs",
+                            "qty": 11
+                        },
+                        {
+                            "key": "ctd_mhb",
+                            "img_link": "constr_image/ctd_mhb.png",
+                            "drw_link": "constr_drawing/ctd_mhb.png",
+                            "constr_rushort": "Головка фрезерная полусферическая",
+                            "text": "Головка фрезерная полусферическая",
+                            "level_name": "constrs",
+                            "qty": 229
+                        },
+                        {
+                            "key": "ctd_mhc1",
+                            "img_link": "constr_image/ctd_mhc1.png",
+                            "drw_link": "constr_drawing/ctd_mhc1.png",
+                            "constr_rushort": "Головка фрезерная с рифлями и фаской",
+                            "text": "Головка фрезерная с рифлями и фаской",
+                            "level_name": "constrs",
+                            "qty": 10
+                        },
+                        {
+                            "key": "ctd_mhcb",
+                            "img_link": "constr_image/ctd_mhcb.png",
+                            "drw_link": "constr_drawing/ctd_mhcb.png",
+                            "constr_rushort": "Головка фрезерная полусферическая с рифлями",
+                            "text": "Головка фрезерная полусферическая с рифлями",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_mhcr",
+                            "img_link": "constr_image/ctd_mhcr.png",
+                            "drw_link": "constr_drawing/ctd_mhcr.png",
+                            "constr_rushort": "Головка фрезерная с рифлями и радиусом",
+                            "text": "Головка фрезерная с рифлями и радиусом",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_mhr",
+                            "img_link": "constr_image/ctd_mhr.png",
+                            "drw_link": "constr_drawing/ctd_mhr.png",
+                            "constr_rushort": "Головка фрезерная с радиусом",
+                            "text": "Головка фрезерная с радиусом",
+                            "level_name": "constrs",
+                            "qty": 218
+                        }
+                    ]
+                },
+                {
+                    "key": "indexable_mills",
+                    "img_link": "toolgroup_image/indexable_mills.png",
+                    "toolgroup_rushort": "Фрезы сборные",
+                    "text": "Фрезы сборные",
+                    "level_name": "toolgroups",
+                    "nodes": [
+                        {
+                            "key": "ctd_mib_3075",
+                            "img_link": "constr_image/ctd_mib_3075.png",
+                            "drw_link": "constr_drawing/ctd_mib_3075.png",
+                            "constr_rushort": "Фреза для обработки плоскостей насадная",
+                            "text": "Фреза сборная для обработки плоскостей насадная",
+                            "level_name": "constrs",
+                            "qty": 27
+                        },
+                        {
+                            "key": "ctd_mib_90",
+                            "img_link": "constr_image/ctd_mib_90.png",
+                            "drw_link": "constr_drawing/ctd_mib_90.png",
+                            "constr_rushort": "Фреза для обработки уступов насадная",
+                            "text": "Фреза сборная для обработки уступов насадная",
+                            "level_name": "constrs",
+                            "qty": 55
+                        },
+                        {
+                            "key": "ctd_mib_cartmill1",
+                            "img_link": "constr_image/ctd_mib_cartmill1.png",
+                            "drw_link": "constr_drawing/ctd_mib_cartmill1.png",
+                            "constr_rushort": "Фреза с картриджами насадная",
+                            "text": "Фреза для картриджей насадная",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_mib_chamf",
+                            "img_link": "constr_image/ctd_mib_chamf.png",
+                            "drw_link": "constr_drawing/ctd_mib_chamf.png",
+                            "constr_rushort": "Фреза для обработки фасок насадная",
+                            "text": "Фреза сборная для обработки фасок насадная",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_mib_corn901",
+                            "img_link": "constr_image/ctd_mib_corn901.png",
+                            "drw_link": "constr_drawing/ctd_mib_corn901.png",
+                            "constr_rushort": "Фреза кукурузная насадная",
+                            "text": "Фреза сборная кукурузная насадная",
+                            "level_name": "constrs",
+                            "qty": 2
+                        },
+                        {
+                            "key": "ctd_mib_disk",
+                            "img_link": "constr_image/ctd_mib_disk.png",
+                            "drw_link": "constr_drawing/ctd_mib_disk.png",
+                            "constr_rushort": "Фреза дисковая насадная",
+                            "text": "Фреза сборная дисковая насадная",
+                            "level_name": "constrs",
+                            "qty": 2
+                        },
+                        {
+                            "key": "ctd_mib_hf",
+                            "img_link": "constr_image/ctd_mib_hf.png",
+                            "drw_link": "constr_drawing/ctd_mib_hf.png",
+                            "constr_rushort": "Фреза для высоких подач насадная",
+                            "text": "Фреза сборная для высоких подач насадная",
+                            "level_name": "constrs",
+                            "qty": 66
+                        },
+                        {
+                            "key": "ctd_mib_rou",
+                            "img_link": "constr_image/ctd_mib_rou.png",
+                            "drw_link": "constr_drawing/ctd_mib_rou.png",
+                            "constr_rushort": "Фреза с круглыми пластинами насадная",
+                            "text": "Фреза сборная с круглыми пластинами насадная",
+                            "level_name": "constrs",
+                            "qty": 3
+                        },
+                        {
+                            "key": "ctd_mic_90",
+                            "img_link": "constr_image/ctd_mic_90.png",
+                            "drw_link": "constr_drawing/ctd_mic_90.png",
+                            "constr_rushort": "Фреза с инструментальным конусом шпинделя",
+                            "text": "Фреза сборная для обработки уступов с инструментальным конусом",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_mic_corn902",
+                            "img_link": "constr_image/ctd_mic_corn902.png",
+                            "drw_link": "constr_drawing/ctd_mic_corn902.png",
+                            "constr_rushort": "Фреза кукурузная концевая с картриджем",
+                            "text": "Фреза сборная кукурузная концевая с картриджем",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_mie_3075",
+                            "img_link": "constr_image/ctd_mie_3075.png",
+                            "drw_link": "constr_drawing/ctd_mie_3075.png",
+                            "constr_rushort": "Фреза для обработки плоскостей концевая",
+                            "text": "Фреза сборная для обработки плоскостей концевая",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_mie_90",
+                            "img_link": "constr_image/ctd_mie_90.png",
+                            "drw_link": "constr_drawing/ctd_mie_90.png",
+                            "constr_rushort": "Фреза для обработки уступов концевая",
+                            "text": "Фреза сборная для обработки уступов концевая",
+                            "level_name": "constrs",
+                            "qty": 137
+                        },
+                        {
+                            "key": "ctd_mie_chamf",
+                            "img_link": "constr_image/ctd_mie_chamf.png",
+                            "drw_link": "constr_drawing/ctd_mie_chamf.png",
+                            "constr_rushort": "Фреза для обработки фасок концевая",
+                            "text": "Фреза сборная для обработки фасок концевая",
+                            "level_name": "constrs",
+                            "qty": 14
+                        },
+                        {
+                            "key": "ctd_mie_corn901",
+                            "img_link": "constr_image/ctd_mie_corn901.png",
+                            "drw_link": "constr_drawing/ctd_mie_corn901.png",
+                            "constr_rushort": "Фреза кукурузная концевая",
+                            "text": "Фреза сборная кукурузная концевая",
+                            "level_name": "constrs",
+                            "qty": 1
+                        },
+                        {
+                            "key": "ctd_mie_fe",
+                            "img_link": "constr_image/ctd_mie_fe.png",
+                            "drw_link": "constr_drawing/ctd_mie_fe.png",
+                            "constr_rushort": "Фреза концевая с полусферическим торцом",
+                            "text": "Фреза концевая с полусферическим торцом сборная с продолговатыми пластинами",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_mie_hf",
+                            "img_link": "constr_image/ctd_mie_hf.png",
+                            "drw_link": "constr_drawing/ctd_mie_hf.png",
+                            "constr_rushort": "Фреза для высоких подач концевая",
+                            "text": "Фреза сборная для высоких подач концевая",
+                            "level_name": "constrs",
+                            "qty": 300
+                        },
+                        {
+                            "key": "ctd_mie_mfunc",
+                            "img_link": "constr_image/ctd_mie_mfunc.png",
+                            "drw_link": "constr_drawing/ctd_mie_mfunc.png",
+                            "constr_rushort": "Фреза сборная концевая",
+                            "text": "Фреза сборная концевая",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_mie_per",
+                            "img_link": "constr_image/ctd_mie_per.png",
+                            "drw_link": "constr_drawing/ctd_mie_per.png",
+                            "constr_rushort": "Фреза для засверливания концевая",
+                            "text": "Фреза сборная для засверливания и расфрезерования",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_mie_rou",
+                            "img_link": "constr_image/ctd_mie_rou.png",
+                            "drw_link": "constr_drawing/ctd_mie_rou.png",
+                            "constr_rushort": "Фреза с круглыми пластинами концевая",
+                            "text": "Фреза сборная с круглыми пластинами концевая",
+                            "level_name": "constrs",
+                            "qty": 4
+                        },
+                        {
+                            "key": "ctd_mie_single",
+                            "img_link": "constr_image/ctd_mie_single.png",
+                            "drw_link": "constr_drawing/ctd_mie_single.png",
+                            "constr_rushort": "Фреза с центральной пластиной концевая",
+                            "text": "Фреза сборная с центральной пластиной концевая",
+                            "level_name": "constrs",
+                            "qty": 9
+                        },
+                        {
+                            "key": "ctd_mie_t",
+                            "img_link": "constr_image/ctd_mie_t.png",
+                            "drw_link": "constr_drawing/ctd_mie_t.png",
+                            "constr_rushort": "Фреза для Т-образных пазов",
+                            "text": "Фреза сборная для Т-образных пазов",
+                            "level_name": "constrs",
+                            "qty": 6
+                        },
+                        {
+                            "key": "ctd_mih_3075",
+                            "img_link": "constr_image/ctd_mih_3075.png",
+                            "drw_link": "constr_drawing/ctd_mih_3075.png",
+                            "constr_rushort": "Фреза для обработки плоскостей ввинчиваемая",
+                            "text": "Фреза сборная для обработки плоскостей ввинчиваемая",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_mih_90",
+                            "img_link": "constr_image/ctd_mih_90.png",
+                            "drw_link": "constr_drawing/ctd_mih_90.png",
+                            "constr_rushort": "Фреза для обработки уступов ввинчиваемая",
+                            "text": "Фреза сборная для обработки уступов ввинчиваемая",
+                            "level_name": "constrs",
+                            "qty": 4
+                        },
+                        {
+                            "key": "ctd_mih_fe",
+                            "img_link": "constr_image/ctd_mih_fe.png",
+                            "drw_link": "constr_drawing/ctd_mih_fe.png",
+                            "constr_rushort": "Фреза ввинчиваемая с полусферическим торцом",
+                            "text": "Фреза ввинчиваемая с полусферическим торцом сборная с продолговатыми пластинами",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_mih_hf",
+                            "img_link": "constr_image/ctd_mih_hf.png",
+                            "drw_link": "constr_drawing/ctd_mih_hf.png",
+                            "constr_rushort": "Фреза для высоких подач ввинчиваемая",
+                            "text": "Фреза сборная для высоких подач ввинчиваемая",
+                            "level_name": "constrs",
+                            "qty": 194
+                        },
+                        {
+                            "key": "ctd_mih_mfunc",
+                            "img_link": "constr_image/ctd_mih_mfunc.png",
+                            "drw_link": "constr_drawing/ctd_mih_mfunc.png",
+                            "constr_rushort": "Фреза сборная ввинчиваемая",
+                            "text": "Фреза сборная ввинчиваемая",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_mih_rou",
+                            "img_link": "constr_image/ctd_mih_rou.png",
+                            "drw_link": "constr_drawing/ctd_mih_rou.png",
+                            "constr_rushort": "Фреза с круглыми пластинами ввинчеваемая",
+                            "text": "Фреза сборная с круглыми пластинами ввинчеваемая",
+                            "level_name": "constrs",
+                            "qty": 15
+                        },
+                        {
+                            "key": "ctd_mih_single",
+                            "img_link": "constr_image/ctd_mih_single.png",
+                            "drw_link": "constr_drawing/ctd_mih_single.png",
+                            "constr_rushort": "Фреза с центральной пластиной ввинчиваемая",
+                            "text": "Фреза сборная с центральной пластиной ввинчеваемая",
+                            "level_name": "constrs",
+                            "qty": 2
+                        },
+                        {
+                            "key": "ctd_mis_disk",
+                            "img_link": "constr_image/ctd_mis_disk.png",
+                            "drw_link": "constr_drawing/ctd_mis_disk.png",
+                            "constr_rushort": "Фреза сборная дисковая ",
+                            "text": "Фреза сборная дисковая",
+                            "level_name": "constrs",
+                            "qty": 0
+                        }
+                    ]
+                },
+                {
+                    "key": "solid_end_mills",
+                    "img_link": "toolgroup_image/solid_end_mills.png",
+                    "toolgroup_rushort": "Фрезы цельные",
+                    "text": "Фрезы цельные различных модификаций",
+                    "level_name": "toolgroups",
+                    "nodes": [
+                        {
+                            "key": "ctd_ma1",
+                            "img_link": "constr_image/ctd_ma1.png",
+                            "drw_link": "constr_drawing/ctd_ma1.png",
+                            "constr_rushort": "Фреза цельная для обработки фасок",
+                            "text": "Фреза цельная для обработки фасок",
+                            "level_name": "constrs",
+                            "qty": 60
+                        },
+                        {
+                            "key": "ctd_mb1",
+                            "img_link": "constr_image/ctd_mb1.png",
+                            "drw_link": "constr_drawing/ctd_mb1.png",
+                            "constr_rushort": "Фреза цельная полусферическая",
+                            "text": "Фреза цельная полусферическая",
+                            "level_name": "constrs",
+                            "qty": 5761
+                        },
+                        {
+                            "key": "ctd_mb2",
+                            "img_link": "constr_image/ctd_mb2.png",
+                            "drw_link": "constr_drawing/ctd_mb2.png",
+                            "constr_rushort": "Фреза цельная полусферическая с обнижением",
+                            "text": "Фреза цельная полусферическая с обнижением",
+                            "level_name": "constrs",
+                            "qty": 3764
+                        },
+                        {
+                            "key": "ctd_mb3",
+                            "img_link": "constr_image/ctd_mb3.png",
+                            "drw_link": "constr_drawing/ctd_mb3.png",
+                            "constr_rushort": "Фреза цельная с полусферическим торцом и коническим обнижением",
+                            "text": "Фреза цельная с полусферическим торцом и коническим обнижением",
+                            "level_name": "constrs",
+                            "qty": 365
+                        },
+                        {
+                            "key": "ctd_mc1",
+                            "img_link": "constr_image/ctd_mc1.png",
+                            "drw_link": "constr_drawing/ctd_mc1.png",
+                            "constr_rushort": "Фреза цельная с рифлями",
+                            "text": "Фреза цельная с рифлями",
+                            "level_name": "constrs",
+                            "qty": 2600
+                        },
+                        {
+                            "key": "ctd_mc2",
+                            "img_link": "constr_image/ctd_mc2.png",
+                            "drw_link": "constr_drawing/ctd_mc2.png",
+                            "constr_rushort": "Фреза цельная с рифлями с обнижением",
+                            "text": "Фреза цельная с рифлями с обнижением",
+                            "level_name": "constrs",
+                            "qty": 772
+                        },
+                        {
+                            "key": "ctd_mcr",
+                            "img_link": "constr_image/ctd_mcr.png",
+                            "drw_link": "constr_drawing/ctd_mcr.png",
+                            "constr_rushort": "Фреза цельная с рифлями и радиусом",
+                            "text": "Фреза цельная с рифлями и радиусом",
+                            "level_name": "constrs",
+                            "qty": 68
+                        },
+                        {
+                            "key": "ctd_mcs",
+                            "img_link": "constr_image/ctd_mcs.png",
+                            "drw_link": "constr_drawing/ctd_mcs.png",
+                            "constr_rushort": "Фреза цельная с рифлями и радиусом и обнижением",
+                            "text": "Фреза цельная с рифлями и радиусом и обнижением",
+                            "level_name": "constrs",
+                            "qty": 11
+                        },
+                        {
+                            "key": "ctd_me1",
+                            "img_link": "constr_image/ctd_me1.png",
+                            "drw_link": "constr_drawing/ctd_me1.png",
+                            "constr_rushort": "Фреза цельная с плоским торцом",
+                            "text": "Фреза цельная с плоским торцом",
+                            "level_name": "constrs",
+                            "qty": 28722
+                        },
+                        {
+                            "key": "ctd_me2",
+                            "img_link": "constr_image/ctd_me2.png",
+                            "drw_link": "constr_drawing/ctd_me2.png",
+                            "constr_rushort": "Фреза цельная с плоским торцом и с обнижением",
+                            "text": "Фреза цельная с плоским торцом и с обнижением",
+                            "level_name": "constrs",
+                            "qty": 7930
+                        },
+                        {
+                            "key": "ctd_mr1",
+                            "img_link": "constr_image/ctd_mr1.png",
+                            "drw_link": "constr_drawing/ctd_mr1.png",
+                            "constr_rushort": "Фреза цельная с радиусом",
+                            "text": "Фреза цельная с радиусом",
+                            "level_name": "constrs",
+                            "qty": 9815
+                        },
+                        {
+                            "key": "ctd_mr2",
+                            "img_link": "constr_image/ctd_mr2.png",
+                            "drw_link": "constr_drawing/ctd_mr2.png",
+                            "constr_rushort": "Фреза цельная с радиусом и обнижением",
+                            "text": "Фреза цельная с радиусом и обнижением",
+                            "level_name": "constrs",
+                            "qty": 4043
+                        },
+                        {
+                            "key": "ctd_mr3",
+                            "img_link": "constr_image/ctd_mr3.png",
+                            "drw_link": "constr_drawing/ctd_mr3.png",
+                            "constr_rushort": "Фреза цельная для работы на высоких подачах",
+                            "text": "Фреза цельная для работы на высоких подачах",
+                            "level_name": "constrs",
+                            "qty": 12
+                        }
+                    ]
+                },
+                {
+                    "key": "solid_end_mills_taper",
+                    "img_link": "toolgroup_image/solid_end_mills_taper.png",
+                    "toolgroup_rushort": "Фрезы с коническим хвостовиком",
+                    "text": "Фрезы цельные различных модификаций с коническим хвостовиком",
+                    "level_name": "toolgroups",
+                    "nodes": [
+                        {
+                            "key": "ctd_mb4",
+                            "img_link": "constr_image/ctd_mb4.png",
+                            "drw_link": "constr_drawing/ctd_mb4.png",
+                            "constr_rushort": "Фреза с к/х и сферическим торцом",
+                            "text": "Фреза цельная со сферическим торцом и конусом Морзе",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_mc4",
+                            "img_link": "constr_image/ctd_mc4.png",
+                            "drw_link": "constr_drawing/ctd_mc4.png",
+                            "constr_rushort": "Фреза с к/х и рифлями",
+                            "text": "Фреза цельная с рифлями и конусом Морзе",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_me4",
+                            "img_link": "constr_image/ctd_me4.png",
+                            "drw_link": "constr_drawing/ctd_me4.png",
+                            "constr_rushort": "Фреза с к/х и плоским торцом",
+                            "text": "Фреза цельная с плоским торцом и конусом Морзе",
+                            "level_name": "constrs",
+                            "qty": 0
+                        }
+                    ]
+                },
+                {
+                    "key": "solid_mill_groove",
+                    "img_link": "toolgroup_image/solid_mill_groove.png",
+                    "toolgroup_rushort": "Цельные фрезы для обработки канавок",
+                    "text": "Цельные фрезы для обработки канавок",
+                    "level_name": "toolgroups",
+                    "nodes": [
+                        {
+                            "key": "ctd_met",
+                            "img_link": "constr_image/ctd_met.png",
+                            "drw_link": "constr_drawing/ctd_met.png",
+                            "constr_rushort": "Фреза цельная для обработки канавок",
+                            "text": "Фреза цельная для обработки канавок",
+                            "level_name": "constrs",
+                            "qty": 14
+                        },
+                        {
+                            "key": "ctd_mgb",
+                            "img_link": "constr_image/ctd_mgb.png",
+                            "drw_link": "constr_drawing/ctd_mgb.png",
+                            "constr_rushort": "Фреза цельная для обработки полнорадиусных канавок",
+                            "text": "Фреза цельная для обработки полнорадиусных канавок",
+                            "level_name": "constrs",
+                            "qty": 0
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "key": "reaming",
+            "img_link": "entity_image/reaming.jpg",
+            "text": "Развёртки",
+            "level_name": "entities",
+            "nodes": [
+                {
+                    "key": "reaming_modules",
+                    "img_link": "toolgroup_image/reaming_modules.png",
+                    "toolgroup_rushort": "Модульные развёртки",
+                    "text": "Модульные развёртки",
+                    "level_name": "toolgroups",
+                    "nodes": [
+                        {
+                            "key": "ctd_rm_head",
+                            "img_link": "constr_image/ctd_rm_head.png",
+                            "drw_link": "constr_drawing/ctd_rm_head.png",
+                            "constr_rushort": "Головка для развёртки",
+                            "text": "Головка для развёртки",
+                            "level_name": "constrs",
+                            "qty": 0
+                        }
+                    ]
+                },
+                {
+                    "key": "solid_reamers",
+                    "img_link": "toolgroup_image/solid_reamers.png",
+                    "toolgroup_rushort": "Развёртки цельные",
+                    "text": "Развёртки цельные",
+                    "level_name": "toolgroups",
+                    "nodes": [
+                        {
+                            "key": "ctd_rm1",
+                            "img_link": "constr_image/ctd_rm1.png",
+                            "drw_link": "constr_drawing/ctd_rm1.png",
+                            "constr_rushort": "Развёртка цельная машинная концевая",
+                            "text": "Развёртка цельная машинная концевая",
+                            "level_name": "constrs",
+                            "qty": 1010
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "key": "senker",
+            "img_link": "entity_image/senker.jpg",
+            "text": "Зенкеры, зенковки и цековки",
+            "level_name": "entities",
+            "nodes": [
+                {
+                    "key": "solid_countersinks",
+                    "img_link": "toolgroup_image/solid_countersinks.png",
+                    "toolgroup_rushort": "Цельные зенкеры",
+                    "text": "Цельные зенкеры",
+                    "level_name": "toolgroups",
+                    "nodes": [
+                        {
+                            "key": "ctd_ne1_countersink",
+                            "img_link": "constr_image/ctd_ne1_countersink.png",
+                            "drw_link": "constr_drawing/ctd_ne1_countersink.png",
+                            "constr_rushort": "Цельный зенкер",
+                            "text": "Цельный зенкер",
+                            "level_name": "constrs",
+                            "qty": 0
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "key": "threading",
+            "img_link": "entity_image/threading.jpg",
+            "text": "Резьбообразующий инструмент",
+            "level_name": "entities",
+            "nodes": [
+                {
+                    "key": "solid_taps",
+                    "img_link": "toolgroup_image/solid_taps.png",
+                    "toolgroup_rushort": "Метчики",
+                    "text": "Метчики цельные",
+                    "level_name": "toolgroups",
+                    "nodes": [
+                        {
+                            "key": "ctd_jse_hand_each",
+                            "img_link": "constr_image/ctd_jse_hand_each.png",
+                            "drw_link": "constr_drawing/ctd_jse_hand_each.png",
+                            "constr_rushort": "Комплектный ручной метчик",
+                            "text": "Ручной метчик из комплекта",
+                            "level_name": "constrs",
+                            "qty": 322
+                        },
+                        {
+                            "key": "ctd_jse_hand_set",
+                            "img_link": "constr_image/ctd_jse_hand_set.png",
+                            "drw_link": "constr_drawing/ctd_jse_hand_set.png",
+                            "constr_rushort": "Комплект ручных метчиков",
+                            "text": "Комплект ручных метчиков",
+                            "level_name": "constrs",
+                            "qty": 48
+                        },
+                        {
+                            "key": "ctd_jse_m",
+                            "img_link": "constr_image/ctd_jse_m.png",
+                            "drw_link": "constr_drawing/ctd_jse_m.png",
+                            "constr_rushort": "Метчик машинный",
+                            "text": "Метчик цельный машинный",
+                            "level_name": "constrs",
+                            "qty": 5776
+                        }
+                    ]
+                },
+                {
+                    "key": "solid_die",
+                    "img_link": "toolgroup_image/solid_die.png",
+                    "toolgroup_rushort": "Плашки",
+                    "text": "Плашки цельные",
+                    "level_name": "toolgroups",
+                    "nodes": [
+                        {
+                            "key": "ctd_jdi",
+                            "img_link": "constr_image/ctd_jdi.png",
+                            "drw_link": "constr_drawing/ctd_jdi.png",
+                            "constr_rushort": "Плашка цельная",
+                            "text": "Плашка цельная",
+                            "level_name": "constrs",
+                            "qty": 2
+                        }
+                    ]
+                },
+                {
+                    "key": "solid_formers",
+                    "img_link": "toolgroup_image/solid_formers.png",
+                    "toolgroup_rushort": "Раскатники",
+                    "text": "Раскатники цельные",
+                    "level_name": "toolgroups",
+                    "nodes": [
+                        {
+                            "key": "ctd_jfe_m",
+                            "img_link": "constr_image/ctd_jfe_m.png",
+                            "drw_link": "constr_drawing/ctd_jfe_m.png",
+                            "constr_rushort": "Раскатник резьбовой",
+                            "text": "Раскатник цельный - безстружечный метчик",
+                            "level_name": "constrs",
+                            "qty": 672
+                        }
+                    ]
+                },
+                {
+                    "key": "solid_thread_mills",
+                    "img_link": "toolgroup_image/solid_thread_mills.png",
+                    "toolgroup_rushort": "Резьбофрезы",
+                    "text": "Резьбофрезы цельные",
+                    "level_name": "toolgroups",
+                    "nodes": [
+                        {
+                            "key": "ctd_mt1",
+                            "img_link": "constr_image/ctd_mt1.png",
+                            "drw_link": "constr_drawing/ctd_mt1.png",
+                            "constr_rushort": "Резьбофреза цельная",
+                            "text": "Фреза цельная резьбовая",
+                            "level_name": "constrs",
+                            "qty": 148
+                        },
+                        {
+                            "key": "ctd_mt2",
+                            "img_link": "constr_image/ctd_mt2.png",
+                            "drw_link": "constr_drawing/ctd_mt2.png",
+                            "constr_rushort": "Резьбофреза с фасочной режущей частью",
+                            "text": "Фреза цельная резьбовая с фасочной режущей частью",
+                            "level_name": "constrs",
+                            "qty": 272
+                        },
+                        {
+                            "key": "ctd_mt3",
+                            "img_link": "constr_image/ctd_mt3.png",
+                            "drw_link": "constr_drawing/ctd_mt3.png",
+                            "constr_rushort": "Фреза цельная резьбовая \"орбитальная\"",
+                            "text": "Фреза цельная резьбовая \"орбитальная\"",
+                            "level_name": "constrs",
+                            "qty": 203
+                        },
+                        {
+                            "key": "ctd_mt4",
+                            "img_link": "constr_image/ctd_mt4.png",
+                            "drw_link": "constr_drawing/ctd_mt4.png",
+                            "constr_rushort": "Резьбофреза орбитальная с рабочим торцом",
+                            "text": "Фреза цельная резьбовая \"орбитальная\" с возможностью засверливания",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_mthr",
+                            "img_link": "constr_image/ctd_mthr.png",
+                            "drw_link": "constr_drawing/ctd_mthr.png",
+                            "constr_rushort": "Резьбофреза-сверло",
+                            "text": "Фреза цельная резьбовая с возможностью сверления и фасочной режущей частью",
+                            "level_name": "constrs",
+                            "qty": 0
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "key": "tooling",
+            "img_link": "entity_image/tooling.jpg",
+            "text": "Инструментальная оснастка",
+            "level_name": "entities",
+            "nodes": [
+                {
+                    "key": "bushes",
+                    "img_link": "toolgroup_image/bushes.png",
+                    "toolgroup_rushort": "Втулки",
+                    "text": "Втулки",
+                    "level_name": "toolgroups",
+                    "nodes": [
+                        {
+                            "key": "ctd_arb_bush",
+                            "img_link": "constr_image/ctd_arb_bush.png",
+                            "drw_link": "constr_drawing/ctd_arb_bush.png",
+                            "constr_rushort": "Втулка переходная",
+                            "text": "Втулка переходная",
+                            "level_name": "constrs",
+                            "qty": 37
+                        },
+                        {
+                            "key": "ctd_arb_busheccenter",
+                            "img_link": "constr_image/ctd_arb_busheccenter.png",
+                            "drw_link": "constr_drawing/ctd_arb_busheccenter.png",
+                            "constr_rushort": "Эксцентриковая регулировочная втулка",
+                            "text": "Эксцентриковая регулировочная втулка",
+                            "level_name": "constrs",
+                            "qty": 0
+                        }
+                    ]
+                },
+                {
+                    "key": "tapping_insert",
+                    "img_link": "toolgroup_image/tapping_insert.png",
+                    "toolgroup_rushort": "Метчиковые вставки",
+                    "text": "Метчиковые вставки",
+                    "level_name": "toolgroups",
+                    "nodes": [
+                        {
+                            "key": "ctd_arbm_tappingattachment",
+                            "img_link": "constr_image/ctd_arbm_tappingattachment.png",
+                            "drw_link": "constr_drawing/ctd_arbm_tappingattachment.png",
+                            "constr_rushort": "Вставка метчиковая",
+                            "text": "Вставка метчиковая",
+                            "level_name": "constrs",
+                            "qty": 7
+                        }
+                    ]
+                },
+                {
+                    "key": "milling_arbors",
+                    "img_link": "toolgroup_image/milling_arbors.png",
+                    "toolgroup_rushort": "Патроны и оправки фрезерные",
+                    "text": "Патроны и оправки фрезерные",
+                    "level_name": "toolgroups",
+                    "nodes": [
+                        {
+                            "key": "ctd_arbm_colletchuck",
+                            "img_link": "constr_image/ctd_arbm_colletchuck.png",
+                            "drw_link": "constr_drawing/ctd_arbm_colletchuck.png",
+                            "constr_rushort": "Патрон фрезерный цанговый",
+                            "text": "Патрон фрезерный цанговый",
+                            "level_name": "constrs",
+                            "qty": 199
+                        },
+                        {
+                            "key": "ctd_arbm_drillingchuck",
+                            "img_link": "constr_image/ctd_arbm_drillingchuck.png",
+                            "drw_link": "constr_drawing/ctd_arbm_drillingchuck.png",
+                            "constr_rushort": "Патрон сверлильный",
+                            "text": "Патрон сверлильный",
+                            "level_name": "constrs",
+                            "qty": 13
+                        },
+                        {
+                            "key": "ctd_arbm_hydroholdchuck",
+                            "img_link": "constr_image/ctd_arbm_hydroholdchuck.png",
+                            "drw_link": "constr_drawing/ctd_arbm_hydroholdchuck.png",
+                            "constr_rushort": "Патрон фрезерный гидропластовый",
+                            "text": "Патрон фрезерный гидропластовый",
+                            "level_name": "constrs",
+                            "qty": 23
+                        },
+                        {
+                            "key": "ctd_arbm_morse",
+                            "img_link": "constr_image/ctd_arbm_morse.png",
+                            "drw_link": "constr_drawing/ctd_arbm_morse.png",
+                            "constr_rushort": "Патрон фрезерный для конических хвостовиков Морзе",
+                            "text": "Патрон фрезерный для конических хвостовиков Морзе",
+                            "level_name": "constrs",
+                            "qty": 14
+                        },
+                        {
+                            "key": "ctd_arbm_powerchuck",
+                            "img_link": "constr_image/ctd_arbm_powerchuck.png",
+                            "drw_link": "constr_drawing/ctd_arbm_powerchuck.png",
+                            "constr_rushort": "Патрон фрезерный силовой",
+                            "text": "Патрон фрезерный силовой",
+                            "level_name": "constrs",
+                            "qty": 23
+                        },
+                        {
+                            "key": "ctd_arbm_shellchuck",
+                            "img_link": "constr_image/ctd_arbm_shellchuck.png",
+                            "drw_link": "constr_drawing/ctd_arbm_shellchuck.png",
+                            "constr_rushort": "Оправка фрезерная для насадных фрез",
+                            "text": "Оправка фрезерная для насадных фрез",
+                            "level_name": "constrs",
+                            "qty": 24
+                        },
+                        {
+                            "key": "ctd_arbm_shrinkchuck",
+                            "img_link": "constr_image/ctd_arbm_shrinkchuck.png",
+                            "drw_link": "constr_drawing/ctd_arbm_shrinkchuck.png",
+                            "constr_rushort": "Термопатрон фрезерный",
+                            "text": "Термопатрон фрезерный",
+                            "level_name": "constrs",
+                            "qty": 221
+                        },
+                        {
+                            "key": "ctd_arbm_tappingchuck",
+                            "img_link": "constr_image/ctd_arbm_tappingchuck.png",
+                            "drw_link": "constr_drawing/ctd_arbm_tappingchuck.png",
+                            "constr_rushort": "Патрон для метчиков фрезерный",
+                            "text": "Патрон для метчиков фрезерный",
+                            "level_name": "constrs",
+                            "qty": 13
+                        },
+                        {
+                            "key": "ctd_arbm_weldonchuck",
+                            "img_link": "constr_image/ctd_arbm_weldonchuck.png",
+                            "drw_link": "constr_drawing/ctd_arbm_weldonchuck.png",
+                            "constr_rushort": "Патрон фрезерный с прямым закреплением винтом",
+                            "text": "Патрон фрезерный с прямым закреплением винтом",
+                            "level_name": "constrs",
+                            "qty": 97
+                        },
+                        {
+                            "key": "ctd_arbm_wnotchchuck",
+                            "img_link": "constr_image/ctd_arbm_wnotchchuck.png",
+                            "drw_link": "constr_drawing/ctd_arbm_wnotchchuck.png",
+                            "constr_rushort": "Патрон фрезерный с косым закреплением винтом",
+                            "text": "Патрон фрезерный с косым закреплением винтом",
+                            "level_name": "constrs",
+                            "qty": 11
+                        }
+                    ]
+                },
+                {
+                    "key": "turning_arbor_holders",
+                    "img_link": "toolgroup_image/turning_arbor_holders.png",
+                    "toolgroup_rushort": "Токарные блоки",
+                    "text": "Токарные блоки",
+                    "level_name": "toolgroups",
+                    "nodes": [
+                        {
+                            "key": "ctd_arbt_2sidecolletholder",
+                            "img_link": "constr_image/ctd_arbt_2sidecolletholder.png",
+                            "drw_link": "constr_drawing/ctd_arbt_2sidecolletholder.png",
+                            "constr_rushort": "Двусторонний цанговый держатель",
+                            "text": "Двусторонний цанговый держатель",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_ethd_corner",
+                            "img_link": "constr_image/ctd_ethd_corner.png",
+                            "drw_link": "constr_drawing/ctd_ethd_corner.png",
+                            "constr_rushort": "Блок токарный приводной угловой",
+                            "text": "Блок токарный приводной угловой",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_ethd_corner_2sides",
+                            "img_link": "constr_image/ctd_ethd_corner_2sides.png",
+                            "drw_link": "constr_drawing/ctd_ethd_corner_2sides.png",
+                            "constr_rushort": "Блок токарный приводной угловой",
+                            "text": "Блок токарный приводной двусторонний",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_ethd_straight",
+                            "img_link": "constr_image/ctd_ethd_straight.png",
+                            "drw_link": "constr_drawing/ctd_ethd_straight.png",
+                            "constr_rushort": "Блок токарный приводной прямой",
+                            "text": "Блок токарный приводной прямой",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_eths_arborholder",
+                            "img_link": "constr_image/ctd_eths_arborholder.png",
+                            "drw_link": "constr_drawing/ctd_eths_arborholder.png",
+                            "constr_rushort": "Блок токарный статический с зажимным механизмом",
+                            "text": "Блок токарный статический с зажимным механизмом",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_eths_blank",
+                            "img_link": "constr_image/ctd_eths_blank.png",
+                            "drw_link": "constr_drawing/ctd_eths_blank.png",
+                            "constr_rushort": "Заготовка токарного блока",
+                            "text": "Заготовка блока токарного",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_eths_holder_drill",
+                            "img_link": "constr_image/ctd_eths_holder_drill.png",
+                            "drw_link": "constr_drawing/ctd_eths_holder_drill.png",
+                            "constr_rushort": "Блок токарный статический для свёрл",
+                            "text": "Блок токарный статический для свёрл",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_eths_roundholder",
+                            "img_link": "constr_image/ctd_eths_roundholder.png",
+                            "drw_link": "constr_drawing/ctd_eths_roundholder.png",
+                            "constr_rushort": "Блок токарный для круглых резцов",
+                            "text": "Блок токарный статический для круглых резцов",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_eths_squareholder",
+                            "img_link": "constr_image/ctd_eths_squareholder.png",
+                            "drw_link": "constr_drawing/ctd_eths_squareholder.png",
+                            "constr_rushort": "Блок токарный для призматических резцов",
+                            "text": "Блок токарный статический для призматических резцов",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_tge_arbor_module_holder",
+                            "img_link": "constr_image/ctd_tge_arbor_module_holder.png",
+                            "drw_link": "constr_drawing/ctd_tge_arbor_module_holder.png",
+                            "constr_rushort": "Патрон для токарных модулей",
+                            "text": "Патрон для токарных модулей",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_tsmb_bush",
+                            "img_link": "constr_image/ctd_tsmb_bush.png",
+                            "drw_link": "constr_drawing/ctd_tsmb_bush.png",
+                            "constr_rushort": "Втулка-держатель для токарных вставок односторонняя",
+                            "text": "Втулка-держатель для токарных вставок односторонняя",
+                            "level_name": "constrs",
+                            "qty": 57
+                        },
+                        {
+                            "key": "ctd_tsmb_bush2side",
+                            "img_link": "constr_image/ctd_tsmb_bush2side.png",
+                            "drw_link": "constr_drawing/ctd_tsmb_bush2side.png",
+                            "constr_rushort": "Двусторонняя втулка-держатель для токарных вставок",
+                            "text": "Двусторонняя втулка-держатель для токарных вставок",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_tsmb_holderarbor",
+                            "img_link": "constr_image/ctd_tsmb_holderarbor.png",
+                            "drw_link": "constr_drawing/ctd_tsmb_holderarbor.png",
+                            "constr_rushort": "Патрон для токарных вставок",
+                            "text": "Патрон для токарных вставок",
+                            "level_name": "constrs",
+                            "qty": 0
+                        }
+                    ]
+                },
+                {
+                    "key": "turning_arbor_bar",
+                    "img_link": "toolgroup_image/turning_arbor_bar.png",
+                    "toolgroup_rushort": "Токарные оправки",
+                    "text": "Токарные оправки",
+                    "level_name": "toolgroups",
+                    "nodes": [
+                        {
+                            "key": "ctd_tavs_arbor",
+                            "img_link": "constr_image/ctd_tavs_arbor.png",
+                            "drw_link": "constr_drawing/ctd_tavs_arbor.png",
+                            "constr_rushort": "Антивибрационная оправка",
+                            "text": "Антивибрационная оправка",
+                            "level_name": "constrs",
+                            "qty": 0
+                        }
+                    ]
+                },
+                {
+                    "key": "extension_chucks",
+                    "img_link": "toolgroup_image/extension_chucks.png",
+                    "toolgroup_rushort": "Удлинители",
+                    "text": "Удлинители",
+                    "level_name": "toolgroups",
+                    "nodes": [
+                        {
+                            "key": "ctd_arb_extension",
+                            "img_link": "constr_image/ctd_arb_extension.png",
+                            "drw_link": "constr_drawing/ctd_arb_extension.png",
+                            "constr_rushort": "Удлинитель-переходник",
+                            "text": "Удлинитель-переходник",
+                            "level_name": "constrs",
+                            "qty": 5
+                        }
+                    ]
+                },
+                {
+                    "key": "shanks",
+                    "img_link": "toolgroup_image/shanks.png",
+                    "toolgroup_rushort": "Хвостовики",
+                    "text": "Хвостовики для модульного инструмента",
+                    "level_name": "toolgroups",
+                    "nodes": [
+                        {
+                            "key": "ctd_sha1",
+                            "img_link": "constr_image/ctd_sha1.png",
+                            "drw_link": "constr_drawing/ctd_sha1.png",
+                            "constr_rushort": "Хвостовик для ввинчиваемого инструмента",
+                            "text": "Хвостовик для ввинчиваемого инструмента",
+                            "level_name": "constrs",
+                            "qty": 34
+                        },
+                        {
+                            "key": "ctd_sha2",
+                            "img_link": "constr_image/ctd_sha2.png",
+                            "drw_link": "constr_drawing/ctd_sha2.png",
+                            "constr_rushort": "Хвостовик для ввинчиваемого инструмента",
+                            "text": "Хвостовик для ввинчиваемого инструмента",
+                            "level_name": "constrs",
+                            "qty": 0
+                        }
+                    ]
+                },
+                {
+                    "key": "collets",
+                    "img_link": "toolgroup_image/collets.png",
+                    "toolgroup_rushort": "Цанги",
+                    "text": "Цанги",
+                    "level_name": "toolgroups",
+                    "nodes": [
+                        {
+                            "key": "ctd_arbt_colletturning",
+                            "img_link": "constr_image/ctd_arbt_colletturning.png",
+                            "drw_link": "constr_drawing/ctd_arbt_colletturning.png",
+                            "constr_rushort": "Цанга токарная",
+                            "text": "Цанга токарная",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_collet_round",
+                            "img_link": "constr_image/ctd_collet_round.png",
+                            "drw_link": "constr_drawing/ctd_collet_round.png",
+                            "constr_rushort": "Цанга цилиндрическая",
+                            "text": "Цанга цилиндрическая",
+                            "level_name": "constrs",
+                            "qty": 142
+                        },
+                        {
+                            "key": "ctd_collet_spring",
+                            "img_link": "constr_image/ctd_collet_spring.png",
+                            "drw_link": "constr_drawing/ctd_collet_spring.png",
+                            "constr_rushort": "Цанга",
+                            "text": "Цанга с конической образующей для цилиндрических хвостовиков",
+                            "level_name": "constrs",
+                            "qty": 121
+                        },
+                        {
+                            "key": "ctd_collet_tapping",
+                            "img_link": "constr_image/ctd_collet_tapping.png",
+                            "drw_link": "constr_drawing/ctd_collet_tapping.png",
+                            "constr_rushort": "Цанга для метчиков",
+                            "text": "Цанга с конической образующей для метчиков",
+                            "level_name": "constrs",
+                            "qty": 0
+                        }
+                    ]
+                },
+                {
+                    "key": "centres",
+                    "img_link": "toolgroup_image/centres.png",
+                    "toolgroup_rushort": "Центры",
+                    "text": "Центры",
+                    "level_name": "toolgroups",
+                    "nodes": [
+                        {
+                            "key": "ctd_ecr",
+                            "img_link": "constr_image/ctd_ecr.png",
+                            "drw_link": "constr_drawing/ctd_ecr.png",
+                            "constr_rushort": "Вращающийся центр",
+                            "text": "Вращающийся центр",
+                            "level_name": "constrs",
+                            "qty": 0
+                        }
+                    ]
+                },
+                {
+                    "key": "pull_studs",
+                    "img_link": "toolgroup_image/pull_studs.png",
+                    "toolgroup_rushort": "Штревели",
+                    "text": "Штревели",
+                    "level_name": "toolgroups",
+                    "nodes": [
+                        {
+                            "key": "ctd_arbm_pullstud",
+                            "img_link": "constr_image/ctd_arbm_pullstud.png",
+                            "drw_link": "constr_drawing/ctd_arbm_pullstud.png",
+                            "constr_rushort": "Штревель",
+                            "text": "Штревель",
+                            "level_name": "constrs",
+                            "qty": 82
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "key": "turning",
+            "img_link": "entity_image/turning.jpg",
+            "text": "Токарные инструменты",
+            "level_name": "entities",
+            "nodes": [
+                {
+                    "key": "small_claw_holders",
+                    "img_link": "toolgroup_image/small_claw_holders.png",
+                    "toolgroup_rushort": "Державки для насадок",
+                    "text": "Державки для режущих насадок",
+                    "level_name": "toolgroups",
+                    "nodes": [
+                        {
+                            "key": "ctd_tkoe_holder",
+                            "img_link": "constr_image/ctd_tkoe_holder.png",
+                            "drw_link": "constr_drawing/ctd_tkoe_holder.png",
+                            "constr_rushort": "Державка наружная для насадок режущих",
+                            "text": "Державка наружная призматическая для насадок-пластин",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_tkoi_holder",
+                            "img_link": "constr_image/ctd_tkoi_holder.png",
+                            "drw_link": "constr_drawing/ctd_tkoi_holder.png",
+                            "constr_rushort": "Державка расточная для насадок режущих",
+                            "text": "Державка круглая расточная для насадок-пластин",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_tkoi_holder_flat",
+                            "img_link": "constr_image/ctd_tkoi_holder_flat.png",
+                            "drw_link": "constr_drawing/ctd_tkoi_holder_flat.png",
+                            "constr_rushort": "Державка круглая расточная для насадок-пластин с косым торцом",
+                            "text": "Державка круглая расточная для насадок-пластин с косым торцом на хвостовике",
+                            "level_name": "constrs",
+                            "qty": 0
+                        }
+                    ]
+                },
+                {
+                    "key": "thread_holders",
+                    "img_link": "toolgroup_image/thread_holders.png",
+                    "toolgroup_rushort": "Державки для токарной обработки резьбы",
+                    "text": "Державки для токарной обработки резьбы",
+                    "level_name": "toolgroups",
+                    "nodes": [
+                        {
+                            "key": "ctd_tthe_holder",
+                            "img_link": "constr_image/ctd_tthe_holder.png",
+                            "drw_link": "constr_drawing/ctd_tthe_holder.png",
+                            "constr_rushort": "Державка наружная резьбовая",
+                            "text": "Резьбовая наружная державка",
+                            "level_name": "constrs",
+                            "qty": 428
+                        },
+                        {
+                            "key": "ctd_tthi_holder",
+                            "img_link": "constr_image/ctd_tthi_holder.png",
+                            "drw_link": "constr_drawing/ctd_tthi_holder.png",
+                            "constr_rushort": "Державка внутренняя резьбовая",
+                            "text": "Резьбовая внутренняя державка",
+                            "level_name": "constrs",
+                            "qty": 333
+                        }
+                    ]
+                },
+                {
+                    "key": "grooving_holders_ext",
+                    "img_link": "toolgroup_image/grooving_holders_ext.png",
+                    "toolgroup_rushort": "Державки канавочные наружные",
+                    "text": "Державки канавочные и отрезные наружные",
+                    "level_name": "toolgroups",
+                    "nodes": [
+                        {
+                            "key": "ctd_tge_radial",
+                            "img_link": "constr_image/ctd_tge_radial.png",
+                            "drw_link": "constr_drawing/ctd_tge_radial.png",
+                            "constr_rushort": "Канавочная державка моноблок наружная",
+                            "text": "Державка для обработки канавок или/и отрезки",
+                            "level_name": "constrs",
+                            "qty": 233
+                        },
+                        {
+                            "key": "ctd_tge_radial_assembly",
+                            "img_link": "constr_image/ctd_tge_radial_assembly.png",
+                            "drw_link": "constr_drawing/ctd_tge_radial_assembly.png",
+                            "constr_rushort": "Канавочная державка с модулем в сборе",
+                            "text": "Канавочная державка вместе с модулем в сборе",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_tge_radial_sub",
+                            "img_link": "constr_image/ctd_tge_radial_sub.png",
+                            "drw_link": "constr_drawing/ctd_tge_radial_sub.png",
+                            "constr_rushort": "Отрезной резец с вытянутой рабочей частью для станков-автоматов",
+                            "text": "Отрезной резец с утончёной вытянутой частью для станков-автоматов",
+                            "level_name": "constrs",
+                            "qty": 6
+                        }
+                    ]
+                },
+                {
+                    "key": "grooving_holders_int",
+                    "img_link": "toolgroup_image/grooving_holders_int.png",
+                    "toolgroup_rushort": "Державки канавочные расточные",
+                    "text": "Державки канавочные расточные",
+                    "level_name": "toolgroups",
+                    "nodes": [
+                        {
+                            "key": "ctd_tgi_radial",
+                            "img_link": "constr_image/ctd_tgi_radial.png",
+                            "drw_link": "constr_drawing/ctd_tgi_radial.png",
+                            "constr_rushort": "Державка расточная для внутренних канавок",
+                            "text": "Державка для обработки внутренних канавок круглая",
+                            "level_name": "constrs",
+                            "qty": 16
+                        },
+                        {
+                            "key": "ctd_tgi_radial_assembly",
+                            "img_link": "constr_image/ctd_tgi_radial_assembly.png",
+                            "drw_link": "constr_drawing/ctd_tgi_radial_assembly.png",
+                            "constr_rushort": "Внутренняя канавочная державка с модулем в сборе",
+                            "text": "Державка круглая для обработки внутренних канавок с модулем в сборе",
+                            "level_name": "constrs",
+                            "qty": 0
+                        }
+                    ]
+                },
+                {
+                    "key": "grooving_face_holders_int",
+                    "img_link": "toolgroup_image/grooving_face_holders_int.png",
+                    "toolgroup_rushort": "Державки круглые для торцовой обработки",
+                    "text": "Державки канавочные торцовые круглые",
+                    "level_name": "toolgroups",
+                    "nodes": [
+                        {
+                            "key": "ctd_tgi_face",
+                            "img_link": "constr_image/ctd_tgi_face.png",
+                            "drw_link": "constr_drawing/ctd_tgi_face.png",
+                            "constr_rushort": "Державка для вунтренней торцовой обработки",
+                            "text": "Державка для внутренней обработки торцовых канавок",
+                            "level_name": "constrs",
+                            "qty": 0
+                        }
+                    ]
+                },
+                {
+                    "key": "grooving_face_holders_ext",
+                    "img_link": "toolgroup_image/grooving_face_holders_ext.png",
+                    "toolgroup_rushort": "Державки для торцовой обработки",
+                    "text": "Державки канавочные торцовые наружные",
+                    "level_name": "toolgroups",
+                    "nodes": [
+                        {
+                            "key": "ctd_tge_face",
+                            "img_link": "constr_image/ctd_tge_face.png",
+                            "drw_link": "constr_drawing/ctd_tge_face.png",
+                            "constr_rushort": "Державка для наружной торцовой обработки",
+                            "text": "Державка для наружной обработки торцовых канавок",
+                            "level_name": "constrs",
+                            "qty": 2
+                        },
+                        {
+                            "key": "ctd_tge_face_assembly",
+                            "img_link": "constr_image/ctd_tge_face_assembly.png",
+                            "drw_link": "constr_drawing/ctd_tge_face_assembly.png",
+                            "constr_rushort": "Державка для наружной торцовой обработки с модулем в сборе",
+                            "text": "Державка для наружной обработки торцовых канавок с модулем в сборе",
+                            "level_name": "constrs",
+                            "qty": 0
+                        }
+                    ]
+                },
+                {
+                    "key": "multifunctional_holders",
+                    "img_link": "toolgroup_image/multifunctional_holders.png",
+                    "toolgroup_rushort": "Державки для многофункциональных пластин",
+                    "text": "Державки под многофункциональные пластины",
+                    "level_name": "toolgroups",
+                    "nodes": [
+                        {
+                            "key": "ctd_tmf_module",
+                            "img_link": "constr_image/ctd_tmf_module.png",
+                            "drw_link": "constr_drawing/ctd_tmf_module.png",
+                            "constr_rushort": "Модуль токарный для многофункциональных пластин",
+                            "text": "Модуль токарный для многофункциональных пластин",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_tmfe_holder",
+                            "img_link": "constr_image/ctd_tmfe_holder.png",
+                            "drw_link": "constr_drawing/ctd_tmfe_holder.png",
+                            "constr_rushort": "Державка для многофункциональных пластин наружная",
+                            "text": "Многофункциональная наружная державка",
+                            "level_name": "constrs",
+                            "qty": 27
+                        },
+                        {
+                            "key": "ctd_tmfi_holder",
+                            "img_link": "constr_image/ctd_tmfi_holder.png",
+                            "drw_link": "constr_drawing/ctd_tmfi_holder.png",
+                            "constr_rushort": "Державка для многофункциональных пластин внутренняя",
+                            "text": "Многофункциональная внутренняя державка",
+                            "level_name": "constrs",
+                            "qty": 9
+                        }
+                    ]
+                },
+                {
+                    "key": "indexable_holders_ext",
+                    "img_link": "toolgroup_image/indexable_holders_ext.png",
+                    "toolgroup_rushort": "Державки наружные",
+                    "text": "Державки токарные наружные",
+                    "level_name": "toolgroups",
+                    "nodes": [
+                        {
+                            "key": "ctd_the",
+                            "img_link": "constr_image/ctd_the.png",
+                            "drw_link": "constr_drawing/ctd_the.png",
+                            "constr_rushort": "Державка ISO наружная",
+                            "text": "Державка наружная токарная для пластин ISO",
+                            "level_name": "constrs",
+                            "qty": 816
+                        },
+                        {
+                            "key": "ctd_tsmb_holdersquare",
+                            "img_link": "constr_image/ctd_tsmb_holdersquare.png",
+                            "drw_link": "constr_drawing/ctd_tsmb_holdersquare.png",
+                            "constr_rushort": "Державка токарная призматическая для токраных вставок",
+                            "text": "Державка токарная призматическая для токраных вставок",
+                            "level_name": "constrs",
+                            "qty": 0
+                        }
+                    ]
+                },
+                {
+                    "key": "indexable_holders_int",
+                    "img_link": "toolgroup_image/indexable_holders_int.png",
+                    "toolgroup_rushort": "Державки расточные",
+                    "text": "Державки токарные расточные",
+                    "level_name": "toolgroups",
+                    "nodes": [
+                        {
+                            "key": "ctd_thi",
+                            "img_link": "constr_image/ctd_thi.png",
+                            "drw_link": "constr_drawing/ctd_thi.png",
+                            "constr_rushort": "Державка ISO расточная",
+                            "text": "Державка внутренняя токарная для пластин ISO",
+                            "level_name": "constrs",
+                            "qty": 579
+                        }
+                    ]
+                },
+                {
+                    "key": "grooving_holders",
+                    "img_link": "toolgroup_image/grooving_holders.png",
+                    "toolgroup_rushort": "Держатели для канавочных лезвий",
+                    "text": "Держатели и державки канавочных и отрезных резцов и систем",
+                    "level_name": "toolgroups",
+                    "nodes": [
+                        {
+                            "key": "ctd_tge_blade_holder",
+                            "img_link": "constr_image/ctd_tge_blade_holder.png",
+                            "drw_link": "constr_drawing/ctd_tge_blade_holder.png",
+                            "constr_rushort": "Держатель для лезвий",
+                            "text": "Держатель для лезвий",
+                            "level_name": "constrs",
+                            "qty": 5
+                        },
+                        {
+                            "key": "ctd_tge_module_holder",
+                            "img_link": "constr_image/ctd_tge_module_holder.png",
+                            "drw_link": "constr_drawing/ctd_tge_module_holder.png",
+                            "constr_rushort": "Державка наружная для локаторов",
+                            "text": "Державка наружная для локаторов",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_tgi_module_holder",
+                            "img_link": "constr_image/ctd_tgi_module_holder.png",
+                            "drw_link": "constr_drawing/ctd_tgi_module_holder.png",
+                            "constr_rushort": "Державка круглая для локаторов",
+                            "text": "Державка круглая для локаторов",
+                            "level_name": "constrs",
+                            "qty": 0
+                        }
+                    ]
+                },
+                {
+                    "key": "small_boring_solid_inserts",
+                    "img_link": "toolgroup_image/small_boring_solid_inserts.png",
+                    "toolgroup_rushort": "Микро-расточные резцы",
+                    "text": "Микрорасточные цельные вставки",
+                    "level_name": "toolgroups",
+                    "nodes": [
+                        {
+                            "key": "ctd_tsmb_back_boring",
+                            "img_link": "constr_image/ctd_tsmb_back_boring.png",
+                            "drw_link": "constr_drawing/ctd_tsmb_back_boring.png",
+                            "constr_rushort": "Вставка цельная для обратного точения",
+                            "text": "Вставка цельная для обратного точения",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_tsmb_chamfer_preparting",
+                            "img_link": "constr_image/ctd_tsmb_chamfer_preparting.png",
+                            "drw_link": "constr_drawing/ctd_tsmb_chamfer_preparting.png",
+                            "constr_rushort": "Вставка цельная для подготовки отрезки",
+                            "text": "Вставка цельная для подготовки отрезки",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_tsmb_face_chamfer",
+                            "img_link": "constr_image/ctd_tsmb_face_chamfer.png",
+                            "drw_link": "constr_drawing/ctd_tsmb_face_chamfer.png",
+                            "constr_rushort": "Вставка цельная для обработки фасок",
+                            "text": "Вставка цельная для обработки фасок",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_tsmb_face_fullround",
+                            "img_link": "constr_image/ctd_tsmb_face_fullround.png",
+                            "drw_link": "constr_drawing/ctd_tsmb_face_fullround.png",
+                            "constr_rushort": "Вставка цельная для круглых торцовых канавок",
+                            "text": "Вставка цельная для круглых торцовых канавок",
+                            "level_name": "constrs",
+                            "qty": 4
+                        },
+                        {
+                            "key": "ctd_tsmb_face_groove",
+                            "img_link": "constr_image/ctd_tsmb_face_groove.png",
+                            "drw_link": "constr_drawing/ctd_tsmb_face_groove.png",
+                            "constr_rushort": "Вставка цельная для торцовых канавок",
+                            "text": "Вставка цельная для обработки торцовых канавок",
+                            "level_name": "constrs",
+                            "qty": 183
+                        },
+                        {
+                            "key": "ctd_tsmb_multi_functional",
+                            "img_link": "constr_image/ctd_tsmb_multi_functional.png",
+                            "drw_link": "constr_drawing/ctd_tsmb_multi_functional.png",
+                            "constr_rushort": "Вставка цельная многофункциональная",
+                            "text": "Вставка цельная многофункциональная",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_tsmb_radial_fullround",
+                            "img_link": "constr_image/ctd_tsmb_radial_fullround.png",
+                            "drw_link": "constr_drawing/ctd_tsmb_radial_fullround.png",
+                            "constr_rushort": "Вставка цельная для обработки круглых радиальных канавок ",
+                            "text": "Вставка цельная для круглых радиальных канавок",
+                            "level_name": "constrs",
+                            "qty": 189
+                        },
+                        {
+                            "key": "ctd_tsmb_radial_groove",
+                            "img_link": "constr_image/ctd_tsmb_radial_groove.png",
+                            "drw_link": "constr_drawing/ctd_tsmb_radial_groove.png",
+                            "constr_rushort": "Вставка цельная канавочная",
+                            "text": "Вставка цельная для обработки радиальных канавок",
+                            "level_name": "constrs",
+                            "qty": 481
+                        },
+                        {
+                            "key": "ctd_tsmb_thread",
+                            "img_link": "constr_image/ctd_tsmb_thread.png",
+                            "drw_link": "constr_drawing/ctd_tsmb_thread.png",
+                            "constr_rushort": "Вставка цельная для обработки резьбы",
+                            "text": "Вставка цельная для обработки резьб",
+                            "level_name": "constrs",
+                            "qty": 1023
+                        },
+                        {
+                            "key": "ctd_tsmb_tupleback_boring",
+                            "img_link": "constr_image/ctd_tsmb_tupleback_boring.png",
+                            "drw_link": "constr_drawing/ctd_tsmb_tupleback_boring.png",
+                            "constr_rushort": "Вставка цельная двусторонняя для обратного точения",
+                            "text": "Вставка цельная двусторонняя для обратного точения",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_tsmb_tuplechamfer_preparting",
+                            "img_link": "constr_image/ctd_tsmb_tuplechamfer_preparting.png",
+                            "drw_link": "constr_drawing/ctd_tsmb_tuplechamfer_preparting.png",
+                            "constr_rushort": "Вставка цельная двусторонняя для подготовки отрезки",
+                            "text": "Вставка цельная двусторонняя для подготовки отрезки",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_tsmb_tupleradial_groove",
+                            "img_link": "constr_image/ctd_tsmb_tupleradial_groove.png",
+                            "drw_link": "constr_drawing/ctd_tsmb_tupleradial_groove.png",
+                            "constr_rushort": "Вставка цельная двусторонняя для обработки канавок",
+                            "text": "Вставка цельная двусторонняя для изготовления канавок",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_tsmb_tuplethread",
+                            "img_link": "constr_image/ctd_tsmb_tuplethread.png",
+                            "drw_link": "constr_drawing/ctd_tsmb_tuplethread.png",
+                            "constr_rushort": "Вставка цельная двусторонняя для обработки резьбы",
+                            "text": "Вставка цельная двусторонняя для обработки резьбы",
+                            "level_name": "constrs",
+                            "qty": 103
+                        },
+                        {
+                            "key": "ctd_tsmb_tupleturn",
+                            "img_link": "constr_image/ctd_tsmb_tupleturn.png",
+                            "drw_link": "constr_drawing/ctd_tsmb_tupleturn.png",
+                            "constr_rushort": "Вставка цельная двусторонняя расточная",
+                            "text": "Вставка цельная двусторонняя расточная",
+                            "level_name": "constrs",
+                            "qty": 85
+                        },
+                        {
+                            "key": "ctd_tsmb_turn",
+                            "img_link": "constr_image/ctd_tsmb_turn.png",
+                            "drw_link": "constr_drawing/ctd_tsmb_turn.png",
+                            "constr_rushort": "Вставка цельная расточная",
+                            "text": "Вставка цельная для растачивания",
+                            "level_name": "constrs",
+                            "qty": 2486
+                        }
+                    ]
+                },
+                {
+                    "key": "grooving_blades",
+                    "img_link": "toolgroup_image/grooving_blades.png",
+                    "toolgroup_rushort": "Отрезные и канавочные лезвия",
+                    "text": "Отрезные и канавочные лезвия",
+                    "level_name": "toolgroups",
+                    "nodes": [
+                        {
+                            "key": "ctd_tgb_face",
+                            "img_link": "constr_image/ctd_tgb_face.png",
+                            "drw_link": "constr_drawing/ctd_tgb_face.png",
+                            "constr_rushort": "Лезвие для торцовых канавок",
+                            "text": "Лезвие для торцовых канавок",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_tgb_radial",
+                            "img_link": "constr_image/ctd_tgb_radial.png",
+                            "drw_link": "constr_drawing/ctd_tgb_radial.png",
+                            "constr_rushort": "Лезвие для радиальных канавок или отрезки",
+                            "text": "Лезвие для радиальных канавок или отрезки",
+                            "level_name": "constrs",
+                            "qty": 23
+                        }
+                    ]
+                },
+                {
+                    "key": "grooving_modules",
+                    "img_link": "toolgroup_image/grooving_modules.png",
+                    "toolgroup_rushort": "Модули канавочные",
+                    "text": "Отрезные и канавочные модули-локаторы",
+                    "level_name": "toolgroups",
+                    "nodes": [
+                        {
+                            "key": "ctd_tgm_face",
+                            "img_link": "constr_image/ctd_tgm_face.png",
+                            "drw_link": "constr_drawing/ctd_tgm_face.png",
+                            "constr_rushort": "Модуль для обработки торцовых канавок",
+                            "text": "Модуль для обработки торцовых канавок",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_tgm_radial",
+                            "img_link": "constr_image/ctd_tgm_radial.png",
+                            "drw_link": "constr_drawing/ctd_tgm_radial.png",
+                            "constr_rushort": "Модуль канавочный или отрезной",
+                            "text": "Модуль для отрезки или радиальных канавок",
+                            "level_name": "constrs",
+                            "qty": 0
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

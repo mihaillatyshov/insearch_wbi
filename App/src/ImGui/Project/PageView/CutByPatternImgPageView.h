@@ -9,7 +9,7 @@ namespace LM
     {
     protected:
         virtual std::string GetBasePath() const override { return m_Project->GetCutByPatternImgsPath(); }
-        virtual const char* GetWindowName() const override { return U8("Картинки по паттерну"); }
+        virtual const char* GetWindowName() const override { return "РљР°СЂС‚РёРЅРєРё РїРѕ РїР°С‚С‚РµСЂРЅСѓ"; }
 
     protected:
     };

@@ -1,5 +1,6 @@
 #include "EditorLayer.h"
 
+#include "ImGui/Constructions/SelectConstructionFromTree.hpp"
 #include "ImGui/Overlays/Overlay.h"
 #include "ImGui/Overlays/ScriptPopup.h"
 #include "ImGui/Project/PageView/PageViewManager.h"
@@ -40,6 +41,8 @@ namespace LM
             m_Project = project;
             m_SetupProjectWindow.Open();
         }
+
+        SelectConstructionFromTree::LoadTreeFromDefaultFile();
     }
 
     void EditorLayer::OnImGuiRender()
@@ -157,6 +160,12 @@ namespace LM
         ScriptPopup::Get()->Draw();
 
         ImGui::ShowDemoWindow();
+
+        static SelectConstructionFromTree constrTreeTest;
+        if (auto construction = constrTreeTest(); !construction.empty())
+        {
+            LOGW("Constr tree test message on select: ", construction);
+        }
     }
 
     void EditorLayer::OpenProject()

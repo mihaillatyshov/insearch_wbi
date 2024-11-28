@@ -21,49 +21,49 @@ namespace LM
         ImVec2 buttonSize = { 0.0f, ImGui::GetFontSize() * PageViewManager::kBntSizeCoef };
 
         ImGui::SameLine(0.0f, 20.0f);
-        if (ImGui::Button(U8("Действия"), buttonSize))
+        if (ImGui::Button("Р”РµР№СЃС‚РІРёСЏ", buttonSize))
         {
-            ImGui::OpenPopup(U8("Меню дейстивий"));
+            ImGui::OpenPopup("РњРµРЅСЋ РґРµР№СЃС‚РёРІРёР№");
         }
 
         ImGui::SameLine(0.0f, 20.0f);
         if (m_Project->IsPageInGeneratedCatalogExcludePages(m_PageId))
         {
-            if (ImGui::Button(U8("Включить в обработку"), buttonSize))
+            if (ImGui::Button("Р’РєР»СЋС‡РёС‚СЊ РІ РѕР±СЂР°Р±РѕС‚РєСѓ", buttonSize))
             {
                 m_Project->RemoveGeneratedCatalogExcludePage(m_PageId);
             }
         }
         else
         {
-            if (ImGui::Button(U8("Исключить из обработки"), buttonSize))
+            if (ImGui::Button("РСЃРєР»СЋС‡РёС‚СЊ РёР· РѕР±СЂР°Р±РѕС‚РєРё", buttonSize))
             {
                 m_Project->AddGeneratedCatalogExcludePage(m_PageId);
             }
         }
 
-        if (ImGui::BeginPopup(U8("Меню дейстивий")))
+        if (ImGui::BeginPopup("РњРµРЅСЋ РґРµР№СЃС‚РёРІРёР№"))
         {
-            if (ImGui::Selectable(U8("Задать левый верхний паттерн")))
+            if (ImGui::Selectable("Р—Р°РґР°С‚СЊ Р»РµРІС‹Р№ РІРµСЂС…РЅРёР№ РїР°С‚С‚РµСЂРЅ"))
             {
                 m_PatternState = PatternState::kCreateTopLeft;
                 const CatalogCutPattern& cutPattern = m_Project->GetCatalogTopLeftPattern();
                 m_TmpCatalogCutPattern = m_PageId == cutPattern.PageId ? cutPattern : CatalogCutPattern {};
             }
-            if (ImGui::Selectable(U8("Задать правый нижний паттерн")))
+            if (ImGui::Selectable("Р—Р°РґР°С‚СЊ РїСЂР°РІС‹Р№ РЅРёР¶РЅРёР№ РїР°С‚С‚РµСЂРЅ"))
             {
                 m_PatternState = PatternState::kCreateBotRight;
                 const CatalogCutPattern& cutPattern = m_Project->GetCatalogBotRightPattern();
                 m_TmpCatalogCutPattern = m_PageId == cutPattern.PageId ? cutPattern : CatalogCutPattern {};
             }
 
-            if (ImGui::Selectable(U8("Просмотр: левый верхний паттерн")))
+            if (ImGui::Selectable("РџСЂРѕСЃРјРѕС‚СЂ: Р»РµРІС‹Р№ РІРµСЂС…РЅРёР№ РїР°С‚С‚РµСЂРЅ"))
             {
                 m_PatternState = PatternState::kShowTopLeft;
                 const CatalogCutPattern& cutPattern = m_Project->GetCatalogTopLeftPattern();
                 if (cutPattern.PageId == -1)
                 {
-                    Overlay::Get()->Start(U8("Паттерн отсутствует"));
+                    Overlay::Get()->Start("РџР°С‚С‚РµСЂРЅ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚");
                 }
                 else
                 {
@@ -71,13 +71,13 @@ namespace LM
                     m_TmpCatalogCutPattern = cutPattern;
                 }
             }
-            if (ImGui::Selectable(U8("Просмотр: правый нижний паттерн")))
+            if (ImGui::Selectable("РџСЂРѕСЃРјРѕС‚СЂ: РїСЂР°РІС‹Р№ РЅРёР¶РЅРёР№ РїР°С‚С‚РµСЂРЅ"))
             {
                 m_PatternState = PatternState::kShowBotRight;
                 const CatalogCutPattern& cutPattern = m_Project->GetCatalogBotRightPattern();
                 if (cutPattern.PageId == -1)
                 {
-                    Overlay::Get()->Start(U8("Паттерн отсутствует"));
+                    Overlay::Get()->Start("РџР°С‚С‚РµСЂРЅ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚");
                 }
                 else
                 {
@@ -123,18 +123,18 @@ namespace LM
         if (ImGui::Begin("CutPattern##Overlay", nullptr, windowFlags))
         {
             ImGui::BringWindowToDisplayFront(ImGui::GetCurrentWindow());
-            ImGui::Text(U8("'/\\' - выбрать мышкой"));
-            ImGui::Text(U8("'\\/' - отменить"));
+            ImGui::Text("'/\\' - РІС‹Р±СЂР°С‚СЊ РјС‹С€РєРѕР№");
+            ImGui::Text("'\\/' - РѕС‚РјРµРЅРёС‚СЊ");
 
             DrawPatternPointButton(PatternPointState::kFirst, 0);
-            ImGui::DragFloat2(U8("Min"), glm::value_ptr(m_TmpCatalogCutPattern.PointMin), kPatternSpeed, kPatternMin,
+            ImGui::DragFloat2("Min", glm::value_ptr(m_TmpCatalogCutPattern.PointMin), kPatternSpeed, kPatternMin,
                               kPatternMax);
             DrawPatternPointButton(PatternPointState::kSecond, 1);
-            ImGui::DragFloat2(U8("Max"), glm::value_ptr(m_TmpCatalogCutPattern.PointMax), kPatternSpeed, kPatternMin,
+            ImGui::DragFloat2("Max", glm::value_ptr(m_TmpCatalogCutPattern.PointMax), kPatternSpeed, kPatternMin,
                               kPatternMax);
             DrawPatternPointButton(PatternPointState::kCenter, 2);
-            ImGui::DragFloat2(U8("Center"), glm::value_ptr(m_TmpCatalogCutPattern.CenterPoint), kPatternSpeed,
-                              kPatternMin, kPatternMax);
+            ImGui::DragFloat2("Center", glm::value_ptr(m_TmpCatalogCutPattern.CenterPoint), kPatternSpeed, kPatternMin,
+                              kPatternMax);
 
             SavePattern();
             ImGui::SameLine();
@@ -231,7 +231,7 @@ namespace LM
 
     void RawImgPageView::SavePattern()
     {
-        if (ImGui::Button(U8("Сохранить")))
+        if (ImGui::Button("РЎРѕС…СЂР°РЅРёС‚СЊ"))
         {
             m_TmpCatalogCutPattern.PageId = m_PageId;
 
@@ -250,7 +250,7 @@ namespace LM
 
     void RawImgPageView::CancelPattern()
     {
-        if (ImGui::Button(U8("Отменить")))
+        if (ImGui::Button("РћС‚РјРµРЅРёС‚СЊ"))
         {
             m_PatternState = PatternState::kNone;
         }

@@ -22,11 +22,11 @@ namespace LM
 
         if (ImGui::Begin("Create Project"))
         {
-            ImGui::InputText(U8("Название проекта"), &m_Name);
+            ImGui::InputText("РќР°Р·РІР°РЅРёРµ РїСЂРѕРµРєС‚Р°", &m_Name);
 
-            ImGui::Text(U8("Путь к проекту: %s "), m_Folder.c_str());
+            ImGui::Text("РџСѓС‚СЊ Рє РїСЂРѕРµРєС‚Сѓ: %s ", m_Folder.c_str());
             ImGui::SameLine();
-            if (ImGui::Button(U8("Обзор . . .")))
+            if (ImGui::Button("РћР±Р·РѕСЂ . . ."))
             {
                 nfdu8char_t* outPath;
                 nfdresult_t result = NFD::PickFolder(outPath);
@@ -46,7 +46,7 @@ namespace LM
                 }
             }
 
-            if (ImGui::Button(U8("Создать")))
+            if (ImGui::Button("РЎРѕР·РґР°С‚СЊ"))
             {
                 isCreated = Create();
             }

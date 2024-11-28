@@ -66,7 +66,7 @@ namespace LM
             }
 
             ImGui::BeginDisabled(isScriptRunning);
-            if (ImGui::Button(U8("Закрыть"), ImVec2(120, 0)))
+            if (ImGui::Button("Р—Р°РєСЂС‹С‚СЊ", ImVec2(120, 0)))
             {
                 ImGui::CloseCurrentPopup();
             }
