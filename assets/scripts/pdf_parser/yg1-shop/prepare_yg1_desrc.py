@@ -1,24 +1,28 @@
 import re
+import os
 
 import numpy
 import pandas as pd
 
-from shared import df_select_group
+from shared import df_select_group, get_onedrive_path
 
 _RE_COMBINE_WHITESPACE = re.compile(r"\s+")
 _RE_STRIP_WHITESPACE = re.compile(r"(?a:^\s+|\s+$)")
 
-IN_PATH = "C:/works/wbi/InSearchCreator/assets/scripts/pdf_parser/yg1-shop/in/yg1_full_02102023.xlsx"
-OUT_PATH = "C:/works/wbi/InSearchCreator/assets/scripts/pdf_parser/yg1-shop/descrs/yg1_desc__Universal_Turning_HoldersTR.xlsx"
+OUT_PATH = "yg1_desc__Universal_Drill_Holders.xlsx"
 
-group = "Indexable Turning"
+IN_PATH = os.path.join(get_onedrive_path(), "Work/wbi/yg1-shop/parsing/in", "yg1_full_02102023.xlsx")
+OUT_PATH = os.path.join(get_onedrive_path(), "Work/wbi/yg1-shop/parsing/descrs", OUT_PATH)
+
+group = "Indexable Drilling"
 line = "Universal Holder (TR)"
 df = df_select_group(
     pd.read_excel(IN_PATH, index_col=None, engine="openpyxl"),
     line=line,
     group=group,
 )
-raw_descr = df["Техническое описание"].unique()
+# raw_descr = df["Техническое описание"].unique()
+raw_descr = df["Описание"].unique()
 
 print(len(raw_descr))
 

@@ -3,6 +3,7 @@ import math
 import os
 import sys
 from typing import TypeVar
+import subprocess, platform
 
 import pandas as pd
 from openpyxl.utils import get_column_letter
@@ -130,3 +131,12 @@ def get_onedrive_path() -> str:
         print("No env variable for 'OneDrive'")
         raise Exception("No env variable for 'OneDrive'")
     return res
+
+
+def open_file_in_default_app(filepath: str):
+    if platform.system() == 'Darwin':                                                                                   # macOS
+        subprocess.call(('open', filepath))
+    elif platform.system() == 'Windows':                                                                                # Windows
+        os.startfile(filepath)
+    else:                                                                                                               # linux variants
+        subprocess.call(('xdg-open', filepath))

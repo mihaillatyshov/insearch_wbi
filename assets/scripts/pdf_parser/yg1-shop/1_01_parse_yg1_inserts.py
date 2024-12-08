@@ -1,13 +1,14 @@
+import os
 import re
 from typing import TypedDict
 
 import pandas as pd
 
-from shared import df_select_group, is_cell_none
+from shared import df_select_group, is_cell_none, get_onedrive_path
 from shared_inserts import symb_to_ifs, symb_to_iwsc
 
-IN_PATH = "C:/works/wbi/InSearchCreator/assets/scripts/pdf_parser/yg1-shop/in/yg1_not_present.xlsx"
-OUT_PATH = "C:/works/wbi/InSearchCreator/assets/scripts/pdf_parser/yg1-shop/out_tmp/yg1_not_present_Universal_Turning_Insert.xlsx"
+IN_PATH = "yg1_not_present.xlsx"
+OUT_PATH = "drill_inserts/yg1_not_present_Universal_Drill_Inserts.xlsx"
 
 # item = "Патрон фрезерный гидравлический SK50-HC25G-110 . Конус SK40 DIN 69871. Посадочный диаметр 25 мм, Длина до торца 110 мм; Система охлаждения AD, класс балансировки G2.5/25,000 об/мин"
 # fixed_item = re.sub(r'(G[0-9]+.[0-9]+/[0-9]+),([0-9]+)', r'\1\2', fixed_item)
@@ -338,12 +339,18 @@ dl: DataList = {
 line = "Universal Turning Insert"
 group = None
 df_no_props = df_select_group(
-    pd.read_excel(IN_PATH, index_col=None, engine="openpyxl", sheet_name="NoProps"),
+    pd.read_excel(os.path.join(get_onedrive_path(), "Work/wbi/yg1-shop/parsing/in", IN_PATH),
+                  index_col=None,
+                  engine="openpyxl",
+                  sheet_name="NoProps"),
     line=line,
     group=group,
 )
 df_not_present = df_select_group(
-    pd.read_excel(IN_PATH, index_col=None, engine="openpyxl", sheet_name="NotPresent"),
+    pd.read_excel(os.path.join(get_onedrive_path(), "Work/wbi/yg1-shop/parsing/in", IN_PATH),
+                  index_col=None,
+                  engine="openpyxl",
+                  sheet_name="NoProps"),
     line=line,
     group=group,
 )
@@ -464,7 +471,9 @@ new_df.insert(len(new_df.columns), "w1", None)
 new_df.insert(len(new_df.columns), "m", None)
 new_df.insert(len(new_df.columns), "cutintsizeshape", None)
 
-new_df.to_excel(OUT_PATH, index=False)
+out_path = os.path.join(get_onedrive_path(), "Work/wbi/yg1-shop/parsing/out_tmp", OUT_PATH)
+os.makedirs(os.path.dirname(out_path), exist_ok=True)
+new_df.to_excel(out_path, index=False)
 
 print(new_df)
 print(new_df["grade"].unique())
