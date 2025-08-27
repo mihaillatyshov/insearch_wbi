@@ -1,0 +1,1461 @@
+#include "XlsxPageView.hpp"
+
+#include "ImGui/Overlays/Overlay.h"
+#include "Utils/FileFormat.h"
+
+#include "Engine/Utils/ConsoleLog.h"
+#include "Engine/Utils/json.hpp"
+#include "Engine/Utils/utf8.h"
+
+#include <exception>
+#include <filesystem>
+#include <format>
+#include <imgui.h>
+#include <imgui_internal.h>
+#include <misc/cpp/imgui_stdlib.h>
+#include <optional>
+#include <string>
+#include <vector>
+#include <xlnt/xlnt.hpp>
+
+#include <fstream>
+
+NLOHMANN_JSON_NAMESPACE_BEGIN
+template <typename T>
+struct adl_serializer<std::optional<T>>
+{
+    static void to_json(json& j, const std::optional<T>& opt)
+    {
+        if (opt == std::nullopt)
+        {
+            j = nullptr;
+        }
+        else
+        {
+            j = *opt;    // this will call adl_serializer<T>::to_json which will
+                         // find the free function to_json in T's namespace!
+        }
+    }
+
+    static void from_json(const json& j, std::optional<T>& opt)
+    {
+        if (j.is_null())
+        {
+            opt = std::nullopt;
+        }
+        else
+        {
+            opt = j.template get<T>();    // same as above, but with
+                                          // adl_serializer<T>::from_json
+        }
+    }
+};
+NLOHMANN_JSON_NAMESPACE_END
+
+namespace LM
+{
+
+    constexpr std::string_view kDefaultConstructionsTreeFile = "assets/constructions/constructions_tree.json";
+    constexpr std::string_view kDefaultConstructionsFieldsFile = "assets/constructions/ctd_fields.json";
+    constexpr std::string_view kDefaultFieldsDescriptionFile = "assets/constructions/gen_fields.json";
+    constexpr std::string_view kDefaultRepresentationFieldsDescriptionFile = "assets/constructions/repr_fields.json";
+    constexpr std::string_view kExtraInfoFile = "extra_info.json";
+
+    inline std::string Join(const std::vector<int>& _Array, const std::string _Delimiter)
+    {
+        auto str_range = _Array | std::views::transform([](int x) { return std::to_string(x); });
+
+        std::string result;
+
+        // вставляем первый элемент без запятой
+        if (!_Array.empty())
+        {
+            result += *str_range.begin();
+            std::for_each(std::next(str_range.begin()), str_range.end(), [&](const std::string& s) {
+                result += _Delimiter;
+                result += s;
+            });
+        }
+
+        return result;
+    }
+
+    inline ImVec4 GetFrameBgColorNone(float _Alpha = 0.125f, float _Blue = 0.0f)
+    {
+        ImVec4 frameBgColorNone = ImGui::GetStyleColorVec4(ImGuiCol_FrameBg);
+        frameBgColorNone.w = _Alpha;
+        return { frameBgColorNone.x, frameBgColorNone.y, _Blue, _Alpha };
+    }
+    inline ImVec4 GetFrameBgColorOk(float _Alpha = 0.125f, float _Blue = 0.0f)
+    {
+        return ImVec4(0.0f, 1.0f, 0.0f, _Alpha);
+    }
+    inline ImVec4 GetFrameBgColorWarn(float _Alpha = 0.125f, float _Blue = 0.0f)
+    {
+        return ImVec4(1.0f, 1.0f, 0.0f, _Alpha);
+    }
+    inline ImVec4 GetFrameBgColorError(float _Alpha = 0.125f, float _Blue = 0.0f)
+    {
+        return ImVec4(1.0f, 0.0f, 0.0f, _Alpha);
+    }
+
+    XlsxPageView::XlsxPageView()
+    {
+        LoadConstructionsTree();
+        LoadConstructionsFields();
+        LoadFieldsDescription();
+        LoadRepresentationFieldsDescription();
+    }
+
+    XlsxPageView::~XlsxPageView()
+    {
+        try
+        {
+            LOGI("Start saving");
+            SaveXLSX();
+            LOGI("End saving");
+        }
+        catch (std::exception& e)
+        {
+            LOGI("WARN", e.what());
+        }
+    }
+
+    bool XlsxPageView::OnPageWillBeChanged(int _CurrentPageId, int _NewPageId)
+    {
+        SaveXLSX();
+        return true;
+    }
+
+    std::string XlsxPageView::GetFileName() const { return FileFormat::FormatXlsx(m_PageId); }
+
+    void XlsxPageView::DrawWindowContent()
+    {
+        if (m_PageId == -1)
+        {
+            return;
+        }
+
+        if (m_LoadedPageId != m_PageId)
+        {
+            LoadXLSX();
+        }
+
+        if (m_TableData.empty() || m_LoadedPageId == -1 || m_LoadedPageId != m_PageId)
+        {
+            ImGui::Text("No data loaded or file not found.");
+            return;
+        }
+
+        ImGui::Text("Имя файла: %s", m_LoadedPageFilename.string().c_str());
+
+        HandleImGuiEvents();
+        DrawTableActions();
+
+        size_t colsCount = 0;
+        if (!m_TableData.empty())
+        {
+            colsCount = m_TableData[0].size();
+        }
+
+        ImGui::Separator();
+
+        ImGui::Text("Constr");
+
+        ImGui::SameLine();
+        if (ImGui::Button("Изменить конструкцию"))
+        {
+            ImGui::OpenPopup("Изменить конструкцию");
+        }
+
+        if (ImGui::BeginPopup("Изменить конструкцию"))
+        {
+            static ImGuiTextFilter constrFilter;
+            constrFilter.Draw("Фильтрация конструкции");
+
+            ImGui::BeginChild("ConstrList", ImVec2(0.0f, ImGui::GetFontSize() * 24.0f), ImGuiChildFlags_AutoResizeX);
+            for (size_t i = 0; i < m_Constructions.size(); ++i)
+            {
+                const auto& constr = m_Constructions[i];
+                if (constrFilter.PassFilter(constr.Label.c_str()) || constrFilter.PassFilter(constr.Key.c_str()))
+                {
+                    ImGui::PushID(static_cast<int>(i));
+                    if (ImGui::Selectable(std::format("{}\n{}", constr.Label, constr.Key).c_str(), false))
+                    {
+                        ChangeHeadersByConstruction(constr.Key);
+                        ImGui::CloseCurrentPopup();
+                    }
+                    ImGui::PopID();
+                    ImGui::Spacing();
+                }
+            }
+            ImGui::EndChild();
+
+            if (ImGui::Button("Close"))
+            {
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
+        }
+
+        ImGui::Spacing();
+
+        if (ImGui::Button("Глобальный список заполнения"))
+        {
+            m_IsOpenGlobalAddList = !m_IsOpenGlobalAddList;
+        }
+        DrawGlobalAddList();
+
+        DrawSimpleAddList();
+
+        ImGui::Separator();
+        if (m_SelectedCell.has_value())
+        {
+            ImGui::Text("Selected cell Col: %llu; Row: %llu", m_SelectedCell->x, m_SelectedCell->y);
+        }
+        else
+        {
+            ImGui::Text("No cell selected");
+        }
+        ImGui::Separator();
+
+        static ImGuiTableFlags tableFlags = ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_Borders |
+                                            ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY;
+
+        std::vector<float> columnWidths(colsCount + 1, 0.0f);
+        columnWidths[0] =
+            ImGui::CalcTextSize(std::to_string(m_TableData.size()).c_str()).x + ImGui::GetFontSize() * 2.0f;
+
+        for (size_t rowId = 0; rowId < m_TableData.size(); ++rowId)
+        {
+            for (size_t colId = 0; colId < colsCount; ++colId)
+            {
+                const auto& cellText = m_TableData[rowId][colId].Value;
+                ImVec2 cellTextSize = ImGui::CalcTextSize(cellText.c_str());
+                columnWidths[colId + 1] =
+                    std::max(columnWidths[colId + 1], cellTextSize.x + ImGui::GetFontSize() * 2.0f);
+            }
+        }
+
+        if (ImGui::BeginTable("XLSX Table", static_cast<int>(colsCount + 1), tableFlags))
+        {
+            ImGui::TableSetupScrollFreeze(1, 1);
+
+            DrawTableHeaderReturn headerData = DrawTableHeader(colsCount);
+
+            m_IsAnyCellActive = false;
+            for (size_t rowId = 1; rowId < m_TableData.size(); ++rowId)
+            {
+                ImGui::TableNextRow();
+                ImGui::PushID(static_cast<int>(rowId));
+                ImGui::TableSetColumnIndex(static_cast<int>(0));
+
+                bool isRowHovered = false;
+                std::string rowIdStr = std::format("{}##RowId", rowId);
+                ImGui::Button(rowIdStr.c_str(), ImVec2(columnWidths[0], 0.0f));
+                if (ImGui::IsItemHovered())
+                {
+                    isRowHovered = true;
+                    // ImGui::SetTooltip("Right-click to open popup");
+                }
+
+                if (ImGui::IsItemFocused())
+                {
+                    m_SelectedRow = rowId;
+                    m_SelectedCell = std::nullopt;
+                    m_SelectedCol = std::nullopt;
+                }
+
+                if (ImGui::BeginPopupContextItem(rowIdStr.c_str()))
+                {
+                    ImGui::Text("This a popup for Row:%zu", rowId);
+                    if (ImGui::Button("Close"))
+                    {
+                        ImGui::CloseCurrentPopup();
+                    }
+                    ImGui::EndPopup();
+                }
+
+                for (size_t colId = 0; colId < colsCount; ++colId)
+                {
+                    ImGui::PushID(static_cast<int>(colId));
+                    ImGui::TableSetColumnIndex(static_cast<int>(colId + 1));
+
+                    auto& t = m_TableData[rowId][colId].Value;
+                    ImGui::SetNextItemWidth(columnWidths[colId + 1]);
+                    bool isColHovered = headerData.HoveredCol.has_value() && headerData.HoveredCol.value() == colId;
+
+                    PushCellFrameBgColor(isRowHovered, isColHovered, rowId, colId);
+                    ImGui::InputText("##Input", &t);
+                    ImGui::PopStyleColor();
+                    if (ImGui::IsItemActive())
+                    {
+                        m_IsAnyCellActive = true;
+                    }
+                    if (ImGui::IsItemDeactivatedAfterEdit())
+                    {
+                        PushHistory();
+                    }
+
+                    if (ImGui::IsItemActive() || ImGui::IsItemFocused())
+                    {
+                        m_SelectedCell = { colId, rowId };
+                        m_SelectedRow = std::nullopt;
+                        m_SelectedCol = std::nullopt;
+                    }
+                    // if (ImGui::IsItemHovered())
+                    // {
+                    //     ImGui::SetTooltip("Right-click to open popup");
+                    // }
+                    if (ImGui::BeginPopupContextItem())
+                    {
+                        ImGui::Text("This a popup for Col: %zu Row:%zu", colId, rowId);
+                        if (ImGui::Button("Close"))
+                        {
+                            ImGui::CloseCurrentPopup();
+                        }
+                        ImGui::EndPopup();
+                    }
+
+                    ImGui::PopID();
+                }
+                ImGui::PopID();
+            }
+            ImGui::EndTable();
+        }
+
+        if (m_DeleteCol.has_value())
+        {
+            DeleteCol(*m_DeleteCol);
+            m_DeleteCol = std::nullopt;
+        }
+        if (m_DeleteRow.has_value())
+        {
+            DeleteRow(*m_DeleteRow);
+            m_DeleteRow = std::nullopt;
+        }
+    }
+
+    void XlsxPageView::DrawTableActions()
+    {
+        if (ImGui::Button("Save"))
+        {
+            SaveXLSX();
+        }
+
+        if (ImGui::Button("Копировать без заголовка"))
+        {
+            std::string copyText;
+            for (size_t rowId = 1; rowId < m_TableData.size(); ++rowId)
+            {
+                for (size_t colId = 0; colId < m_TableData[rowId].size(); ++colId)
+                {
+                    copyText += m_TableData[rowId][colId].Value + "\t";
+                }
+                copyText += "\n";
+            }
+            ImGui::SetClipboardText(copyText.c_str());
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Копировать с заголовком"))
+        {
+            std::string copyText;
+            for (size_t colId = 0; colId < m_TableData[0].size(); ++colId)
+            {
+                copyText += m_TableData[0][colId].Value + "\t";
+            }
+            copyText += "\n";
+            for (size_t rowId = 1; rowId < m_TableData.size(); ++rowId)
+            {
+                for (size_t colId = 0; colId < m_TableData[rowId].size(); ++colId)
+                {
+                    copyText += m_TableData[rowId][colId].Value + "\t";
+                }
+                copyText += "\n";
+            }
+            ImGui::SetClipboardText(copyText.c_str());
+        }
+
+        // TODO: Move to separate function
+        if (ImGui::Button("Вставить из буфера (заменить все)"))
+        {
+            ReplaceFromClipboard(false);
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Вставить из буфера (пустая строка заголовка)"))
+        {
+            ReplaceFromClipboard(true);
+        }
+
+        // TODO: Move to separate function
+        if (ImGui::Button("Test Fix"))
+        {
+            for (auto& row : m_TableData)
+            {
+                if (!row.empty())
+                {
+                    auto& cell = row[0].Value;
+                    cell.erase(
+                        std::remove_if(cell.begin(), cell.end(), [](unsigned char ch) { return std::isspace(ch); }),
+                        cell.end());
+                }
+            }
+
+            for (auto& row : m_TableData)
+            {
+                for (auto& cell : row)
+                {
+                    std::string& cellValue = cell.Value;
+
+                    std::string::size_type pos;
+                    while ((pos = cellValue.find(" ~")) != std::string::npos)
+                    {
+                        cellValue.replace(pos, 2, "~");
+                    }
+                    while ((pos = cellValue.find("~ ")) != std::string::npos)
+                    {
+                        cellValue.replace(pos, 2, "~");
+                    }
+                    cellValue.erase(
+                        std::remove_if(cellValue.begin(), cellValue.end(), [](unsigned char ch) { return ch >= 0x80; }),
+                        cellValue.end());
+                    cellValue.erase(cellValue.begin(),
+                                    std::find_if(cellValue.begin(), cellValue.end(),
+                                                 [](unsigned char ch) { return !std::isspace(ch); }));
+                    cellValue.erase(std::find_if(cellValue.rbegin(), cellValue.rend(),
+                                                 [](unsigned char ch) { return !std::isspace(ch); })
+                                        .base(),
+                                    cellValue.end());
+                    cellValue.erase(std::unique(cellValue.begin(), cellValue.end(),
+                                                [](char a, char b) { return std::isspace(a) && std::isspace(b); }),
+                                    cellValue.end());
+                }
+            }
+
+            PushHistory();
+        }
+
+        ImGui::SameLine();
+
+        if (ImGui::Button("Разделить столбцы по пробелу"))
+        {
+            SplitAndExpandTable();
+        }
+    }
+
+    void XlsxPageView::DrawGlobalAddList()
+    {
+        if (ImGui::Begin("Глобальный список заполнения", &m_IsOpenGlobalAddList))
+        {
+            for (auto& [globalAddListFieldName, globalAddListFieldValue] : m_GlobalAddList)
+            {
+                ImGui::Text("%s", globalAddListFieldName.c_str());
+                ImGui::InputText(std::format("##{}", globalAddListFieldName).c_str(), &globalAddListFieldValue);
+                if (ImGui::IsItemDeactivatedAfterEdit())
+                {
+                    PushHistory();
+                }
+                ImGui::Spacing();
+            }
+
+            if (ImGui::Button("Добавить поле"))
+            {
+                ImGui::OpenPopup("Добавление поля##GlobalAddList");
+            }
+
+            if (ImGui::BeginPopup("Добавление поля##GlobalAddList"))
+            {
+                static ImGuiTextFilter fieldsFilter;
+                fieldsFilter.Draw("Фильтрация полей##GlobalAddList");
+
+                ImGui::BeginChild("GlobalAddListField", ImVec2(0.0f, ImGui::GetFontSize() * 24.0f),
+                                  ImGuiChildFlags_AutoResizeX);
+                for (const auto& [fieldName, fieldDescr] : m_FieldsDescription)
+                {
+                    if (m_GlobalAddList.contains(fieldName))
+                    {
+                        continue;
+                    }
+
+                    if (fieldsFilter.PassFilter(fieldDescr.Description.c_str()) ||
+                        fieldsFilter.PassFilter(fieldName.c_str()))
+                    {
+                        ImGui::PushID(fieldName.c_str());
+                        if (ImGui::Selectable(std::format("{}\n{}", fieldDescr.Description, fieldName).c_str(), false))
+                        {
+                            m_GlobalAddList[fieldName] = "";
+                            ImGui::CloseCurrentPopup();
+                        }
+                        ImGui::PopID();
+                        ImGui::Spacing();
+                    }
+                }
+                ImGui::EndChild();
+
+                if (ImGui::Button("Close"))
+                {
+                    ImGui::CloseCurrentPopup();
+                }
+                ImGui::EndPopup();
+            }
+        }
+        ImGui::End();
+    }
+
+    void XlsxPageView::DrawSimpleAddList()
+    {
+        if (ImGui::Begin("Постраничный список заполнения", &m_IsOpenGlobalAddList))
+        {
+            for (auto& [simpleAddListFieldName, simpleAddListPages] : m_SimpleAddList)
+            {
+                for (SimpleAddListItem& simpleAddListItem : simpleAddListPages)
+                {
+                    const std::vector<int>& sharedPages = simpleAddListItem.SharedPages;
+                    if (std::ranges::find(sharedPages, m_LoadedPageId) == sharedPages.end())
+                    {
+                        continue;
+                    }
+
+                    ImGui::Text("%s", simpleAddListFieldName.c_str());
+                    ImGui::SameLine();
+                    std::string sharedPagesStr = Join(sharedPages, ", ");
+                    ImGui::TextDisabled("%s", sharedPagesStr.c_str());
+
+                    ImGui::InputText(std::format("##{}", simpleAddListFieldName).c_str(), &simpleAddListItem.Value);
+                    if (ImGui::IsItemDeactivatedAfterEdit())
+                    {
+                        PushHistory();
+                    }
+                    ImGui::Spacing();
+
+                    break;
+                }
+            }
+
+            if (ImGui::Button("Добавить поле"))
+            {
+                ImGui::OpenPopup("Добавление поля##SimpleAddList");
+            }
+
+            if (ImGui::BeginPopup("Добавление поля##SimpleAddList"))
+            {
+                static ImGuiTextFilter fieldsFilter;
+                fieldsFilter.Draw("Фильтрация полей##SimpleAddList");
+
+                ImGui::BeginChild("SimpleAddListField", ImVec2(0.0f, ImGui::GetFontSize() * 24.0f),
+                                  ImGuiChildFlags_AutoResizeX);
+                for (const auto& [fieldName, fieldDescr] : m_FieldsDescription)
+                {
+                    if (m_SimpleAddList.contains(fieldName))
+                    {
+                        if (std::ranges::any_of(m_SimpleAddList[fieldName], [this](const SimpleAddListItem& item) {
+                                return std::ranges::find(item.SharedPages, m_LoadedPageId) != item.SharedPages.end();
+                            }))
+                        {
+                            continue;
+                        }
+                    }
+
+                    if (fieldsFilter.PassFilter(fieldDescr.Description.c_str()) ||
+                        fieldsFilter.PassFilter(fieldName.c_str()))
+                    {
+                        ImGui::PushID(fieldName.c_str());
+                        if (ImGui::Selectable(std::format("{}\n{}", fieldDescr.Description, fieldName).c_str(), false))
+                        {
+                            m_SimpleAddList.try_emplace(fieldName);
+                            m_SimpleAddList[fieldName].push_back({ { { m_LoadedPageId } }, "" });
+                            ImGui::CloseCurrentPopup();
+                        }
+
+                        if (m_SimpleAddList.contains(fieldName))
+                        {
+                            for (SimpleAddListItem& simpleAddListItem : m_SimpleAddList[fieldName])
+                            {
+                                std::vector<int>& sharedPages = simpleAddListItem.SharedPages;
+                                std::string sharedPagesStr = Join(sharedPages, ", ");
+
+                                if (ImGui::Selectable(
+                                        std::format("\t{}\n\t{}", simpleAddListItem.Value, sharedPagesStr).c_str(),
+                                        false))
+                                {
+                                    sharedPages.push_back(m_LoadedPageId);
+                                    ImGui::CloseCurrentPopup();
+                                }
+                            }
+                        }
+
+                        ImGui::PopID();
+                        ImGui::Spacing();
+                    }
+                }
+                ImGui::EndChild();
+
+                if (ImGui::Button("Close"))
+                {
+                    ImGui::CloseCurrentPopup();
+                }
+                ImGui::EndPopup();
+            }
+        }
+        ImGui::End();
+    }
+
+    void XlsxPageView::HandleImGuiEvents()
+    {
+        if (!ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) || m_TableData.empty())
+        {
+            return;
+        }
+
+        ImGuiIO& io = ImGui::GetIO();
+
+        if (m_SelectedRow.has_value() && (*m_SelectedRow >= m_TableData.size()))
+        {
+            m_SelectedRow = std::nullopt;
+        }
+        if (m_SelectedCol.has_value() && ((m_TableData.size() == 0) || (*m_SelectedCol >= m_TableData[0].size())))
+        {
+            m_SelectedCol = std::nullopt;
+        }
+        if (m_SelectedCell.has_value() &&
+            (((m_TableData.size() == 0) || (m_SelectedCell->x >= m_TableData[0].size())) ||
+             (m_SelectedCell->y >= m_TableData.size())))
+        {
+            m_SelectedCell = std::nullopt;
+        }
+
+        if (ImGui::IsKeyReleased(ImGuiKey_Escape))
+        {
+            LOGE("Escape key pressed");
+            m_SelectedCell = std::nullopt;
+            m_SelectedRow = std::nullopt;
+            m_SelectedCol = std::nullopt;
+
+            return;
+        }
+
+        if (ImGui::IsKeyPressed(ImGuiKey_Z) && io.KeyCtrl && !m_IsAnyCellActive)
+        {
+            Undo();
+        }
+        if (ImGui::IsKeyPressed(ImGuiKey_Y) && io.KeyCtrl && !m_IsAnyCellActive)
+        {
+            Redo();
+        }
+
+        if (ImGui::IsKeyPressed(ImGuiKey_Equal) && io.KeyCtrl)
+        {
+            size_t selectedRow = io.KeyAlt ? 0 : m_TableData.size();
+            size_t selectedCol = io.KeyAlt ? 0 : m_TableData[0].size();
+            if (m_SelectedCell.has_value())
+            {
+                selectedCol = m_SelectedCell->x + 1;
+                selectedRow = m_SelectedCell->y + 1;
+            }
+            else if (m_SelectedRow.has_value())
+            {
+                selectedRow = *m_SelectedRow + 1;
+            }
+            else if (m_SelectedCol.has_value())
+            {
+                selectedCol = *m_SelectedCol + 1;
+            }
+
+            bool isAddToCol = io.KeyShift;
+            size_t selectedItem = isAddToCol ? selectedCol : selectedRow;
+            if ((selectedItem > 0) && io.KeyAlt)
+            {
+                --selectedItem;
+            }
+
+            if (isAddToCol)
+            {
+                InsertCol(selectedItem);
+            }
+            else
+            {
+                InsertRow(selectedItem);
+            }
+            return;
+        }
+
+        if (ImGui::IsKeyPressed(ImGuiKey_Minus) && io.KeyCtrl && !io.KeyShift && !io.KeyAlt)
+        {
+            if (m_SelectedRow.has_value())
+            {
+                DeleteRow(*m_SelectedRow);
+            }
+            if (m_SelectedCol.has_value())
+            {
+                DeleteCol(*m_SelectedCol);
+            }
+            if ((m_SelectedRow.has_value() || m_SelectedCol.has_value()) && (m_TableData.size() == 0))
+            {
+                m_TableData.resize(1, std::vector<TableCell>(1, { .Value = "" }));
+            }
+            return;
+        }
+
+        if (ImGui::IsKeyPressed(ImGuiKey_Delete) && !io.KeyCtrl && io.KeyShift && !io.KeyAlt)
+        {
+            if (m_SelectedRow.has_value())
+            {
+                // TODO: Implement clear row
+            }
+            if (m_SelectedCol.has_value())
+            {
+                // TODO: Implement clear col
+            }
+            if (m_SelectedCell.has_value())
+            {
+                auto& cellValue = m_TableData[m_SelectedCell->y][m_SelectedCell->x].Value;
+                cellValue.clear();
+            }
+            return;
+        }
+    }
+
+    void XlsxPageView::PushCellFrameBgColor(bool _IsRowHovered, bool _IsColHovered, size_t _RowId, size_t _ColId)
+    {
+        float frameBgAlpha = 0.125f;
+        float frameBgBlue = 0.0f;
+
+        bool isHovered = _IsRowHovered || _IsColHovered;
+        bool isSelected =
+            (m_SelectedRow.has_value() && *m_SelectedRow == _RowId) ||
+            (m_SelectedCol.has_value() && *m_SelectedCol == _ColId) ||
+            (m_SelectedCell.has_value() && (m_SelectedCell->x == _ColId) && (m_SelectedCell->y == _RowId));
+
+        // Check if the cell is selected
+        if (isSelected && isHovered)
+        {
+            frameBgAlpha = 0.87f;
+            frameBgBlue = 0.65f;
+        }
+        else if (isHovered)
+        {
+            frameBgAlpha = 0.6f;
+            frameBgBlue = 0.5f;
+        }
+        else if (isSelected)
+        {
+            frameBgAlpha = 0.75f;
+            frameBgBlue = 0.75f;
+        }
+
+        switch (m_TableData[_RowId][_ColId].Check)
+        {
+            case CheckStatus::kOk:
+                ImGui::PushStyleColor(ImGuiCol_FrameBg, GetFrameBgColorOk(frameBgAlpha, frameBgBlue));
+                break;
+            case CheckStatus::kWarning:
+                ImGui::PushStyleColor(ImGuiCol_FrameBg, GetFrameBgColorWarn(frameBgAlpha, frameBgBlue));
+                break;
+            case CheckStatus::kError:
+                ImGui::PushStyleColor(ImGuiCol_FrameBg, GetFrameBgColorError(frameBgAlpha, frameBgBlue));
+                break;
+            default: ImGui::PushStyleColor(ImGuiCol_FrameBg, GetFrameBgColorNone(frameBgAlpha, frameBgBlue)); break;
+        }
+    }
+
+    XlsxPageView::DrawTableHeaderReturn XlsxPageView::DrawTableHeader(size_t _ColsCount)
+    {
+        DrawTableHeaderReturn result;
+
+        for (size_t colId = 0; colId < _ColsCount + 1; ++colId)
+        {
+            ImGui::TableSetupColumn(std::format("Header_{}", colId).c_str());
+        }
+
+        ImGui::TableNextRow();
+        ImGui::PushID(static_cast<int>(0));
+        ImGui::TableSetColumnIndex(static_cast<int>(0));
+        ImGui::TableHeader("    . . .##Header");
+        if (ImGui::BeginPopupContextItem("Header_0"))
+        {
+            ImGui::Text("Всплывающее окно для заголовка");
+
+            if (ImGui::Button("Удалить заголовок"))
+            {
+                m_DeleteRow = 0;
+                ImGui::CloseCurrentPopup();
+            }
+
+            ImGui::SameLine();
+
+            ImGui::Text("Вторая строка станет заголовком");
+
+            ImGui::Separator();
+
+            if (ImGui::Button("Close"))
+            {
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
+        }
+
+        for (size_t colId = 0; colId < _ColsCount; ++colId)
+        {
+            ImGui::PushID(static_cast<int>(colId));
+            ImGui::TableSetColumnIndex(static_cast<int>(colId + 1));
+
+            auto& t = m_TableData[0][colId].Value;
+            // std::string headerText = std::format("{}##_Header_{}", t, colId + 1);
+            ImGui::TableHeader(t.c_str());
+            if (ImGui::IsItemHovered())
+            {
+                result.HoveredCol = colId;
+
+                if (m_FieldsDescription.contains(t))
+                {
+                    ImGui::SetTooltip("%s", m_FieldsDescription[t].Description.c_str());
+                }
+            }
+
+            if (ImGui::IsItemFocused())
+            {
+                m_SelectedCol = colId;
+                m_SelectedCell = std::nullopt;
+                m_SelectedRow = std::nullopt;
+            }
+
+            if (ImGui::BeginPopupContextItem(std::format("Header_{}", colId).c_str()))
+            {
+                ImGui::InputText("Change col name##HeaderInput", &t);
+
+                ImGui::SeparatorText("Fix Data");
+
+                // TODO: Move to separate function
+                if (ImGui::Button("Fix as float"))
+                {
+                    std::unordered_map<char, char> replacements = {
+                        { ',', '.' },
+                        { 'O', '0' },
+                        { 'o', '0' },
+                        { 'D', '0' },
+                        { 'Q', '0' },
+                        { 'i', '1' },
+                        { 'I', '1' },
+                        { 'l', '1' },
+                        { 'L', '1' },
+                        { '|', '1' },
+                        { 'Z', '2' },
+                        { 'A', '4' },
+                        { 'H', '4' },
+                        { 'S', '5' },
+                        { 'G', '6' },
+                        { 'b', '6' },
+                        { 'B', '8' },
+                        { 'g', '9' },
+                        { 'q', '9' },
+                    };
+
+                    for (size_t rowId = 1; rowId < m_TableData.size(); ++rowId)
+                    {
+                        auto& cellText = m_TableData[rowId][colId].Value;
+                        for (auto& ch : cellText)
+                        {
+                            if (replacements.find(ch) != replacements.end())
+                            {
+                                ch = replacements[ch];
+                            }
+                        }
+
+                        size_t pos = cellText.find("..");
+                        while (pos != std::string::npos)
+                        {
+                            cellText.replace(pos, 2, ".");
+                            pos = cellText.find("..", pos + 1);
+                        }
+                    }
+
+                    PushHistory();
+                }
+
+                ImGui::SeparatorText("Checks");
+
+                // TODO: Move to separate function
+                if (ImGui::Button("Clear Checks"))
+                {
+                    for (size_t rowId = 1; rowId < m_TableData.size(); ++rowId)
+                    {
+                        m_TableData[rowId][colId].Check = CheckStatus::kNone;
+                    }
+
+                    PushHistory();
+                }
+
+                // TODO: Move to separate function
+                if (ImGui::Button("Check for float"))
+                {
+                    for (size_t rowId = 1; rowId < m_TableData.size(); ++rowId)
+                    {
+                        auto& cellText = m_TableData[rowId][colId].Value;
+                        float _;
+                        auto [ptr, ec] = std::from_chars(cellText.data(), cellText.data() + cellText.size(), _);
+                        bool result = ec == std::errc() && ptr == cellText.data() + cellText.size();
+                        if (result)
+                        {
+                            m_TableData[rowId][colId].Check = CheckStatus::kOk;
+                        }
+                        else
+                        {
+                            m_TableData[rowId][colId].Check = CheckStatus::kError;
+                        }
+                    }
+
+                    PushHistory();
+                }
+
+                ImGui::SeparatorText("Actions");
+                if (ImGui::Button("Delete Col"))
+                {
+                    m_DeleteCol = colId;
+                    ImGui::CloseCurrentPopup();
+                }
+
+                ImGui::Separator();
+                if (ImGui::Button("Close"))
+                {
+                    ImGui::CloseCurrentPopup();
+                }
+                ImGui::EndPopup();
+            }
+
+            ImGui::PopID();
+        }
+
+        ImGui::PopID();
+
+        return result;
+    }
+
+    void XlsxPageView::LoadXLSX()
+    {
+        m_LoadedPageId = -1;
+        m_SelectedCell = std::nullopt;
+        m_SelectedCol = std::nullopt;
+        m_SelectedRow = std::nullopt;
+        m_TableData.clear();
+        ClearHistory();
+
+        auto pathIterator = std::filesystem::directory_iterator(m_BasePath);
+        for (int i = 0; i < m_PageId; ++i)
+        {
+            ++pathIterator;
+        }
+        if (pathIterator == std::filesystem::end(pathIterator))
+        {
+            LOGE("No file found for page ID: ", m_PageId);
+            return;
+        }
+
+        std::filesystem::path path = std::filesystem::path(m_BasePath) / pathIterator->path().filename();
+
+        LOGI("Loading file: ", path);
+
+        if (!std::filesystem::exists(path))
+        {
+            return;
+        }
+
+        xlnt::workbook wb;
+
+        try
+        {
+            wb.load(path);
+        }
+        catch (const std::exception& e)
+        {
+            LOGE("Failed to load workbook: ", e.what());
+            return;
+        }
+
+        xlnt::worksheet ws = wb.active_sheet();
+
+        for (auto row : ws.rows(false))
+        {
+            std::vector<TableCell> rowData;
+            for (auto cell : row)
+            {
+                rowData.push_back({ .Value = cell.has_value() ? cell.to_string() : "" });
+            }
+            m_TableData.push_back(rowData);
+        }
+
+        size_t maxCols = 0;
+        for (const auto& row : m_TableData)
+        {
+            if (row.size() > maxCols)
+            {
+                maxCols = row.size();
+            }
+        }
+
+        for (auto& row : m_TableData)
+        {
+            while (row.size() < maxCols)
+            {
+                row.push_back({ .Value = "" });
+            }
+        }
+
+        m_LoadedPageId = m_PageId;
+        m_LoadedPageFilename = pathIterator->path().filename();
+
+        PushHistory();
+    }
+
+    void XlsxPageView::SaveXLSX()
+    {
+        auto pathIterator = std::filesystem::directory_iterator(m_BasePath);
+        for (int i = 0; i < m_PageId; ++i)
+        {
+            ++pathIterator;
+        }
+        if (pathIterator == std::filesystem::end(pathIterator))
+        {
+            LOGE("No file found for page ID: ", m_PageId);
+            return;
+        }
+
+        std::filesystem::path path = std::filesystem::path(m_BasePath) / pathIterator->path().filename().string();
+
+        LOGI("Saving file: ", path);
+
+        // if (!std::filesystem::exists(path))
+        // {
+        //     return;
+        // }
+
+        xlnt::workbook wb;
+        LOGI("Created WB");
+
+        xlnt::worksheet ws = wb.active_sheet();
+        LOGI("Created WS");
+
+        for (size_t rowId = 0; rowId < m_TableData.size(); ++rowId)
+        {
+            for (size_t colId = 0; colId < m_TableData[rowId].size(); ++colId)
+            {
+                ws.cell(static_cast<xlnt::column_t>(colId + 1), static_cast<xlnt::row_t>(rowId + 1))
+                    .value(m_TableData[rowId][colId].Value);
+            }
+        }
+
+        wb.save(path);
+    }
+
+    void XlsxPageView::LoadExtraInfoJson()
+    {
+        std::filesystem::path inFilePath =
+            std::filesystem::path(m_Project->GetExcelTablesTypePath()) / std::filesystem::path(kExtraInfoFile);
+        if (!std::filesystem::exists(inFilePath))
+        {
+            // Overlay::Get()->Start(Format("Файл не найден: \n{}", inFilePath.string()));
+            return;
+        }
+
+        std::ifstream infile(inFilePath);
+        if (!infile.is_open())
+        {
+            Overlay::Get()->Start(Format("Не удалось открыть стандартный файл ExtraInfo: \n{}", inFilePath.c_str()));
+        }
+
+        try
+        {
+            nlohmann::json json;
+            infile >> json;
+
+            if (json.contains("global_add_list"))
+            {
+                for (const auto& item : json["global_add_list"])
+                {
+                    m_GlobalAddList[item["name"]] = item["value"];
+                }
+            }
+
+            if (json.contains("simple_add_list"))
+            {
+                for (const auto& item : json["simple_add_list"])
+                {
+                    m_SimpleAddList.try_emplace(item["name"]);
+                    for (const auto& values : item["values"])
+                    {
+                        std::vector<int> index;
+                        values["index"].get_to(index);
+                        m_SimpleAddList[item["name"]].push_back({ { index }, values["value"] });
+                    }
+                }
+            }
+        }
+        catch (...)
+        {
+            Overlay::Get()->Start(Format("Ошибка во время чтения формата json: \n{}", inFilePath.c_str()));
+        }
+    }
+
+    void XlsxPageView::SaveExtraInfoJson()
+    {
+        std::filesystem::path outFilePath =
+            std::filesystem::path(m_Project->GetExcelTablesTypePath()) / std::filesystem::path(kExtraInfoFile);
+        std::ofstream fout(outFilePath);
+        if (!fout.is_open())
+        {
+            Overlay::Get()->Start(Format("Не удалось сохранить ExtraInfo: \n{}", outFilePath.c_str()));
+            return;
+        }
+
+        nlohmann::json result;
+
+        // result["global_add_list"] = nlohmann::json::array();
+        for (const auto& [name, value] : m_GlobalAddList)
+        {
+            result["global_add_list"].push_back(nlohmann::json {
+                {  "name",  name },
+                { "value", value }
+            });
+        }
+
+        // for ()
+
+        // TODO: continue here
+
+        fout << std::setw(4) << result;
+    }
+
+    void XlsxPageView::Undo()
+    {
+        if (m_HistoryPointer <= 1)
+        {
+            return;
+        }
+
+        --m_HistoryPointer;
+        RestoreFromHistory(m_HistoryState[m_HistoryPointer - 1]);
+    }
+
+    void XlsxPageView::Redo()
+    {
+        if (m_HistoryPointer >= m_HistoryState.size())
+        {
+            return;
+        }
+
+        ++m_HistoryPointer;
+        RestoreFromHistory(m_HistoryState[m_HistoryPointer - 1]);
+    }
+
+    void XlsxPageView::RestoreFromHistory(const HistoryState& _HistoryState)
+    {
+        m_TableData = _HistoryState.DataTable;
+        m_SelectedCell = _HistoryState.SelectedCell;
+        m_SelectedCol = _HistoryState.SelectedRow;
+        m_SelectedRow = _HistoryState.SelectedRow;
+    }
+
+    void XlsxPageView::PushHistory()
+    {
+        m_HistoryState.erase(m_HistoryState.begin() + m_HistoryPointer, m_HistoryState.end());
+        m_HistoryState.push_back({
+            .DataTable = m_TableData,
+            .SelectedCell = m_SelectedCell,
+            .SelectedCol = m_SelectedCol,
+            .SelectedRow = m_SelectedRow,
+        });
+        ++m_HistoryPointer;
+    }
+
+    void XlsxPageView::ClearHistory()
+    {
+        m_HistoryPointer = 0;
+        m_HistoryState.clear();
+    }
+
+    void XlsxPageView::DeleteCol(size_t _ColId)
+    {
+        for (auto& row : m_TableData)
+        {
+            if (_ColId >= row.size())
+            {
+                continue;
+            }
+            row.erase(row.begin() + _ColId);
+        }
+        if ((m_TableData.size() > 0) && (m_TableData[0].size() == 0))
+        {
+            m_TableData.clear();
+        }
+    }
+
+    void XlsxPageView::DeleteRow(size_t _RowId)
+    {
+        if (_RowId >= m_TableData.size())
+        {
+            return;
+        }
+        m_TableData.erase(m_TableData.begin() + _RowId);
+    }
+
+    void XlsxPageView::InsertCol(size_t _ColId)
+    {
+        bool isChanged = false;
+        for (auto& row : m_TableData)
+        {
+            if (_ColId > row.size())
+            {
+                continue;
+            }
+            isChanged = true;
+            row.insert(row.begin() + _ColId, { .Value = "" });
+        }
+
+        if (isChanged)
+        {
+            PushHistory();
+        }
+    }
+
+    void XlsxPageView::InsertRow(size_t _RowId)
+    {
+        if (_RowId > m_TableData.size())
+        {
+            return;
+        }
+        size_t colsCount = m_TableData.size() > 0 ? m_TableData[0].size() : 1;
+        m_TableData.insert(m_TableData.begin() + _RowId, std::vector<TableCell>(colsCount, { .Value = "" }));
+
+        PushHistory();
+    }
+
+    void XlsxPageView::ReplaceFromClipboard(bool _IsNeedEmptyHeaderRow)
+    {
+        if (const char* clipboard = ImGui::GetClipboardText())
+        {
+            m_TableData.clear();
+
+            std::istringstream iss(clipboard);
+            std::string line;
+            while (std::getline(iss, line))
+            {
+                std::vector<TableCell> row;
+                std::istringstream lineStream(line);
+                std::string cell;
+                while (std::getline(lineStream, cell, '\t'))
+                {
+                    row.push_back({ .Value = cell });
+                }
+                m_TableData.push_back(std::move(row));
+            }
+
+            if (_IsNeedEmptyHeaderRow)
+            {
+                m_TableData.insert(m_TableData.begin(), std::vector<TableCell>());
+            }
+            FixDimensions();
+            PushHistory();
+        }
+    }
+
+    void XlsxPageView::SplitAndExpandTable()
+    {
+        if (m_TableData.empty())
+        {
+            return;
+        }
+
+        size_t rows = m_TableData.size();
+        size_t cols = m_TableData[0].size();
+
+        LOGW("Splitting table with columns:", cols);
+
+        std::vector<std::vector<std::vector<std::string>>> colsSplitData(cols);
+        for (auto& col : colsSplitData)
+        {
+            col.resize(m_TableData.size());
+        }
+        std::vector<size_t> colsAfterSplitCount(cols, 1);
+
+        for (size_t col = 0; col < cols; ++col)
+        {
+            for (size_t row = 0; row < m_TableData.size(); ++row)
+            {
+                std::istringstream iss(m_TableData[row][col].Value);
+                std::string word;
+
+                while (iss >> word)
+                {
+                    colsSplitData[col][row].push_back(word);
+                }
+                if (colsSplitData[col][row].size() == 0)
+                {
+                    colsSplitData[col][row].push_back("");
+                }
+
+                colsAfterSplitCount[col] = std::max(colsAfterSplitCount[col], colsSplitData[col][row].size());
+            }
+        }
+
+        size_t totalSplitCount = std::accumulate(colsAfterSplitCount.begin(), colsAfterSplitCount.end(), 0);
+
+        m_TableData.clear();
+        m_TableData.resize(rows, std::vector<TableCell>(totalSplitCount, { .Value = "" }));
+
+        for (size_t oldCol = 0; oldCol < cols; ++oldCol)
+        {
+            size_t newCol = 0;
+            for (size_t i = 0; i < oldCol; ++i)
+            {
+                newCol += colsAfterSplitCount[i];
+            }
+
+            for (size_t row = 0; row < m_TableData.size(); ++row)
+            {
+                for (size_t col = 0; col < colsAfterSplitCount[oldCol]; ++col)
+                {
+                    m_TableData[row][newCol + col] = {
+                        .Value = col < colsSplitData[oldCol][row].size() ? colsSplitData[oldCol][row][col] : "",
+                    };
+                }
+            }
+        }
+
+        PushHistory();
+    }
+
+    void XlsxPageView::FixDimensions()
+    {
+        size_t maxCols = 0;
+        for (const auto& row : m_TableData)
+        {
+            maxCols = std::max(maxCols, row.size());
+        }
+        for (auto& row : m_TableData)
+        {
+            row.resize(maxCols, { .Value = "" });
+        }
+    }
+
+    void XlsxPageView::ChangeHeadersByConstruction(std::string_view _ConstrKey)
+    {
+        if (!m_ConstructionsFields.contains(_ConstrKey.data()))
+        {
+            Overlay::Get()->Start(Format("Не найдены поля для конструкции: \n{}", _ConstrKey));
+        }
+        if (m_TableData.size() == 0)
+        {
+            m_TableData.push_back(std::vector<TableCell>());
+        }
+
+        std::vector<TableCell>& headerRow = m_TableData[0];
+        headerRow.clear();
+        for (std::string& field : m_ConstructionsFields[_ConstrKey.data()])
+        {
+            headerRow.push_back({ .Value = field });
+        }
+
+        FixDimensions();
+        PushHistory();
+    }
+
+    void XlsxPageView::LoadConstructionsTree()
+    {
+        std::ifstream infile(kDefaultConstructionsTreeFile.data());
+        if (!infile.is_open())
+        {
+            Overlay::Get()->Start(
+                Format("Не удалось открыть стандартный файл дерева конструкций: \n{}", kDefaultConstructionsTreeFile));
+        }
+
+        try
+        {
+            nlohmann::json json;
+            infile >> json;
+
+            for (const auto& jsonEntity : json["nodes"])
+            {
+                for (const auto& jsonGroup : jsonEntity["nodes"])
+                {
+                    for (const auto& jsonConstr : jsonGroup["nodes"])
+                    {
+                        ConstructionTreeConstr constr {
+                            { .Img = jsonConstr["img_link"], .Label = jsonConstr["text"], .Key = jsonConstr["key"] },
+                        };
+                        constr.Drw = jsonConstr["drw_link"];
+                        m_Constructions.emplace_back(std::move(constr));
+                    }
+                }
+            }
+        }
+        catch (...)
+        {
+            Overlay::Get()->Start(Format("Ошибка во время чтения формата json: \n{}", kDefaultConstructionsTreeFile));
+        }
+    }
+
+    void XlsxPageView::LoadConstructionsFields()
+    {
+        std::ifstream infile(kDefaultConstructionsFieldsFile.data());
+        if (!infile.is_open())
+        {
+            Overlay::Get()->Start(
+                Format("Не удалось открыть стандартный файл конструкций: \n{}", kDefaultConstructionsFieldsFile));
+        }
+
+        try
+        {
+            nlohmann::json json;
+            infile >> json;
+
+            for (const auto& element : json.items())
+            {
+                std::vector<std::string> v;
+                element.value().get_to(v);
+                m_ConstructionsFields[element.key()] = v;
+            }
+        }
+        catch (...)
+        {
+            Overlay::Get()->Start(Format("Ошибка во время чтения формата json: \n{}", kDefaultConstructionsFieldsFile));
+        }
+    }
+
+    void XlsxPageView::LoadFieldsDescription()
+    {
+        std::ifstream infile(kDefaultFieldsDescriptionFile.data());
+        if (!infile.is_open())
+        {
+            Overlay::Get()->Start(Format("Не удалось открыть стандартный файл описания полей конструкций: \n{}",
+                                         kDefaultFieldsDescriptionFile));
+        }
+
+        try
+        {
+            nlohmann::json json;
+            infile >> json;
+
+            for (const auto& element : json)
+            {
+                m_FieldsDescription[element["fieldname"].get<std::string>()] = FieldDescription {
+                    .Type = element["typ"],
+                    .UnitRu = element.at("unitru").get<std::optional<std::string>>(),
+                    .RuDescription = element["rudescription"],
+                    .AllowNulls = element["allownulls"],
+                    .IfBooleanTrue = element.at("ifbooleantrue").get<std::optional<std::string>>(),
+                    .IfBooleanFalse = element.at("ifbooleanfalse").get<std::optional<std::string>>(),
+                    .QType = element["qtyp"],
+                    .IsDescr = element["is_descr"],
+                    .Description = element["descr"],
+                };
+            }
+        }
+        catch (std::exception& e)
+        {
+            LOGW(e.what());
+            Overlay::Get()->Start(Format("Ошибка во время чтения формата json: \n{}", kDefaultFieldsDescriptionFile));
+        }
+    }
+
+    void XlsxPageView::LoadRepresentationFieldsDescription() { }
+
+}    // namespace LM

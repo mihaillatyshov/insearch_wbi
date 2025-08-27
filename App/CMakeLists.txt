@@ -32,6 +32,7 @@ set(SOURCES
     src/ImGui/Project/PageView/IImgPageView.cpp                 src/ImGui/Project/PageView/IImgPageView.h
     src/ImGui/Project/PageView/RawImgPageView.cpp               src/ImGui/Project/PageView/RawImgPageView.h
     src/ImGui/Project/PageView/CutByPatternImgPageView.cpp      src/ImGui/Project/PageView/CutByPatternImgPageView.h
+    src/ImGui/Project/PageView/XlsxPageView.cpp                 src/ImGui/Project/PageView/XlsxPageView.hpp
 
     src/ImGui/Constructions/SelectConstructionFromTree.cpp      src/ImGui/Constructions/SelectConstructionFromTree.hpp
 

@@ -29,7 +29,7 @@ namespace LM
         };
 
     protected:
-        virtual std::string GetBasePath() const override { return m_Project->GetRawImgPrevPath(); }
+        virtual std::string GetBasePath() const override { return m_Project->GetPdfTablesWithOcrTypeRawImgPrevPath(); }
         virtual const char* GetWindowName() const override { return "Начальные картинки"; }
 
         virtual void DrawTopMenuExtras() override;

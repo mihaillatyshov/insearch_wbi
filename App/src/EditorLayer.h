@@ -13,6 +13,7 @@ namespace LM
     {
     public:
         EditorLayer();
+        ~EditorLayer();
 
         void OnImGuiRender() override;
 

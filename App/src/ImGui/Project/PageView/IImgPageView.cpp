@@ -55,7 +55,7 @@ namespace LM
         ImVec2 texStartPos = ImGui::GetCursorScreenPos();
         m_ImgStart = { texStartPos.x, texStartPos.y };
         m_ImgEnd = m_ImgStart + glm::vec2(texWidth, texHeight);
-        ImGui::Image(texture->GetTextureId(), ImVec2(texWidth, texHeight));
+        ImGui::Image(reinterpret_cast<ImTextureID>(texture->GetTextureId()), ImVec2(texWidth, texHeight));
         bool isImageHover = ImGui::IsItemHovered();
 
         ImDrawList* drawList = ImGui::GetWindowDrawList();
@@ -75,8 +75,8 @@ namespace LM
             float regionY = glm::clamp(io.MousePos.y - texStartPos.y - regionSize * 0.5f, 0.0f, texHeight - regionSize);
             ImVec2 uv0 = ImVec2((regionX) / texWidth, (regionY) / texHeight);
             ImVec2 uv1 = ImVec2((regionX + regionSize) / texWidth, (regionY + regionSize) / texHeight);
-            ImGui::Image(texture->GetTextureId(), ImVec2(regionDrawSize, regionDrawSize), uv0, uv1,
-                         { 1.0f, 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f, 1.0f, 0.5f });
+            ImGui::Image(reinterpret_cast<ImTextureID>(texture->GetTextureId()), ImVec2(regionDrawSize, regionDrawSize),
+                         uv0, uv1, { 1.0f, 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f, 1.0f, 0.5f });
 
             float regionSizeKoef = regionSize / regionDrawSize;
             ImVec2 cursorPosInTex { (io.MousePos.x - texStartPos.x - regionX) / regionSize * regionDrawSize,

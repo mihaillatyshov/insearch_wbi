@@ -14,8 +14,27 @@
 namespace LM
 {
 
-    class Serializer;
+    struct SerializerGetPropertiesAll;
 
+    enum class ProjectType
+    {
+        kPdfTablesWithOcr = 0,
+        kPdfTablesWithoutOcr = 1,
+        kExcelTables = 2,
+    };
+
+    inline std::string ProjectTypeToString(ProjectType _Type)
+    {
+        switch (_Type)
+        {
+            case ProjectType::kPdfTablesWithOcr: return "Из Pdf с использованием Ocr";
+            case ProjectType::kPdfTablesWithoutOcr: return "Из Pdf без Ocr";
+            case ProjectType::kExcelTables: return "Из папки Excel";
+            default: return "Unknown";
+        }
+    }
+
+    // TODO: Make folders as std::filesystem::path
     class Project
     {
     public:
@@ -23,6 +42,9 @@ namespace LM
         static Ref<Project> Open();
         static Ref<Project> Open(std::string _FileName);
         static bool Save(Ref<Project> _Project);
+
+        inline ProjectType GetType() const { return m_Type; }
+        inline void SetType(ProjectType _Type) { m_Type = _Type; }
 
         // =========== Paths ==================================================
         inline const std::string& GetFolder() const { return m_Folder; }
@@ -33,11 +55,18 @@ namespace LM
         inline std::string GetCatalogFilename() const { return GetPathInFolder("data/catalog/catalog.pdf"); }
         inline std::string GetTmpPath() const { return GetPathInFolder("tmp/"); }
 
-        std::string GetRawImgPath() const;
-        std::string GetRawImgPrevPath() const;
-        std::string GetCutByPatternImgsPath() const;
-        std::string GetCutByPatternImgsPrevPath() const;
-        std::string GetRawExcelPath() const;
+        std::string GetPdfTablesWithOcrTypeRawImgPath() const;
+        std::string GetPdfTablesWithOcrTypeRawImgPrevPath() const;
+        std::string GetPdfTablesWithOcrTypeCutByPatternImgsPath() const;
+        std::string GetPdfTablesWithOcrTypeCutByPatternImgsPrevPath() const;
+        std::string GetPdfTablesWithOcrTypeRawExcelPath() const;
+
+        std::string GetExcelTablesTypePath() const { return GetPathInFolderAndCreateDirs("data/excel/"); }
+
+        std::string GetExcelTablesTypeStartupPath() const
+        {
+            return GetPathInFolderAndCreateDirs("data/excel/startup/");
+        }
 
         // =========== Catalog ================================================
         inline std::string GetCatalogBaseFilename() const { return m_Catalog.BaseFileName; }
@@ -105,7 +134,7 @@ namespace LM
         void OnGenRawExcel();
 
     public:
-        friend Serializer;
+        friend SerializerGetPropertiesAll;
 
         static inline const Ref<Project> s_ProjectNotOpen = Ref<Project>();
         static inline const std::string s_ProjectFileName = "project.lmproj";
@@ -116,11 +145,13 @@ namespace LM
         Project(std::string_view _Folder = std::string());
 
     protected:
+        ProjectType m_Type = ProjectType::kPdfTablesWithOcr;
+
         std::string m_Folder;
 
         Catalog m_Catalog;
-        Catalog m_LastBuildCatalog;
 
+        Catalog m_LastBuildCatalog;
         GenRawExcel m_GenRawExcel;
         GenImgsByCutPattern m_GenImgsByCutPattern;
 

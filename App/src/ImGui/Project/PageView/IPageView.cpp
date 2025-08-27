@@ -17,7 +17,7 @@ namespace LM
 
         if (ImGui::Begin(GetWindowName()))
         {
-            PageViewManager::Get()->DrawViewTopMenu();
+            PageViewManager::GetCurrent()->DrawViewTopMenu();
             DrawTopMenuExtras();
 
             DrawWindowContent();

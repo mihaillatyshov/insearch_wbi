@@ -4,7 +4,6 @@
 
 #include "EditorLayer.h"
 
-
 namespace LM
 {
 
@@ -21,8 +20,7 @@ namespace LM
         ApplicationSpecification spec;
         spec.Name = "InSearch Editor";
         spec.CommandLineArgs = args;
-        spec.WorkingDirectory = U8_RES(RES_FOLDER);
-
+        spec.WorkingDirectory = RES_FOLDER;
 
         return new App(spec);
     }

@@ -5,12 +5,10 @@
 #include "ImGui/Overlays/ScriptPopup.h"
 #include "ImGui/Project/PageView/PageViewManager.h"
 #include "ImGui/Tables/Table.h"
-#include "Serializer/Serializer.h"
 
 #include "Engine/Core/Application.h"
 #include "Engine/Utils/ConsoleLog.h"
 #include "Engine/Utils/json.hpp"
-#include "Engine/Utils/utf8.h"
 
 #include <imgui.h>
 
@@ -44,6 +42,8 @@ namespace LM
 
         SelectConstructionFromTree::LoadTreeFromDefaultFile();
     }
+
+    EditorLayer::~EditorLayer() { PageViewManager::OnAppClose(m_Project); }
 
     void EditorLayer::OnImGuiRender()
     {
@@ -155,7 +155,14 @@ namespace LM
         }
 
         m_SetupProjectWindow.Draw(m_Project);
-        PageViewManager::Get()->DrawViews(m_Project);
+
+        switch (m_Project->GetType())
+        {
+            case ProjectType::kPdfTablesWithOcr: PageViewManager::GetPdfOcr()->DrawViews(m_Project); break;
+            case ProjectType::kPdfTablesWithoutOcr: PageViewManager::GetPdf()->DrawViews(m_Project); break;
+            case ProjectType::kExcelTables: PageViewManager::GetExcelFolder()->DrawViews(m_Project); break;
+        }
+
         Overlay::Get()->Draw();
         ScriptPopup::Get()->Draw();
 
@@ -231,8 +238,6 @@ namespace LM
         {
             return;
         }
-
-        std::filesystem::remove(m_Project->GetPathInFolder(Project::s_ProjectFileName));
     }
 
 }    // namespace LM

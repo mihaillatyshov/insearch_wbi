@@ -16,6 +16,11 @@ namespace LM
                 std::filesystem::remove_all(entry.path());
             }
         }
+
+        static size_t FilesCountInDirectory(std::filesystem::path path)
+        {
+            return std::distance(std::filesystem::directory_iterator(path), std::filesystem::directory_iterator {});
+        }
     };
 
 }    // namespace LM

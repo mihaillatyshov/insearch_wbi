@@ -1,10 +1,11 @@
-﻿#include "SetupProject.h"
+#include "SetupProject.h"
 
 #include <filesystem>
 #include <fstream>
 #include <thread>
 
 #include <imgui.h>
+#include <nfd.hpp>
 
 #include "Engine/Utils/ConsoleLog.h"
 #include "Engine/Utils/FileDialogs.h"
@@ -19,7 +20,13 @@
 namespace LM
 {
 
-    const FileDialogs::Filter kFileDialogsFilter { "InSearch Project (*.pdf)", "*.pdf" };
+    const std::vector<nfdfilteritem_t> kFileDialogsXlsxFilter = {
+        { "Excel xlsx", "xlsx" },
+    };
+
+    const std::vector<nfdfilteritem_t> kFileDialogsPdfFilter = {
+        { "Pdf", "pdf" },
+    };
 
     SetupProject::SetupProject() { }
 
@@ -32,36 +39,147 @@ namespace LM
 
         if (ImGui::Begin("Настройка проекта"))
         {
-            if (ImGui::TreeNodeEx("Базовые пути", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed))
+            if (ImGui::TreeNodeEx("Базовые настройки", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed))
             {
-                ImGui::Text("Папка проекта: %s", _Project->GetFolder().c_str());
-
+                DrawProjectSettings(_Project);
                 ImGui::TreePop();
             }
 
-            if (ImGui::TreeNodeEx("Настройки каталога", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed))
+            switch (_Project->GetType())
             {
-                DrawCatalog(_Project);
-
-                ImGui::TreePop();
-            }
-
-            if (ImGui::TreeNodeEx("Обрезание по паттерну", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed))
-            {
-                DrawImgsByCutPattern(_Project);
-
-                ImGui::TreePop();
-            }
-
-            if (ImGui::TreeNodeEx("Генерация первого Excel",
-                                  ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed))
-            {
-                DrawGenRawExcel(_Project);
-
-                ImGui::TreePop();
+                case ProjectType::kPdfTablesWithOcr: {
+                    if (ImGui::TreeNodeEx("Настройки PDF OCR",
+                                          ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed))
+                    {
+                        DrawPdfOcrSettings(_Project);
+                        ImGui::TreePop();
+                    }
+                    break;
+                }
+                case ProjectType::kPdfTablesWithoutOcr: {
+                    if (ImGui::TreeNodeEx("Настройки PDF", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed))
+                    {
+                        DrawPdfSettings(_Project);
+                        ImGui::TreePop();
+                    }
+                    break;
+                }
+                case ProjectType::kExcelTables: {
+                    if (ImGui::TreeNodeEx("Настройки Excel каталога",
+                                          ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed))
+                    {
+                        DrawRawExcelFolderSettings(_Project);
+                        ImGui::TreePop();
+                    }
+                }
+                break;
             }
         }
         ImGui::End();
+    }
+    void SetupProject::DrawProjectSettings(Ref<Project> _Project)
+    {
+        int projectType = static_cast<int>(_Project->GetType());
+
+        ImGui::Text("Тип проекта: %s", ProjectTypeToString(_Project->GetType()).c_str());
+
+        if (ImGui::RadioButton(ProjectTypeToString(ProjectType::kPdfTablesWithOcr).c_str(), &projectType, 0))
+        {
+            _Project->SetType(ProjectType::kPdfTablesWithOcr);
+        }
+        ImGui::SameLine();
+        if (ImGui::RadioButton(ProjectTypeToString(ProjectType::kPdfTablesWithoutOcr).c_str(), &projectType, 1))
+        {
+            _Project->SetType(ProjectType::kPdfTablesWithoutOcr);
+        }
+        ImGui::SameLine();
+        if (ImGui::RadioButton(ProjectTypeToString(ProjectType::kExcelTables).c_str(), &projectType, 2))
+        {
+            _Project->SetType(ProjectType::kExcelTables);
+        }
+
+        ImGui::Spacing();
+
+        ImGui::Text("Папка проекта: %s", _Project->GetFolder().c_str());
+    }
+
+    void SetupProject::DrawPdfOcrSettings(Ref<Project> _Project)
+    {
+        if (ImGui::TreeNodeEx("Настройки каталога", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed))
+        {
+            DrawCatalog(_Project);
+            ImGui::TreePop();
+        }
+
+        if (ImGui::TreeNodeEx("Обрезание по паттерну", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed))
+        {
+            DrawImgsByCutPattern(_Project);
+            ImGui::TreePop();
+        }
+
+        if (ImGui::TreeNodeEx("Генерация первого Excel", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed))
+        {
+            DrawGenRawExcel(_Project);
+            ImGui::TreePop();
+        }
+    }
+
+    void SetupProject::DrawPdfSettings(Ref<Project> _Project) { }
+
+    void SetupProject::DrawRawExcelFolderSettings(Ref<Project> _Project)
+    {
+        std::string excelFolderPath = _Project->GetExcelTablesTypeStartupPath();
+
+        ImGui::Text("Папка с Excel: %s", excelFolderPath.c_str());
+
+        ImGui::Spacing();
+
+        static bool isNeedRebuild = false;
+        if (ImGui::Button("Добавить Excel файлы"))
+        {
+            if (std::vector<std::string> filenames = FileDialogs::OpenMultipleFiles(kFileDialogsXlsxFilter);
+                !filenames.empty())
+            {
+                for (const auto& filename : filenames)
+                {
+                    try
+                    {
+                        std::filesystem::copy_file(filename,
+                                                   std::filesystem::path(excelFolderPath) /
+                                                       std::filesystem::path(filename).filename(),
+                                                   std::filesystem::copy_options::overwrite_existing);
+                    }
+                    catch (const std::filesystem::filesystem_error& err)
+                    {
+                        Overlay::Get()->Start(
+                            Format("Не удалось скопировать файл: \n{} \nПричина: {}", filename, err.what()));
+                        LOGE("File copy error (", filename, "),    ", "filesystem error: ", err.what());
+                    }
+                }
+                isNeedRebuild = true;
+            }
+        }
+
+        static size_t filesCount = FileSystemUtils::FilesCountInDirectory(excelFolderPath);
+        static std::vector<std::filesystem::path> paths;
+        if (ImGui::Button("Обновить отображаемые файлы") || isNeedRebuild)
+        {
+            filesCount = FileSystemUtils::FilesCountInDirectory(excelFolderPath);
+            paths.clear();
+            for (const auto& entry : std::filesystem::directory_iterator(excelFolderPath))
+            {
+                paths.push_back(entry.path());
+            }
+
+            isNeedRebuild = false;
+        }
+
+        ImGui::Text("Файлов в каталоге: %d", filesCount);
+
+        for (const auto& path : paths)
+        {
+            ImGui::Text("%s", path.filename().string().c_str());
+        }
     }
 
     void SetupProject::DrawCatalog(Ref<Project> _Project)
@@ -69,7 +187,7 @@ namespace LM
         ImGui::Text("Оригинал каталога: %s", _Project->GetCatalogBaseFilename().c_str());
         if (ImGui::Button("Изменить оригинал каталога"))
         {
-            if (std::string filename = FileDialogs::OpenFile(kFileDialogsFilter); filename != std::string())
+            if (std::string filename = FileDialogs::OpenFile(kFileDialogsPdfFilter); filename != std::string())
             {
                 try
                 {
@@ -168,13 +286,13 @@ namespace LM
             return;
         }
 
-        FileSystemUtils::RemoveAllInFolder(_Project->GetRawImgPath());
-        FileSystemUtils::RemoveAllInFolder(_Project->GetRawImgPrevPath());
+        FileSystemUtils::RemoveAllInFolder(_Project->GetPdfTablesWithOcrTypeRawImgPath());
+        FileSystemUtils::RemoveAllInFolder(_Project->GetPdfTablesWithOcrTypeRawImgPrevPath());
 
         PythonCommand pythonCommand("./assets/scripts/prepare_img_raw.py");
         pythonCommand.AddArg(_Project->GetCatalogFilename());
-        pythonCommand.AddArg(_Project->GetRawImgPath());
-        pythonCommand.AddArg(_Project->GetRawImgPrevPath());
+        pythonCommand.AddArg(_Project->GetPdfTablesWithOcrTypeRawImgPath());
+        pythonCommand.AddArg(_Project->GetPdfTablesWithOcrTypeRawImgPrevPath());
         pythonCommand.AddArg(_Project->GetCatalogImgQuality());
         pythonCommand.AddArg(_Project->GetCatalogSplitPages());
 
@@ -211,16 +329,16 @@ namespace LM
             return;
         }
 
-        FileSystemUtils::RemoveAllInFolder(_Project->GetCutByPatternImgsPath());
-        FileSystemUtils::RemoveAllInFolder(_Project->GetCutByPatternImgsPrevPath());
+        FileSystemUtils::RemoveAllInFolder(_Project->GetPdfTablesWithOcrTypeCutByPatternImgsPath());
+        FileSystemUtils::RemoveAllInFolder(_Project->GetPdfTablesWithOcrTypeCutByPatternImgsPrevPath());
         // TODO: Delete ImgsByCutPattern Versions ???
 
         PythonCommand pythonCommand("./assets/scripts/cut_by_pattern.py");
-        pythonCommand.AddArg(_Project->GetRawImgPath());
+        pythonCommand.AddArg(_Project->GetPdfTablesWithOcrTypeRawImgPath());
         pythonCommand.AddArg(_Project->GetProjectFilename());
         pythonCommand.AddArg(_Project->GetTmpPath());
-        pythonCommand.AddArg(_Project->GetCutByPatternImgsPath());
-        pythonCommand.AddArg(_Project->GetCutByPatternImgsPrevPath());
+        pythonCommand.AddArg(_Project->GetPdfTablesWithOcrTypeCutByPatternImgsPath());
+        pythonCommand.AddArg(_Project->GetPdfTablesWithOcrTypeCutByPatternImgsPrevPath());
         pythonCommand.AddArg(_Project->GetCatalogSplitPages());
         pythonCommand.AddArg("0.99");
 
@@ -252,13 +370,14 @@ namespace LM
             return;
         }
 
-        FileSystemUtils::RemoveAllInFolder(_Project->GetRawExcelPath());
+        FileSystemUtils::RemoveAllInFolder(_Project->GetPdfTablesWithOcrTypeRawExcelPath());
         // TODO: Delete RawExcel Versions ???
 
         PythonCommand pythonCommand("./assets/scripts/extract_tables_to_xlsx.py");
-        pythonCommand.AddArg(useCutPatterntImgs ? _Project->GetCutByPatternImgsPath() : _Project->GetRawImgPath());
+        pythonCommand.AddArg(useCutPatterntImgs ? _Project->GetPdfTablesWithOcrTypeCutByPatternImgsPath()
+                                                : _Project->GetPdfTablesWithOcrTypeRawImgPath());
         pythonCommand.AddArg(_Project->GetProjectFilename());
-        pythonCommand.AddArg(_Project->GetRawExcelPath());
+        pythonCommand.AddArg(_Project->GetPdfTablesWithOcrTypeRawExcelPath());
         pythonCommand.AddArg(6);
 
         ScriptPopup::Get()->OpenPopup(pythonCommand, { "Генерация Excel из картинок",

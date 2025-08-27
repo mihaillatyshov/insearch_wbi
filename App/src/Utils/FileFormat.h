@@ -11,6 +11,7 @@ namespace LM
     public:
         static std::string FormatId(int _PageId) { return std::format("{:0>4}", _PageId); }
         static std::string FormatImg(int _PageId) { return FormatId(_PageId) + ".png"; }
+        static std::string FormatXlsx(int _PageId) { return FormatId(_PageId) + ".xlsx"; }
     };
 
 }    // namespace LM

@@ -16,12 +16,11 @@ namespace LM
     Application::Application(const ApplicationSpecification& specification) : m_Specification(specification)
     {
         LOG_INIT();
-        LOGI("Application constructor start");
 
         CORE_ASSERT(!s_Instance, "Application already exists!");
         s_Instance = this;
 
-        NFD_Init();
+        NFD::Init();
 
         // Set working directory here
         if (!m_Specification.WorkingDirectory.empty())
@@ -42,7 +41,7 @@ namespace LM
         PushOverlay(m_ImGuiLayer);
     }
 
-    Application::~Application() { NFD_Quit(); }
+    Application::~Application() { NFD::Quit(); }
 
     void Application::PushLayer(Layer* layer)
     {

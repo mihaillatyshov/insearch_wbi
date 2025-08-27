@@ -16,7 +16,9 @@
 namespace LM
 {
 
-    const FileDialogs::Filter kFileDialogsFilter { "InSearch Project (*.lmproj)", "*.lmproj" };
+    const std::vector<nfdfilteritem_t> kFileDialogsFilter = {
+        { "InSearch Project (*.lmproj)", "lmproj" },
+    };
 
     static bool WriteJsonToFile(std::string_view _FileName, nlohmann::json _Json)
     {
@@ -74,7 +76,7 @@ namespace LM
             nlohmann::json json;
             infile >> json;
 
-            if (!Serializer::DeSerialize(project, json))
+            if (!SerializerLast().DeSerialize(project, json))
             {
                 Overlay::Get()->Start(Format("Не верный формат проекта: \n{}", _FileName));
                 return s_ProjectNotOpen;
@@ -100,7 +102,7 @@ namespace LM
             return false;
         }
 
-        return WriteJsonToFile(_Project->GetPathInFolder(s_ProjectFileName), Serializer::Serialize(_Project));
+        return WriteJsonToFile(_Project->GetPathInFolder(s_ProjectFileName), SerializerLast().Serialize(_Project));
     }
 
     const std::string Project::GetPathInFolder(std::string_view _Path) const
@@ -115,24 +117,30 @@ namespace LM
         return path;
     }
 
-    std::string Project::GetRawImgPath() const { return GetPathInFolderAndCreateDirs("data/catalog/raw_img/"); }
+    std::string Project::GetPdfTablesWithOcrTypeRawImgPath() const
+    {
+        return GetPathInFolderAndCreateDirs("data/catalog/raw_img/");
+    }
 
-    std::string Project::GetRawImgPrevPath() const
+    std::string Project::GetPdfTablesWithOcrTypeRawImgPrevPath() const
     {
         return GetPathInFolderAndCreateDirs("data/catalog/prev_raw_img/");
     }
 
-    std::string Project::GetCutByPatternImgsPath() const
+    std::string Project::GetPdfTablesWithOcrTypeCutByPatternImgsPath() const
     {
         return GetPathInFolderAndCreateDirs("data/catalog/cut_by_pattern_img/");
     }
 
-    std::string Project::GetCutByPatternImgsPrevPath() const
+    std::string Project::GetPdfTablesWithOcrTypeCutByPatternImgsPrevPath() const
     {
         return GetPathInFolderAndCreateDirs("data/catalog/prev_cut_by_pattern_img/");
     }
 
-    std::string Project::GetRawExcelPath() const { return GetPathInFolderAndCreateDirs("data/catalog/raw_xlsx/"); }
+    std::string Project::GetPdfTablesWithOcrTypeRawExcelPath() const
+    {
+        return GetPathInFolderAndCreateDirs("data/catalog/raw_xlsx/");
+    }
 
     bool Project::IsPageInGeneratedCatalogExcludePages(uint32_t _PageId) const
     {

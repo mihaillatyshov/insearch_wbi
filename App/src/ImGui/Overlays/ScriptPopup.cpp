@@ -48,11 +48,14 @@ namespace LM
 
             ImGui::Separator();
 
-            ImGui::BeginChild("ChildL", ImVec2(0, 260), false,
-                              ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_HorizontalScrollbar);
-            ImGui::Text("\n");
-            DrawScriptBuffer();
-            ImGui::Text("\n");
+            if (ImGui::BeginChild("ChildL", ImVec2(0, 260),
+                                  ImGuiChildFlags_AlwaysAutoResize | ImGuiChildFlags_AutoResizeY,
+                                  ImGuiWindowFlags_HorizontalScrollbar))
+            {
+                ImGui::Text("\n");
+                DrawScriptBuffer();
+                ImGui::Text("\n");
+            }
             ImGui::EndChild();
 
             ImGui::Separator();

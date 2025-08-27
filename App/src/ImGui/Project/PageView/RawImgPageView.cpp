@@ -67,7 +67,7 @@ namespace LM
                 }
                 else
                 {
-                    m_PageId = PageViewManager::Get()->SetPage(cutPattern.PageId);
+                    m_PageId = PageViewManager::GetCurrent()->SetPage(cutPattern.PageId);
                     m_TmpCatalogCutPattern = cutPattern;
                 }
             }
@@ -81,7 +81,7 @@ namespace LM
                 }
                 else
                 {
-                    m_PageId = PageViewManager::Get()->SetPage(cutPattern.PageId);
+                    m_PageId = PageViewManager::GetCurrent()->SetPage(cutPattern.PageId);
                     m_TmpCatalogCutPattern = cutPattern;
                 }
             }

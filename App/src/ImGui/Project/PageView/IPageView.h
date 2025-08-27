@@ -11,8 +11,13 @@ namespace LM
     {
     public:
         IPageView();
+        virtual ~IPageView() { }
 
-        void Draw(Ref<Project> _Project, int _PageId);
+        virtual void Draw(Ref<Project> _Project, int _PageId);
+
+        virtual bool OnPageWillBeChanged(int _CurrentPageId, int _NewPageId) { return true; }
+
+        // virtual bool OnAppClose();
 
     protected:
         virtual std::string GetBasePath() const = 0;
@@ -27,6 +32,7 @@ namespace LM
     protected:
         Ref<Project> m_Project;
         int m_PageId = 0;
+        // TODO: as std::filesystem::path
         std::string m_BasePath;
 
         const float kLineThickness = 2.0f;

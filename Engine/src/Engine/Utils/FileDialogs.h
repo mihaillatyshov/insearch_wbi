@@ -1,6 +1,9 @@
 #pragma once
 
 #include <string>
+#include <vector>
+
+#include <nfd.hpp>
 
 namespace LM
 {
@@ -15,8 +18,8 @@ namespace LM
         };
 
         // These return empty strings if cancelled
-        static std::string OpenFile(const Filter& filter);
-        static std::string SaveFile(const Filter& filter);
+        static std::string OpenFile(const std::vector<nfdfilteritem_t>& _Filter);
+        static std::vector<std::string> OpenMultipleFiles(const std::vector<nfdfilteritem_t>& _Filter);
     };
 
 }    // namespace LM

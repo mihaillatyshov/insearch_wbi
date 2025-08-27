@@ -147,7 +147,7 @@ namespace LM
 
         Ref<Texture2D> image = TextureManager::Get(imgFilename);
 
-        ImGui::PushID(_Index);
+        ImGui::PushID(static_cast<int>(_Index));
         ImGui::BeginGroup();
         ImVec2 buttonPos = ImGui::GetCursorScreenPos();
         float imgSizeCoef = glm::max(image->GetWidth(), image->GetHeight());
@@ -162,7 +162,7 @@ namespace LM
         }
         ImVec2 textPos = ImGui::GetCursorScreenPos();
         ImGui::SetCursorScreenPos(imgPos);
-        ImGui::Image(image->GetTextureId(), imgSize);
+        ImGui::Image(reinterpret_cast<ImTextureID>(image->GetTextureId()), imgSize);
         ImGui::SetCursorScreenPos(textPos);
         float lastButtonX2 = ImGui::GetItemRectMax().x;
         float nextButtonX2 = lastButtonX2 + style.ItemSpacing.x + buttonSize.x;

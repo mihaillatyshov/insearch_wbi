@@ -1,4 +1,4 @@
-﻿#include "ImGuiLayer.h"
+#include "ImGuiLayer.h"
 
 #include <fstream>
 
@@ -54,7 +54,7 @@ namespace LM
         /*
         auto grb = ImFontAtlas::GetGlyphRangesCyrillic();
         ImFontAtlas::
-        grb.AddText(u8"ąčęėį");
+        grb.AddText(u8"?????");
         for (int n = 0; n < 0xFFFF; n++)
         {
             if (grb.GetBit(n))
