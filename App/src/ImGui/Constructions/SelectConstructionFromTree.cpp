@@ -3,7 +3,7 @@
 #include "ImGui/Overlays/Overlay.h"
 #include "Managers/TextureManager.h"
 
-#include "Engine/Utils/ConsoleLog.h"
+#include "Engine/Utils/Log.hpp"
 #include "Engine/Utils/json.hpp"
 #include "Engine/Utils/utf8.h"
 
@@ -54,7 +54,6 @@ namespace LM
                         };
                         constr.Drw = jsonConstr["drw_link"];
 
-                        LOGI("Constr key: ", constr.Key);
                         group.Constructions.emplace_back(std::move(constr));
                     }
 
@@ -158,7 +157,7 @@ namespace LM
         if (ImGui::Button("", buttonSize))
         {
             _SelectedIndex = _Index;
-            LOGI("Selected: ", _Label);
+            LOG_CORE_INFO("Selected: {}", _Label);
         }
         ImVec2 textPos = ImGui::GetCursorScreenPos();
         ImGui::SetCursorScreenPos(imgPos);

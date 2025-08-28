@@ -7,15 +7,18 @@
 #include <imgui.h>
 #include <nfd.hpp>
 
-#include "Engine/Utils/ConsoleLog.h"
 #include "Engine/Utils/FileDialogs.h"
+#include "Engine/Utils/Log.hpp"
 #include "Engine/Utils/utf8.h"
 
 #include "ImGui/Overlays/Overlay.h"
 #include "ImGui/Overlays/ScriptPopup.h"
 #include "Managers/TextureManager.h"
 #include "Python/PythonCommand.h"
+#include "Utils/FileFormat.h"
 #include "Utils/FileSystemUtils.h"
+#include "misc/cpp/imgui_stdlib.h"
+#include "xlnt/workbook/workbook.hpp"
 
 namespace LM
 {
@@ -135,29 +138,45 @@ namespace LM
         ImGui::Spacing();
 
         static bool isNeedRebuild = false;
-        if (ImGui::Button("Добавить Excel файлы"))
+        // TODO: Fix (add number in front of file)
+        // if (ImGui::Button("Добавить Excel файлы"))
+        // {
+        //     if (std::vector<std::string> filenames = FileDialogs::OpenMultipleFiles(kFileDialogsXlsxFilter);
+        //     !filenames.empty())
+        //     {
+        //         for (const auto& filename : filenames)
+        //         {
+        //             try
+        //             {
+        //                 std::filesystem::copy_file(filename,
+        //                                            std::filesystem::path(excelFolderPath) /
+        //                                                std::filesystem::path(filename).filename(),
+        //                                            std::filesystem::copy_options::overwrite_existing);
+        //             }
+        //             catch (const std::filesystem::filesystem_error& err)
+        //             {
+        //                 Overlay::Get()->Start(
+        //                     Format("Не удалось скопировать файл: \n{} \nПричина: {}", filename, err.what()));
+        //                 LOG_CORE_ERROR("File copy error ({}), filesystem error: {}", filename, err.what());
+        //             }
+        //         }
+        //         isNeedRebuild = true;
+        //     }
+        // }
+
+        static std::string excelFilename;
+        ImGui::InputText("Имя файла", &excelFilename);
+        if (ImGui::Button("Создать Excel файл"))
         {
-            if (std::vector<std::string> filenames = FileDialogs::OpenMultipleFiles(kFileDialogsXlsxFilter);
-                !filenames.empty())
-            {
-                for (const auto& filename : filenames)
-                {
-                    try
-                    {
-                        std::filesystem::copy_file(filename,
-                                                   std::filesystem::path(excelFolderPath) /
-                                                       std::filesystem::path(filename).filename(),
-                                                   std::filesystem::copy_options::overwrite_existing);
-                    }
-                    catch (const std::filesystem::filesystem_error& err)
-                    {
-                        Overlay::Get()->Start(
-                            Format("Не удалось скопировать файл: \n{} \nПричина: {}", filename, err.what()));
-                        LOGE("File copy error (", filename, "),    ", "filesystem error: ", err.what());
-                    }
-                }
-                isNeedRebuild = true;
-            }
+            size_t filesCount = FileSystemUtils::FilesCountInDirectory(excelFolderPath);
+            std::filesystem::path newFilepath =
+                std::filesystem::path(_Project->GetExcelTablesTypeStartupPath()) /
+                std::filesystem::path(std::format("{}_{}.xlsx", FileFormat::FormatId(filesCount), excelFilename));
+
+            xlnt::workbook wb;
+            wb.save(newFilepath);
+
+            isNeedRebuild = true;
         }
 
         static size_t filesCount = FileSystemUtils::FilesCountInDirectory(excelFolderPath);
@@ -201,7 +220,7 @@ namespace LM
                 {
                     Overlay::Get()->Start(
                         Format("Не удалось изменить файл каталога: \n{} \nПричина: {}", filename, err.what()));
-                    LOGE("File copy error (", filename, "),    ", "filesystem error: ", err.what());
+                    LOG_CORE_ERROR("File copy error ({}), filesystem error: {}", filename, err.what());
                 }
             }
         }

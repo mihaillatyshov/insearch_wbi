@@ -4,7 +4,7 @@
 #include <misc/cpp/imgui_stdlib.h>
 #include <nfd.hpp>
 
-#include <Engine/Utils/ConsoleLog.h>
+#include <Engine/Utils/Log.hpp>
 #include <Engine/Utils/utf8.h>
 
 #include <iostream>

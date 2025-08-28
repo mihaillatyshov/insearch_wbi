@@ -228,7 +228,7 @@ namespace LM
                 ImGui_ImplOpenGL3_CreateFontsTexture();
             }
 
-            LOGI("Font size: ", m_FontSize);
+            LOG_CORE_INFO("Font size: {}", m_FontSize);
 
             m_ChangeSize = false;
         }

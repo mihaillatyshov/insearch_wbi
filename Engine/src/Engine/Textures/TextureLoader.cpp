@@ -3,7 +3,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-#include "Engine/Utils/ConsoleLog.h"
+#include "Engine/Utils/Log.hpp"
 
 namespace LM
 {
@@ -13,7 +13,7 @@ namespace LM
         m_Data = stbi_load(_FileName.data(), &m_Width, &m_Height, &m_Channels, STBI_rgb_alpha);
         if (!m_Data)
         {
-            LOGW("Can't load texture: ", _FileName);
+            LOG_CORE_WARN("Can't load texture: {}", _FileName);
         }
     }
 

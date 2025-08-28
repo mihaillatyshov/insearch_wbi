@@ -3,7 +3,8 @@
 #include "Engine/Events/KeyEvent.h"
 #include "Engine/Events/MouseEvent.h"
 #include "Engine/Events/WindowEvent.h"
-#include "Engine/Utils/ConsoleLog.h"
+#include "Engine/Utils/Log.hpp"
+#include "GLFW/glfw3.h"
 
 namespace LM
 {
@@ -150,16 +151,16 @@ namespace LM
     {
         if (!glfwInit())
         {
-            LOGE("Failed to initialize GLFW!");
+            LOG_CORE_ERROR("Failed to initialize GLFW!");
             return false;
         }
-
         glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
         m_Window = glfwCreateWindow(m_Data.Width, m_Data.Height, m_Data.Title.c_str(), NULL, NULL);
+        glfwMaximizeWindow(m_Window);
 
         if (!m_Window)
         {
-            LOGE("Failed to create window!");
+            LOG_CORE_ERROR("Failed to create window!");
             return false;
         }
 
@@ -169,7 +170,7 @@ namespace LM
             nowMonitor = glfwGetPrimaryMonitor();
         }
         glfwGetMonitorContentScale(nowMonitor, NULL, &m_Data.MonitorScale);
-        LOGI("Current monitor: ", nowMonitor, "    scale: ", m_Data.MonitorScale);
+        LOG_CORE_INFO("Current monitor: {} scale: {}", static_cast<void*>(nowMonitor), m_Data.MonitorScale);
 
         glfwMakeContextCurrent(m_Window);
         glfwSetWindowUserPointer(m_Window, &m_Data);
@@ -191,8 +192,8 @@ namespace LM
 
         glfwSwapInterval(1);
 
-        LOGI("OpenGL version: ", glGetString(GL_VERSION));
-        LOGI("OpenGL vendor: ", glGetString(GL_VENDOR));
+        LOG_CORE_INFO("OpenGL version: {}", reinterpret_cast<const char*>(glGetString(GL_VERSION)));
+        LOG_CORE_INFO("OpenGL vendor: {}", reinterpret_cast<const char*>(glGetString(GL_VENDOR)));
 
         return true;
     }

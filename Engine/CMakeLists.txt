@@ -36,7 +36,8 @@ set(SOURCES
 
     # src/Engine/Utils/Timer.h          
     # src/Engine/Utils/DataLoading.h            
-    src/Engine/Utils/ConsoleLog.h                               src/Engine/Utils/ConsoleLog.cpp         
+    src/Engine/Utils/Logger.hpp                                 src/Engine/Utils/Logger.cpp         
+    src/Engine/Utils/Log.hpp                                    src/Engine/Utils/Log.cpp         
     src/Engine/Utils/FileDialogs.h                              src/Engine/Utils/FileDialogs.cpp
     src/Engine/Utils/json.hpp
     src/Engine/Utils/utf8.h

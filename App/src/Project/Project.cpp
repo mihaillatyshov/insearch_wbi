@@ -3,7 +3,7 @@
 #include "ImGui/Overlays/Overlay.h"
 #include "Serializer/Serializer.h"
 
-#include "Engine/Utils/ConsoleLog.h"
+#include "Engine/Utils/Log.hpp"
 #include "Engine/Utils/FileDialogs.h"
 #include "Engine/Utils/json.hpp"
 #include "Engine/Utils/utf8.h"

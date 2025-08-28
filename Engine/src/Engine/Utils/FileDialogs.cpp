@@ -1,6 +1,6 @@
 #include "FileDialogs.h"
 
-#include "Engine/Utils/ConsoleLog.h"
+#include "Engine/Utils/Log.hpp"
 
 #include <filesystem>
 
@@ -9,7 +9,7 @@ namespace LM
 
     std::string FileDialogs::OpenFile(const std::vector<nfdfilteritem_t>& _Filter)
     {
-        LOGW(std::filesystem::current_path().string().c_str());
+        LOG_CORE_WARN("{}", std::filesystem::current_path().string().c_str());
 
         std::string currentPath = std::filesystem::current_path().string();
 
@@ -21,11 +21,11 @@ namespace LM
         {
             if (result == NFD_CANCEL)
             {
-                LOGE("User canceled the dialog.");
+                LOG_CORE_ERROR("User canceled the dialog.");
             }
             else
             {
-                LOGE("Error: ", NFD::GetError());
+                LOG_CORE_ERROR("Error: {}", NFD::GetError());
             }
 
             return std::string();
@@ -47,11 +47,11 @@ namespace LM
         {
             if (result == NFD_CANCEL)
             {
-                LOGE("User canceled the dialog.");
+                LOG_CORE_ERROR("User canceled the dialog.");
             }
             else
             {
-                LOGE("Error: ", NFD::GetError());
+                LOG_CORE_ERROR("Error: {}", NFD::GetError());
             }
 
             return std::vector<std::string>();

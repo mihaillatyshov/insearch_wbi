@@ -6,7 +6,7 @@
 #include <tuple>
 
 #include "Engine/Core/Base.h"
-#include "Engine/Utils/ConsoleLog.h"
+#include "Engine/Utils/Log.hpp"
 #include "Engine/Utils/json.hpp"
 
 #include "Project/Project.h"
@@ -297,7 +297,7 @@ namespace LM
             }
             catch (const std::invalid_argument& exeption)
             {
-                LOGE("Can't find field: ", exeption.what());
+                LOG_CORE_ERROR("Can't find field: {}", exeption.what());
                 return false;
             }
             return true;

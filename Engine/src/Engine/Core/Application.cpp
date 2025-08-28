@@ -4,7 +4,7 @@
 
 #include "Engine/Core/Inputs.h"
 #include "Engine/Events/EventDispatcher.h"
-#include "Engine/Utils/ConsoleLog.h"
+#include "Engine/Utils/Log.hpp"
 
 #include <filesystem>
 
@@ -15,7 +15,8 @@ namespace LM
 
     Application::Application(const ApplicationSpecification& specification) : m_Specification(specification)
     {
-        LOG_INIT();
+        // LOG_INIT();
+        Log::Init();
 
         CORE_ASSERT(!s_Instance, "Application already exists!");
         s_Instance = this;
@@ -30,7 +31,7 @@ namespace LM
 
         if (specification.CommandLineArgs.Count == 2)
         {
-            LOGI("CommadLineWorkingDirectory: ", specification.CommandLineArgs.Args[1]);
+            LOG_CORE_INFO("CommadLineWorkingDirectory: {}", specification.CommandLineArgs.Args[1]);
             std::filesystem::current_path(specification.CommandLineArgs.Args[1]);
         }
 

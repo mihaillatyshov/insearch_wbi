@@ -1,6 +1,6 @@
 #include "TextureManager.h"
 
-#include "Engine/Utils/ConsoleLog.h"
+#include "Engine/Utils/Log.hpp"
 
 #include <filesystem>
 
@@ -10,15 +10,15 @@ namespace LM
     static std::pair<std::string, std::string> SeparateFileName(const std::string_view _FileName)
     {
         std::filesystem::path filesystemFileName = std::filesystem::path(_FileName);
-        //LOGW("filesystemFileName.parent_path: ", filesystemFileName.parent_path());
-        //LOGW("filesystemFileName.filename: ", filesystemFileName.filename());
+        //LOG_CORE_WARN("filesystemFileName.parent_path: {}", filesystemFileName.parent_path());
+        //LOG_CORE_WARN("filesystemFileName.filename: {}", filesystemFileName.filename());
 
         return std::make_pair(filesystemFileName.parent_path().string(), filesystemFileName.filename().string());
     }
 
     Ref<Texture2D> TextureManager::AddOrReplace(std::string_view _FileName)
     {
-        //LOGW("Add: ", _FileName);
+        //LOG_CORE_WARN("Add: {}", _FileName);
 
         auto [folder, filename] = SeparateFileName(_FileName);
 
@@ -56,7 +56,7 @@ namespace LM
 
     Ref<Texture2D> TextureManager::Get(std::string_view _FileName)
     {
-        //LOGW("Get: ", _FileName);
+        //LOG_CORE_WARN("Get: {}", _FileName);
 
         auto [folder, filename] = SeparateFileName(_FileName);
 

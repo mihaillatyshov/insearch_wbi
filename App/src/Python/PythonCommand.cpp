@@ -6,7 +6,7 @@
 #include <memory>
 #include <stdexcept>
 
-#include "Engine/Utils/ConsoleLog.h"
+#include "Engine/Utils/Log.hpp"
 
 namespace LM
 {
@@ -52,7 +52,7 @@ namespace LM
         std::array<char, 1024> buffer;
 
         std::string command = GetFullCommand();
-        LOGI("Start python command: ", command);
+        LOG_CORE_INFO("Start python command: {}", command);
 
         std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(command.c_str(), "r"), pclose);
         if (!pipe)

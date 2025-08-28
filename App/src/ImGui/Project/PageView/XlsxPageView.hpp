@@ -4,6 +4,7 @@
 #include "ImGui/Constructions/SelectConstructionFromTree.hpp"
 
 #include <filesystem>
+#include <functional>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -14,6 +15,19 @@ struct ImVec4;
 
 namespace LM
 {
+
+    struct SimpleListItemBase
+    {
+        std::vector<int> SharedPages;
+    };
+
+    template <typename T>
+    concept DerivedFromSimpleListItemBase = std::is_base_of_v<SimpleListItemBase, T>;
+
+    struct SimpleAddListItem : public SimpleListItemBase
+    {
+        std::string Value;
+    };
 
     class XlsxPageView : public IPageView
     {
@@ -59,16 +73,6 @@ namespace LM
             std::string Description;
         };
 
-        struct SimpleListItemBase
-        {
-            std::vector<int> SharedPages;
-        };
-
-        struct SimpleAddListItem : public SimpleListItemBase
-        {
-            std::string Value;
-        };
-
     public:
         XlsxPageView();
         virtual ~XlsxPageView();
@@ -85,13 +89,24 @@ namespace LM
     protected:
         void DrawTableActions();
         void DrawGlobalAddList();
+
+        template <DerivedFromSimpleListItemBase T>
+        void DrawSimpleListTemplate(std::string_view _WindowName,
+                                    std::unordered_map<std::string, std::vector<T>>& _SimpleList,
+                                    std::function<void(std::string_view, T&)> _ItemInputHandle);
+
         void DrawSimpleAddList();
+        void DrawSimpleCalcList();
 
         void HandleImGuiEvents();
 
         void PushCellFrameBgColor(bool _IsRowHovered, bool _IsColHovered, size_t _RowId, size_t _ColId);
 
         DrawTableHeaderReturn DrawTableHeader(size_t _ColsCount);
+
+        template <DerivedFromSimpleListItemBase T>
+        bool IsItemInSimpleListForCurrentPage(std::unordered_map<std::string, std::vector<T>>& _SimpleList,
+                                              std::string_view _FieldName);
 
         void LoadXLSX();
         void SaveXLSX();
@@ -114,6 +129,8 @@ namespace LM
 
         void ReplaceFromClipboard(bool _IsNeedEmptyHeaderRow);
 
+        void InsertFromClipboard();
+
         void SplitAndExpandTable();
 
         void FixDimensions();
@@ -127,7 +144,6 @@ namespace LM
 
     protected:
         std::vector<std::vector<TableCell>> m_TableData;
-        std::vector<std::vector<CheckStatus>> m_DataCheck;
 
         int m_LoadedPageId = -1;
         std::filesystem::path m_LoadedPageFilename;
@@ -145,8 +161,11 @@ namespace LM
 
         bool m_IsOpenGlobalAddList = false;
 
+        bool m_IsExtraInfoJsonLoaded = false;
+        std::string m_ExtraInfoJsonPath;
         std::unordered_map<std::string, std::string> m_GlobalAddList;
         std::unordered_map<std::string, std::vector<SimpleAddListItem>> m_SimpleAddList;
+        std::unordered_map<std::string, std::vector<SimpleAddListItem>> m_SimpleCalcList;
 
         size_t m_HistoryPointer = 0;
         std::vector<HistoryState> m_HistoryState;

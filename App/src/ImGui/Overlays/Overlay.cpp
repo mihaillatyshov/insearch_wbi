@@ -2,7 +2,7 @@
 
 #include <imgui.h>
 
-#include "Engine/Utils/ConsoleLog.h"
+#include "Engine/Utils/Log.hpp"
 
 namespace LM
 {

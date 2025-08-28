@@ -7,7 +7,7 @@
 #include "ImGui/Tables/Table.h"
 
 #include "Engine/Core/Application.h"
-#include "Engine/Utils/ConsoleLog.h"
+#include "Engine/Utils/Log.hpp"
 #include "Engine/Utils/json.hpp"
 
 #include <imgui.h>
@@ -26,7 +26,7 @@ namespace LM
         std::ifstream infile(kLastProjectPath);
         if (!infile.is_open())
         {
-            LOGI("Last project file not found");
+            LOG_CORE_INFO("Last project file not found");
             return;
         }
 
@@ -35,7 +35,7 @@ namespace LM
 
         if (Ref<Project> project = Project::Open(json[kJsonLastProjectPath]); project != Project::s_ProjectNotOpen)
         {
-            LOGI("Opened last project: ", project->GetCatalogFilename());
+            LOG_CORE_INFO("Opened last project: {}", project->GetCatalogFilename());
             m_Project = project;
             m_SetupProjectWindow.Open();
         }
@@ -156,11 +156,14 @@ namespace LM
 
         m_SetupProjectWindow.Draw(m_Project);
 
-        switch (m_Project->GetType())
+        if (m_Project)
         {
-            case ProjectType::kPdfTablesWithOcr: PageViewManager::GetPdfOcr()->DrawViews(m_Project); break;
-            case ProjectType::kPdfTablesWithoutOcr: PageViewManager::GetPdf()->DrawViews(m_Project); break;
-            case ProjectType::kExcelTables: PageViewManager::GetExcelFolder()->DrawViews(m_Project); break;
+            switch (m_Project->GetType())
+            {
+                case ProjectType::kPdfTablesWithOcr: PageViewManager::GetPdfOcr()->DrawViews(m_Project); break;
+                case ProjectType::kPdfTablesWithoutOcr: PageViewManager::GetPdf()->DrawViews(m_Project); break;
+                case ProjectType::kExcelTables: PageViewManager::GetExcelFolder()->DrawViews(m_Project); break;
+            }
         }
 
         Overlay::Get()->Draw();
@@ -171,7 +174,7 @@ namespace LM
         static SelectConstructionFromTree constrTreeTest;
         if (auto construction = constrTreeTest(); !construction.empty())
         {
-            LOGW("Constr tree test message on select: ", construction);
+            LOG_CORE_WARN("Constr tree test message on select: {}", construction);
         }
     }
 
@@ -222,7 +225,7 @@ namespace LM
         std::ofstream fout(kLastProjectPath);
         if (!fout.is_open())
         {
-            LOGW("Can't save last project path");
+            LOG_CORE_WARN("Can't save last project path");
             return;
         }
 

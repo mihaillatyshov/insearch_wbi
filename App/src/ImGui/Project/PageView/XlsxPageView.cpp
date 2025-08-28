@@ -3,7 +3,7 @@
 #include "ImGui/Overlays/Overlay.h"
 #include "Utils/FileFormat.h"
 
-#include "Engine/Utils/ConsoleLog.h"
+#include "Engine/Utils/Log.hpp"
 #include "Engine/Utils/json.hpp"
 #include "Engine/Utils/utf8.h"
 
@@ -61,6 +61,17 @@ namespace LM
     constexpr std::string_view kDefaultRepresentationFieldsDescriptionFile = "assets/constructions/repr_fields.json";
     constexpr std::string_view kExtraInfoFile = "extra_info.json";
 
+    const std::vector<std::string> kProductBaseFields = { "fulldescription", "lcs", "moq", "codem" };
+
+    inline bool DeleteButton()
+    {
+        ImGui::PushStyleColor(ImGuiCol_Button, 0xFF0000AA);
+        bool result = ImGui::Button("X");
+        ImGui::PopStyleColor();
+
+        return result;
+    }
+
     inline std::string Join(const std::vector<int>& _Array, const std::string _Delimiter)
     {
         auto str_range = _Array | std::views::transform([](int x) { return std::to_string(x); });
@@ -111,13 +122,13 @@ namespace LM
     {
         try
         {
-            LOGI("Start saving");
+            LOG_CORE_INFO("Start saving");
             SaveXLSX();
-            LOGI("End saving");
+            LOG_CORE_INFO("End saving");
         }
         catch (std::exception& e)
         {
-            LOGI("WARN", e.what());
+            LOG_CORE_WARN("WARN: {}", e.what());
         }
     }
 
@@ -139,6 +150,12 @@ namespace LM
         if (m_LoadedPageId != m_PageId)
         {
             LoadXLSX();
+        }
+
+        if (!m_IsExtraInfoJsonLoaded)
+        {
+            LoadExtraInfoJson();
+            m_IsExtraInfoJsonLoaded = true;
         }
 
         if (m_TableData.empty() || m_LoadedPageId == -1 || m_LoadedPageId != m_PageId)
@@ -207,6 +224,7 @@ namespace LM
         DrawGlobalAddList();
 
         DrawSimpleAddList();
+        DrawSimpleCalcList();
 
         ImGui::Separator();
         if (m_SelectedCell.has_value())
@@ -447,15 +465,27 @@ namespace LM
     {
         if (ImGui::Begin("Глобальный список заполнения", &m_IsOpenGlobalAddList))
         {
+            std::string toDeleteName;
+
             for (auto& [globalAddListFieldName, globalAddListFieldValue] : m_GlobalAddList)
             {
+                ImGui::PushID(globalAddListFieldName.c_str());
                 ImGui::Text("%s", globalAddListFieldName.c_str());
                 ImGui::InputText(std::format("##{}", globalAddListFieldName).c_str(), &globalAddListFieldValue);
                 if (ImGui::IsItemDeactivatedAfterEdit())
                 {
                     PushHistory();
+                    SaveExtraInfoJson();
                 }
+
+                ImGui::SameLine();
+                if (DeleteButton())
+                {
+                    toDeleteName = globalAddListFieldName;
+                }
+
                 ImGui::Spacing();
+                ImGui::PopID();
             }
 
             if (ImGui::Button("Добавить поле"))
@@ -485,6 +515,7 @@ namespace LM
                         {
                             m_GlobalAddList[fieldName] = "";
                             ImGui::CloseCurrentPopup();
+                            SaveExtraInfoJson();
                         }
                         ImGui::PopID();
                         ImGui::Spacing();
@@ -497,105 +528,175 @@ namespace LM
                     ImGui::CloseCurrentPopup();
                 }
                 ImGui::EndPopup();
+            }
+
+            if (!toDeleteName.empty())
+            {
+                m_GlobalAddList.erase(toDeleteName);
             }
         }
         ImGui::End();
     }
 
-    void XlsxPageView::DrawSimpleAddList()
+    template <DerivedFromSimpleListItemBase T>
+    void XlsxPageView::DrawSimpleListTemplate(std::string_view _WindowName,
+                                              std::unordered_map<std::string, std::vector<T>>& _SimpleList,
+                                              std::function<void(std::string_view, T&)> _ItemInputHandle)
     {
-        if (ImGui::Begin("Постраничный список заполнения", &m_IsOpenGlobalAddList))
+        std::string toDeleteName;
+
+        for (auto& [simpleListFieldName, simpleListPages] : _SimpleList)
         {
-            for (auto& [simpleAddListFieldName, simpleAddListPages] : m_SimpleAddList)
+            ImGui::PushID(simpleListFieldName.c_str());
+            for (T& simpleListItem : simpleListPages)
             {
-                for (SimpleAddListItem& simpleAddListItem : simpleAddListPages)
+                const std::vector<int>& sharedPages = simpleListItem.SharedPages;
+                if (std::ranges::find(sharedPages, m_LoadedPageId) == sharedPages.end())
                 {
-                    const std::vector<int>& sharedPages = simpleAddListItem.SharedPages;
-                    if (std::ranges::find(sharedPages, m_LoadedPageId) == sharedPages.end())
-                    {
-                        continue;
-                    }
-
-                    ImGui::Text("%s", simpleAddListFieldName.c_str());
-                    ImGui::SameLine();
-                    std::string sharedPagesStr = Join(sharedPages, ", ");
-                    ImGui::TextDisabled("%s", sharedPagesStr.c_str());
-
-                    ImGui::InputText(std::format("##{}", simpleAddListFieldName).c_str(), &simpleAddListItem.Value);
-                    if (ImGui::IsItemDeactivatedAfterEdit())
-                    {
-                        PushHistory();
-                    }
-                    ImGui::Spacing();
-
-                    break;
+                    continue;
                 }
-            }
 
-            if (ImGui::Button("Добавить поле"))
-            {
-                ImGui::OpenPopup("Добавление поля##SimpleAddList");
-            }
+                ImGui::Text("%s", simpleListFieldName.c_str());
+                ImGui::SameLine();
+                std::string sharedPagesStr = Join(sharedPages, ", ");
+                ImGui::TextDisabled("%s", sharedPagesStr.c_str());
 
-            if (ImGui::BeginPopup("Добавление поля##SimpleAddList"))
-            {
-                static ImGuiTextFilter fieldsFilter;
-                fieldsFilter.Draw("Фильтрация полей##SimpleAddList");
-
-                ImGui::BeginChild("SimpleAddListField", ImVec2(0.0f, ImGui::GetFontSize() * 24.0f),
-                                  ImGuiChildFlags_AutoResizeX);
-                for (const auto& [fieldName, fieldDescr] : m_FieldsDescription)
+                _ItemInputHandle(simpleListFieldName, simpleListItem);
+                if (ImGui::IsItemDeactivatedAfterEdit())
                 {
-                    if (m_SimpleAddList.contains(fieldName))
+                    PushHistory();
+                    SaveExtraInfoJson();
+                }
+
+                ImGui::SameLine();
+                if (DeleteButton())
+                {
+                    toDeleteName = simpleListFieldName;
+                }
+
+                ImGui::Spacing();
+
+                break;
+            }
+            ImGui::PopID();
+        }
+
+        std::string popupName = std::format("Добавление поля##{}", _WindowName);
+
+        if (ImGui::Button("Добавить поле"))
+        {
+            ImGui::OpenPopup(popupName.c_str());
+        }
+
+        if (ImGui::BeginPopup(popupName.c_str()))
+        {
+            static ImGuiTextFilter fieldsFilter;
+            fieldsFilter.Draw("Фильтрация полей");
+
+            ImGui::BeginChild("SimpleListField", ImVec2(0.0f, ImGui::GetFontSize() * 24.0f),
+                              ImGuiChildFlags_AutoResizeX);
+            for (const auto& [fieldName, fieldDescr] : m_FieldsDescription)
+            {
+                if (IsItemInSimpleListForCurrentPage(_SimpleList, fieldName))
+                {
+                    continue;
+                }
+
+                if (fieldsFilter.PassFilter(fieldDescr.Description.c_str()) ||
+                    fieldsFilter.PassFilter(fieldName.c_str()))
+                {
+                    ImGui::PushID(fieldName.c_str());
+                    if (ImGui::Selectable(std::format("{}\n{}", fieldDescr.Description, fieldName).c_str(), false))
                     {
-                        if (std::ranges::any_of(m_SimpleAddList[fieldName], [this](const SimpleAddListItem& item) {
-                                return std::ranges::find(item.SharedPages, m_LoadedPageId) != item.SharedPages.end();
-                            }))
-                        {
-                            continue;
-                        }
+                        _SimpleList.try_emplace(fieldName);
+                        _SimpleList[fieldName].push_back({ { { m_LoadedPageId } }, "" });
+                        ImGui::CloseCurrentPopup();
+                        SaveExtraInfoJson();
                     }
 
-                    if (fieldsFilter.PassFilter(fieldDescr.Description.c_str()) ||
-                        fieldsFilter.PassFilter(fieldName.c_str()))
+                    if (_SimpleList.contains(fieldName))
                     {
-                        ImGui::PushID(fieldName.c_str());
-                        if (ImGui::Selectable(std::format("{}\n{}", fieldDescr.Description, fieldName).c_str(), false))
+                        for (T& simpleListItem : _SimpleList[fieldName])
                         {
-                            m_SimpleAddList.try_emplace(fieldName);
-                            m_SimpleAddList[fieldName].push_back({ { { m_LoadedPageId } }, "" });
-                            ImGui::CloseCurrentPopup();
-                        }
+                            std::vector<int>& sharedPages = simpleListItem.SharedPages;
+                            std::string sharedPagesStr = Join(sharedPages, ", ");
 
-                        if (m_SimpleAddList.contains(fieldName))
-                        {
-                            for (SimpleAddListItem& simpleAddListItem : m_SimpleAddList[fieldName])
+                            if (ImGui::Selectable(
+                                    std::format("\t{}\n\t{}", simpleListItem.Value, sharedPagesStr).c_str(), false))
                             {
-                                std::vector<int>& sharedPages = simpleAddListItem.SharedPages;
-                                std::string sharedPagesStr = Join(sharedPages, ", ");
-
-                                if (ImGui::Selectable(
-                                        std::format("\t{}\n\t{}", simpleAddListItem.Value, sharedPagesStr).c_str(),
-                                        false))
-                                {
-                                    sharedPages.push_back(m_LoadedPageId);
-                                    ImGui::CloseCurrentPopup();
-                                }
+                                sharedPages.push_back(m_LoadedPageId);
+                                ImGui::CloseCurrentPopup();
+                                SaveExtraInfoJson();
                             }
                         }
-
-                        ImGui::PopID();
-                        ImGui::Spacing();
                     }
-                }
-                ImGui::EndChild();
 
-                if (ImGui::Button("Close"))
-                {
-                    ImGui::CloseCurrentPopup();
+                    ImGui::PopID();
+                    ImGui::Spacing();
                 }
-                ImGui::EndPopup();
             }
+            ImGui::EndChild();
+
+            if (ImGui::Button("Close"))
+            {
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
+        }
+
+        if (!toDeleteName.empty())
+        {
+            auto& items = _SimpleList[toDeleteName];
+
+            if (auto it = std::ranges::find_if(items,
+                                               [this](T& item) {
+                                                   return std::ranges::find(item.SharedPages, m_LoadedPageId) !=
+                                                          item.SharedPages.end();
+                                               });
+                it != items.end())
+            {
+                std::erase(it->SharedPages, m_LoadedPageId);
+            }
+
+            std::erase_if(items, [](const T& item) { return item.SharedPages.empty(); });
+
+            if (items.empty())
+            {
+                _SimpleList.erase(toDeleteName);
+            }
+        }
+    }
+
+    void XlsxPageView::DrawSimpleAddList()
+    {
+        std::string windowTitle = "Постраничный список заполнения";
+        std::function<void(std::string_view, SimpleAddListItem&)> handle = [](std::string_view _SimpleListFieldName,
+                                                                              SimpleAddListItem& _SimpleListItem) {
+            ImGui::InputText(std::format("##{}", _SimpleListFieldName).c_str(), &_SimpleListItem.Value);
+        };
+
+        if (ImGui::Begin(windowTitle.c_str()))
+        {
+            DrawSimpleListTemplate(windowTitle, m_SimpleAddList, handle);
+        }
+        ImGui::End();
+    }
+
+    void XlsxPageView::DrawSimpleCalcList()
+    {
+        std::string windowTitle = "Постраничный список рассчета";
+        std::function<void(std::string_view, SimpleAddListItem&)> handle = [](std::string_view _SimpleListFieldName,
+                                                                              SimpleAddListItem& _SimpleListItem) {
+            ImGui::InputText(std::format("##{}", _SimpleListFieldName).c_str(), &_SimpleListItem.Value);
+        };
+
+        if (ImGui::Begin(windowTitle.c_str()))
+        {
+            ImGui::Text(
+                "Python code. Example: result.append(df['bsg'][i].replace(' ', '_') + ':N' + str(df['dcon'][i]))");
+            ImGui::Separator();
+
+            DrawSimpleListTemplate(windowTitle, m_SimpleCalcList, handle);
         }
         ImGui::End();
     }
@@ -626,7 +727,7 @@ namespace LM
 
         if (ImGui::IsKeyReleased(ImGuiKey_Escape))
         {
-            LOGE("Escape key pressed");
+            LOG_CORE_INFO("Escape key pressed");
             m_SelectedCell = std::nullopt;
             m_SelectedRow = std::nullopt;
             m_SelectedCol = std::nullopt;
@@ -641,6 +742,11 @@ namespace LM
         if (ImGui::IsKeyPressed(ImGuiKey_Y) && io.KeyCtrl && !m_IsAnyCellActive)
         {
             Redo();
+        }
+
+        if (ImGui::IsKeyPressed(ImGuiKey_V) && io.KeyCtrl)
+        {
+            InsertFromClipboard();
         }
 
         if (ImGui::IsKeyPressed(ImGuiKey_Equal) && io.KeyCtrl)
@@ -801,7 +907,30 @@ namespace LM
 
             auto& t = m_TableData[0][colId].Value;
             // std::string headerText = std::format("{}##_Header_{}", t, colId + 1);
+            ImU32 headerColor = 0xFF000000;
+            if (m_GlobalAddList.contains(t) || IsItemInSimpleListForCurrentPage(m_SimpleAddList, t) ||
+                IsItemInSimpleListForCurrentPage(m_SimpleCalcList, t))
+            {
+                headerColor = 0xFF008000;
+            }
+            else if (std::ranges::find(kProductBaseFields, t) != kProductBaseFields.end())
+            {
+                headerColor = 0xFF555555;
+            }
+            else if (m_FieldsDescription.contains(t))
+            {
+                if (m_FieldsDescription[t].IsDescr)
+                {
+                    headerColor = 0xFF008CFF;
+                }
+                else if (!m_FieldsDescription[t].AllowNulls)
+                {
+                    headerColor = 0xFFCC3299;
+                }
+            }
+            ImGui::PushStyleColor(ImGuiCol_TableHeaderBg, headerColor);
             ImGui::TableHeader(t.c_str());
+            ImGui::PopStyleColor();
             if (ImGui::IsItemHovered())
             {
                 result.HoveredCol = colId;
@@ -930,6 +1059,16 @@ namespace LM
         return result;
     }
 
+    template <DerivedFromSimpleListItemBase T>
+    bool XlsxPageView::IsItemInSimpleListForCurrentPage(std::unordered_map<std::string, std::vector<T>>& _SimpleList,
+                                                        std::string_view _FieldName)
+    {
+        return _SimpleList.contains(_FieldName.data()) &&
+               std::ranges::any_of(_SimpleList[_FieldName.data()], [this](const T& item) {
+                   return std::ranges::find(item.SharedPages, m_LoadedPageId) != item.SharedPages.end();
+               });
+    }
+
     void XlsxPageView::LoadXLSX()
     {
         m_LoadedPageId = -1;
@@ -946,13 +1085,13 @@ namespace LM
         }
         if (pathIterator == std::filesystem::end(pathIterator))
         {
-            LOGE("No file found for page ID: ", m_PageId);
+            LOG_CORE_ERROR("No file found for page ID: {}", m_PageId);
             return;
         }
 
         std::filesystem::path path = std::filesystem::path(m_BasePath) / pathIterator->path().filename();
 
-        LOGI("Loading file: ", path);
+        LOG_CORE_INFO("Loading file: {}", path.string());
 
         if (!std::filesystem::exists(path))
         {
@@ -967,7 +1106,7 @@ namespace LM
         }
         catch (const std::exception& e)
         {
-            LOGE("Failed to load workbook: ", e.what());
+            LOG_CORE_ERROR("Failed to load workbook: {}", e.what());
             return;
         }
 
@@ -1008,6 +1147,11 @@ namespace LM
 
     void XlsxPageView::SaveXLSX()
     {
+        if ((m_PageId < 0) || m_BasePath.empty())
+        {
+            return;
+        }
+
         auto pathIterator = std::filesystem::directory_iterator(m_BasePath);
         for (int i = 0; i < m_PageId; ++i)
         {
@@ -1015,13 +1159,13 @@ namespace LM
         }
         if (pathIterator == std::filesystem::end(pathIterator))
         {
-            LOGE("No file found for page ID: ", m_PageId);
+            LOG_CORE_ERROR("No file found for page ID: {}", m_PageId);
             return;
         }
 
         std::filesystem::path path = std::filesystem::path(m_BasePath) / pathIterator->path().filename().string();
 
-        LOGI("Saving file: ", path);
+        LOG_CORE_INFO("Saving file: {}", path.string());
 
         // if (!std::filesystem::exists(path))
         // {
@@ -1029,10 +1173,10 @@ namespace LM
         // }
 
         xlnt::workbook wb;
-        LOGI("Created WB");
+        LOG_CORE_INFO("Created WB");
 
         xlnt::worksheet ws = wb.active_sheet();
-        LOGI("Created WS");
+        LOG_CORE_INFO("Created WS");
 
         for (size_t rowId = 0; rowId < m_TableData.size(); ++rowId)
         {
@@ -1044,12 +1188,16 @@ namespace LM
         }
 
         wb.save(path);
+
+        SaveExtraInfoJson();
     }
 
     void XlsxPageView::LoadExtraInfoJson()
     {
+        std::string filename = kExtraInfoFile.data();
         std::filesystem::path inFilePath =
-            std::filesystem::path(m_Project->GetExcelTablesTypePath()) / std::filesystem::path(kExtraInfoFile);
+            (std::filesystem::path(m_Project->GetExcelTablesTypePath()) / std::filesystem::path(filename));
+        m_ExtraInfoJsonPath = inFilePath.string();
         if (!std::filesystem::exists(inFilePath))
         {
             // Overlay::Get()->Start(Format("Файл не найден: \n{}", inFilePath.string()));
@@ -1059,7 +1207,7 @@ namespace LM
         std::ifstream infile(inFilePath);
         if (!infile.is_open())
         {
-            Overlay::Get()->Start(Format("Не удалось открыть стандартный файл ExtraInfo: \n{}", inFilePath.c_str()));
+            Overlay::Get()->Start(Format("Не удалось открыть стандартный файл ExtraInfo: \n{}", inFilePath.string()));
         }
 
         try
@@ -1088,21 +1236,34 @@ namespace LM
                     }
                 }
             }
+
+            if (json.contains("per_page_calc_list"))
+            {
+                for (const auto& item : json["per_page_calc_list"])
+                {
+                    m_SimpleCalcList.try_emplace(item["name"]);
+                    for (const auto& values : item["values"])
+                    {
+                        std::vector<int> index;
+                        values["index"].get_to(index);
+                        m_SimpleCalcList[item["name"]].push_back({ { index }, values["exec"] });
+                    }
+                }
+            }
         }
         catch (...)
         {
-            Overlay::Get()->Start(Format("Ошибка во время чтения формата json: \n{}", inFilePath.c_str()));
+            Overlay::Get()->Start(Format("Ошибка во время чтения формата json: \n{}", inFilePath.string()));
         }
     }
 
     void XlsxPageView::SaveExtraInfoJson()
     {
-        std::filesystem::path outFilePath =
-            std::filesystem::path(m_Project->GetExcelTablesTypePath()) / std::filesystem::path(kExtraInfoFile);
-        std::ofstream fout(outFilePath);
+
+        std::ofstream fout(m_ExtraInfoJsonPath);
         if (!fout.is_open())
         {
-            Overlay::Get()->Start(Format("Не удалось сохранить ExtraInfo: \n{}", outFilePath.c_str()));
+            Overlay::Get()->Start(Format("Не удалось сохранить ExtraInfo: \n{}", m_ExtraInfoJsonPath));
             return;
         }
 
@@ -1117,9 +1278,49 @@ namespace LM
             });
         }
 
-        // for ()
+        for (const auto& [name, items] : m_SimpleAddList)
+        {
+            if (items.size() == 0)
+            {
+                continue;
+            }
 
-        // TODO: continue here
+            nlohmann::json jsonItems = {
+                {   "name",                    name },
+                { "values", nlohmann::json::array() }
+            };
+            for (const SimpleAddListItem& item : items)
+            {
+                jsonItems["values"].push_back(nlohmann::json {
+                    { "index", item.SharedPages },
+                    { "value",       item.Value }
+                });
+            }
+
+            result["simple_add_list"].push_back(jsonItems);
+        }
+
+        for (const auto& [name, items] : m_SimpleCalcList)
+        {
+            if (items.size() == 0)
+            {
+                continue;
+            }
+
+            nlohmann::json jsonItems = {
+                {   "name",                    name },
+                { "values", nlohmann::json::array() }
+            };
+            for (const SimpleAddListItem& item : items)
+            {
+                jsonItems["values"].push_back(nlohmann::json {
+                    { "index", item.SharedPages },
+                    {  "exec",       item.Value }
+                });
+            }
+
+            result["per_page_calc_list"].push_back(jsonItems);
+        }
 
         fout << std::setw(4) << result;
     }
@@ -1186,6 +1387,8 @@ namespace LM
         {
             m_TableData.clear();
         }
+
+        PushHistory();
     }
 
     void XlsxPageView::DeleteRow(size_t _RowId)
@@ -1195,6 +1398,8 @@ namespace LM
             return;
         }
         m_TableData.erase(m_TableData.begin() + _RowId);
+
+        PushHistory();
     }
 
     void XlsxPageView::InsertCol(size_t _ColId)
@@ -1257,6 +1462,37 @@ namespace LM
         }
     }
 
+    void XlsxPageView::InsertFromClipboard()
+    {
+        if (const char* clipboard = ImGui::GetClipboardText(); clipboard && m_SelectedCell.has_value())
+        {
+            ImGui::ClearActiveID();
+            std::istringstream iss(clipboard);
+            std::string line;
+            for (size_t insertRow = m_SelectedCell->y; std::getline(iss, line); ++insertRow)
+            {
+                if (m_TableData.size() == insertRow)
+                {
+                    m_TableData.push_back(std::vector<TableCell>(m_TableData[0].size(), TableCell {}));
+                }
+                std::vector<TableCell>& row = m_TableData[insertRow];
+
+                std::istringstream lineStream(line);
+                std::string cell;
+                for (size_t insertCol = m_SelectedCell->x; std::getline(lineStream, cell, '\t'); ++insertCol)
+                {
+                    if (row.size() == insertCol)
+                    {
+                        row.push_back({});
+                    }
+                    row[insertCol].Value = cell;
+                }
+            }
+            FixDimensions();
+            PushHistory();
+        }
+    }
+
     void XlsxPageView::SplitAndExpandTable()
     {
         if (m_TableData.empty())
@@ -1267,7 +1503,7 @@ namespace LM
         size_t rows = m_TableData.size();
         size_t cols = m_TableData[0].size();
 
-        LOGW("Splitting table with columns:", cols);
+        LOG_CORE_WARN("Splitting table with columns: {}", cols);
 
         std::vector<std::vector<std::vector<std::string>>> colsSplitData(cols);
         for (auto& col : colsSplitData)
@@ -1349,6 +1585,10 @@ namespace LM
 
         std::vector<TableCell>& headerRow = m_TableData[0];
         headerRow.clear();
+        for (const std::string& field : kProductBaseFields)
+        {
+            headerRow.push_back({ .Value = field });
+        }
         for (std::string& field : m_ConstructionsFields[_ConstrKey.data()])
         {
             headerRow.push_back({ .Value = field });
@@ -1451,7 +1691,7 @@ namespace LM
         }
         catch (std::exception& e)
         {
-            LOGW(e.what());
+            LOG_CORE_WARN("{}", e.what());
             Overlay::Get()->Start(Format("Ошибка во время чтения формата json: \n{}", kDefaultFieldsDescriptionFile));
         }
     }

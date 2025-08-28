@@ -7,7 +7,7 @@
 #include <imgui.h>
 #include <xlnt/xlnt.hpp>
 
-#include "Engine/Utils/ConsoleLog.h"
+#include "Engine/Utils/Log.hpp"
 #include "Engine/Utils/utf8.h"
 
 namespace LM
@@ -26,7 +26,7 @@ namespace LM
         ImVec2 ts = ImGui::CalcTextSize("tttt tttt");
         if (ImGui::InvisibleButton("drag area", ImVec2(ts.x, ImGui::GetFrameHeight())))
         {
-            LOGE("Clicked invisible button");
+            LOG_CORE_ERROR("Clicked invisible button");
         }*/
 
         if (ImGui::Button("Test Excel"))
@@ -36,19 +36,19 @@ namespace LM
             ws.cell("A1").value(5);
             ws.cell("B2").value("string data");
 
-            if (xlnt::cell::type::number == ws.cell({ 1, 1 }).data_type())
-            {
-                LOGW("xlnt::cell::type::number == ws.cell({ 1, 1 }).data_type()");
-            }
+            // if (xlnt::cell::type::number == ws.cell({ 1, 1 }).data_type())
+            // {
+            //     LOG_CORE_WARN("xlnt::cell::type::number == ws.cell({ 1, 1 }).data_type()");
+            // }
 
-            if (xlnt::cell::type::shared_string == ws.cell({ 2, 2 }).data_type())
-            {
-                LOGW("xlnt::cell::type::shared_string == ws.cell({ 2, 2 }).data_type()");
-            }
-            if (xlnt::cell::type::inline_string == ws.cell({ 2, 2 }).data_type())
-            {
-                LOGW("xlnt::cell::type::inline_string == ws.cell({ 2, 2 }).data_type()");
-            }
+            // if (xlnt::cell::type::shared_string == ws.cell({ 2, 2 }).data_type())
+            // {
+            //     LOG_CORE_WARN("xlnt::cell::type::shared_string == ws.cell({ 2, 2 }).data_type()");
+            // }
+            // if (xlnt::cell::type::inline_string == ws.cell({ 2, 2 }).data_type())
+            // {
+            //     LOG_CORE_WARN("xlnt::cell::type::inline_string == ws.cell({ 2, 2 }).data_type()");
+            // }
             ws.freeze_panes({ 2, 2 });
             // wb.save("example.xlsx");
         }
@@ -107,19 +107,19 @@ namespace LM
                     ImGui::SetNextItemWidth(ts.x + 20.0f);
                     if (ImGui::InputText("##cell", textBuf[cell], 256, ImGuiInputTextFlags_NoHorizontalScroll))
                     {
-                        LOGE("I C");
+                        LOG_CORE_ERROR("I C");
                     }
                     if (ImGui::IsItemActivated())
                     {
-                        LOGE("I A");
+                        LOG_CORE_ERROR("I A");
                     }
                     if (ImGui::IsItemDeactivated())
                     {
-                        LOGE("I D");
+                        LOG_CORE_ERROR("I D");
                     }
                     if (ImGui::IsItemFocused())
                     {
-                        LOGE("I F");
+                        LOG_CORE_ERROR("I F");
                     }
 
                     ImGui::EndGroup();

@@ -3,7 +3,7 @@
 #include "ImGui/Overlays/Overlay.h"
 #include "PageViewManager.h"
 
-#include "Engine/Utils/ConsoleLog.h"
+#include "Engine/Utils/Log.hpp"
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -157,10 +157,10 @@ namespace LM
                         (mousePosInImg - m_TmpCatalogCutPattern.PointMin * imgSize / 100.0f) /
                         ((m_TmpCatalogCutPattern.PointMax - m_TmpCatalogCutPattern.PointMin) * imgSize / 100.0f) *
                         100.0f;
-                    LOGW(mousePosInImg.x, " ", mousePosInImg.y, "    ",
-                         (m_TmpCatalogCutPattern.PointMin.x / 100 * imgSize.x), " ",
+                    LOG_CORE_WARN("{} {}    {} {}", mousePosInImg.x, mousePosInImg.y,
+                         (m_TmpCatalogCutPattern.PointMin.x / 100 * imgSize.x),
                          (m_TmpCatalogCutPattern.PointMin.y / 100 * imgSize.y) / 100);
-                    LOGW(m_TmpCatalogCutPattern.CenterPoint.x, " ", m_TmpCatalogCutPattern.CenterPoint.y);
+                    LOG_CORE_WARN("{} {}", m_TmpCatalogCutPattern.CenterPoint.x, m_TmpCatalogCutPattern.CenterPoint.y);
                 }
                 else
                 {

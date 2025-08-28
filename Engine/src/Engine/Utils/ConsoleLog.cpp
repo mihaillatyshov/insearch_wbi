@@ -1,4 +1,4 @@
-#include "ConsoleLog.h"
+#include "Log.hpp"
 
 #if defined(WIN32)
     #include <Windows.h>
