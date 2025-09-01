@@ -240,26 +240,36 @@ namespace LM
         static ImGuiTableFlags tableFlags = ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_Borders |
                                             ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY;
 
+        const float framePaddingX = 8.0f;
+
         std::vector<float> columnWidths(colsCount + 1, 0.0f);
         columnWidths[0] =
-            ImGui::CalcTextSize(std::to_string(m_TableData.size()).c_str()).x + ImGui::GetFontSize() * 2.0f;
+            std::max(ImGui::CalcTextSize(std::to_string(m_TableData.size()).c_str()).x + framePaddingX * 2.0f,
+                     ImGui::CalcTextSize("  . . .  ").x);
 
         for (size_t rowId = 0; rowId < m_TableData.size(); ++rowId)
         {
             for (size_t colId = 0; colId < colsCount; ++colId)
             {
                 const auto& cellText = m_TableData[rowId][colId].Value;
-                ImVec2 cellTextSize = ImGui::CalcTextSize(cellText.c_str());
-                columnWidths[colId + 1] =
-                    std::max(columnWidths[colId + 1], cellTextSize.x + ImGui::GetFontSize() * 2.0f);
+                ImVec2 cellTextSize =
+                    ImGui::CalcTextSize((rowId == 0 ? std::format("  {}  ", cellText) : cellText).c_str());
+                columnWidths[colId + 1] = std::max(
+                    columnWidths[colId + 1], cellTextSize.x + framePaddingX * 2.0f);    // + ImGui::GetFontSize() * 2.0f
             }
         }
+
+        // ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, { framePaddingX, 6.0f });
+        ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, { 0.0f, 0.0f });
 
         if (ImGui::BeginTable("XLSX Table", static_cast<int>(colsCount + 1), tableFlags))
         {
             ImGui::TableSetupScrollFreeze(1, 1);
 
+            ImGui::PushStyleVarY(ImGuiStyleVar_CellPadding, 6.0f);
             DrawTableHeaderReturn headerData = DrawTableHeader(colsCount);
+            ImGui::PopStyleVar();
 
             m_IsAnyCellActive = false;
             for (size_t rowId = 1; rowId < m_TableData.size(); ++rowId)
@@ -341,6 +351,9 @@ namespace LM
             }
             ImGui::EndTable();
         }
+        ImGui::PopStyleVar();
+        ImGui::PopStyleVar();
+        // ImGui::PopStyleVar();
 
         if (m_DeleteCol.has_value())
         {
@@ -463,7 +476,8 @@ namespace LM
 
     void XlsxPageView::DrawGlobalAddList()
     {
-        if (ImGui::Begin("Глобальный список заполнения", &m_IsOpenGlobalAddList))
+        std::string windowName = "Глобальный список заполнения";
+        if (ImGui::Begin(windowName.c_str(), &m_IsOpenGlobalAddList))
         {
             std::string toDeleteName;
 
@@ -471,6 +485,11 @@ namespace LM
             {
                 ImGui::PushID(globalAddListFieldName.c_str());
                 ImGui::Text("%s", globalAddListFieldName.c_str());
+
+                if (IsExtraInfoAutoFocusField(windowName, globalAddListFieldName))
+                {
+                    ImGui::SetKeyboardFocusHere();
+                }
                 ImGui::InputText(std::format("##{}", globalAddListFieldName).c_str(), &globalAddListFieldValue);
                 if (ImGui::IsItemDeactivatedAfterEdit())
                 {
@@ -488,18 +507,24 @@ namespace LM
                 ImGui::PopID();
             }
 
+            bool isFirstTimeOpened = false;
             if (ImGui::Button("Добавить поле"))
             {
                 ImGui::OpenPopup("Добавление поля##GlobalAddList");
+                isFirstTimeOpened = true;
             }
 
             if (ImGui::BeginPopup("Добавление поля##GlobalAddList"))
             {
                 static ImGuiTextFilter fieldsFilter;
+                if (isFirstTimeOpened)
+                {
+                    ImGui::SetKeyboardFocusHere();
+                }
                 fieldsFilter.Draw("Фильтрация полей##GlobalAddList");
 
                 ImGui::BeginChild("GlobalAddListField", ImVec2(0.0f, ImGui::GetFontSize() * 24.0f),
-                                  ImGuiChildFlags_AutoResizeX);
+                                  ImGuiChildFlags_AutoResizeX | ImGuiChildFlags_NavFlattened);
                 for (const auto& [fieldName, fieldDescr] : m_FieldsDescription)
                 {
                     if (m_GlobalAddList.contains(fieldName))
@@ -514,6 +539,10 @@ namespace LM
                         if (ImGui::Selectable(std::format("{}\n{}", fieldDescr.Description, fieldName).c_str(), false))
                         {
                             m_GlobalAddList[fieldName] = "";
+                            m_ExtraInfoAutoFocusField = ExtraInfoAutoFocusField {
+                                .WindowName = windowName,
+                                .Field = fieldName,
+                            };
                             ImGui::CloseCurrentPopup();
                             SaveExtraInfoJson();
                         }
@@ -561,6 +590,10 @@ namespace LM
                 std::string sharedPagesStr = Join(sharedPages, ", ");
                 ImGui::TextDisabled("%s", sharedPagesStr.c_str());
 
+                if (IsExtraInfoAutoFocusField(_WindowName, simpleListFieldName))
+                {
+                    ImGui::SetKeyboardFocusHere();
+                }
                 _ItemInputHandle(simpleListFieldName, simpleListItem);
                 if (ImGui::IsItemDeactivatedAfterEdit())
                 {
@@ -583,18 +616,24 @@ namespace LM
 
         std::string popupName = std::format("Добавление поля##{}", _WindowName);
 
+        bool isFirstTimeOpened = false;
         if (ImGui::Button("Добавить поле"))
         {
             ImGui::OpenPopup(popupName.c_str());
+            isFirstTimeOpened = true;
         }
 
         if (ImGui::BeginPopup(popupName.c_str()))
         {
             static ImGuiTextFilter fieldsFilter;
+            if (isFirstTimeOpened)
+            {
+                ImGui::SetKeyboardFocusHere();
+            }
             fieldsFilter.Draw("Фильтрация полей");
 
             ImGui::BeginChild("SimpleListField", ImVec2(0.0f, ImGui::GetFontSize() * 24.0f),
-                              ImGuiChildFlags_AutoResizeX);
+                              ImGuiChildFlags_AutoResizeX | ImGuiChildFlags_NavFlattened);
             for (const auto& [fieldName, fieldDescr] : m_FieldsDescription)
             {
                 if (IsItemInSimpleListForCurrentPage(_SimpleList, fieldName))
@@ -610,6 +649,10 @@ namespace LM
                     {
                         _SimpleList.try_emplace(fieldName);
                         _SimpleList[fieldName].push_back({ { { m_LoadedPageId } }, "" });
+                        m_ExtraInfoAutoFocusField = ExtraInfoAutoFocusField {
+                            .WindowName = _WindowName.data(),
+                            .Field = fieldName,
+                        };
                         ImGui::CloseCurrentPopup();
                         SaveExtraInfoJson();
                     }
@@ -621,13 +664,20 @@ namespace LM
                             std::vector<int>& sharedPages = simpleListItem.SharedPages;
                             std::string sharedPagesStr = Join(sharedPages, ", ");
 
+                            ImGui::SetNextItemAllowOverlap();
                             if (ImGui::Selectable(
-                                    std::format("\t{}\n\t{}", simpleListItem.Value, sharedPagesStr).c_str(), false))
+                                    std::format("\t\n\t##{}", static_cast<void*>(&simpleListItem)).c_str(), false))
                             {
                                 sharedPages.push_back(m_LoadedPageId);
+                                std::ranges::sort(sharedPages);
                                 ImGui::CloseCurrentPopup();
                                 SaveExtraInfoJson();
                             }
+                            ImGui::SameLine();
+                            ImGui::BeginGroup();
+                            ImGui::Text("%s", std::format("{}", simpleListItem.Value).c_str());
+                            ImGui::TextDisabled("%s", sharedPagesStr.c_str());
+                            ImGui::EndGroup();
                         }
                     }
 
@@ -876,7 +926,7 @@ namespace LM
         ImGui::TableNextRow();
         ImGui::PushID(static_cast<int>(0));
         ImGui::TableSetColumnIndex(static_cast<int>(0));
-        ImGui::TableHeader("    . . .##Header");
+        ImGui::TableHeader("  . . .  ##Header");
         if (ImGui::BeginPopupContextItem("Header_0"))
         {
             ImGui::Text("Всплывающее окно для заголовка");
@@ -929,7 +979,7 @@ namespace LM
                 }
             }
             ImGui::PushStyleColor(ImGuiCol_TableHeaderBg, headerColor);
-            ImGui::TableHeader(t.c_str());
+            ImGui::TableHeader(std::format("  {}  ", t).c_str());
             ImGui::PopStyleColor();
             if (ImGui::IsItemHovered())
             {
@@ -1697,5 +1747,16 @@ namespace LM
     }
 
     void XlsxPageView::LoadRepresentationFieldsDescription() { }
+
+    bool XlsxPageView::IsExtraInfoAutoFocusField(std::string_view _WindowName, std::string_view _FieldName)
+    {
+        bool result = m_ExtraInfoAutoFocusField.has_value() && (m_ExtraInfoAutoFocusField->WindowName == _WindowName) &&
+                      (m_ExtraInfoAutoFocusField->Field == _FieldName);
+        if (result)
+        {
+            m_ExtraInfoAutoFocusField = std::nullopt;
+        }
+        return result;
+    }
 
 }    // namespace LM

@@ -910,6 +910,15 @@
                             "qty": 60
                         },
                         {
+                            "key": "ctd_ma3",
+                            "img_link": "constr_image/ctd_ma3.png",
+                            "drw_link": "constr_drawing/ctd_ma3.png",
+                            "constr_rushort": "Фреза цельная для обработки фасок и галтелью",
+                            "text": "Фреза цельная для обработки фасок и галтелью",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
                             "key": "ctd_mb1",
                             "img_link": "constr_image/ctd_mb1.png",
                             "drw_link": "constr_drawing/ctd_mb1.png",
@@ -1050,6 +1059,15 @@
                             "drw_link": "constr_drawing/ctd_me4.png",
                             "constr_rushort": "Фреза с к/х и плоским торцом",
                             "text": "Фреза цельная с плоским торцом и конусом Морзе",
+                            "level_name": "constrs",
+                            "qty": 0
+                        },
+                        {
+                            "key": "ctd_me5",
+                            "img_link": "constr_image/ctd_me5.png",
+                            "drw_link": "constr_drawing/ctd_me5.png",
+                            "constr_rushort": "Фреза насадная цельная",
+                            "text": "Фреза насадная цельная",
                             "level_name": "constrs",
                             "qty": 0
                         }

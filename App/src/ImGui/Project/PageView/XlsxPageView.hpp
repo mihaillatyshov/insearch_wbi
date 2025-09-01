@@ -73,6 +73,12 @@ namespace LM
             std::string Description;
         };
 
+        struct ExtraInfoAutoFocusField
+        {
+            std::string WindowName;
+            std::string Field;
+        };
+
     public:
         XlsxPageView();
         virtual ~XlsxPageView();
@@ -142,6 +148,8 @@ namespace LM
         void LoadFieldsDescription();
         void LoadRepresentationFieldsDescription();
 
+        bool IsExtraInfoAutoFocusField(std::string_view _WindowName, std::string_view _FieldName);
+
     protected:
         std::vector<std::vector<TableCell>> m_TableData;
 
@@ -163,6 +171,7 @@ namespace LM
 
         bool m_IsExtraInfoJsonLoaded = false;
         std::string m_ExtraInfoJsonPath;
+        std::optional<ExtraInfoAutoFocusField> m_ExtraInfoAutoFocusField = std::nullopt;
         std::unordered_map<std::string, std::string> m_GlobalAddList;
         std::unordered_map<std::string, std::vector<SimpleAddListItem>> m_SimpleAddList;
         std::unordered_map<std::string, std::vector<SimpleAddListItem>> m_SimpleCalcList;
