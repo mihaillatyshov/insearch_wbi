@@ -109,6 +109,7 @@ namespace LM
         void PushCellFrameBgColor(bool _IsRowHovered, bool _IsColHovered, size_t _RowId, size_t _ColId);
 
         DrawTableHeaderReturn DrawTableHeader(size_t _ColsCount);
+        void DrawTableHeaderRowContextMenu();
 
         template <DerivedFromSimpleListItemBase T>
         bool IsItemInSimpleListForCurrentPage(std::unordered_map<std::string, std::vector<T>>& _SimpleList,
@@ -135,6 +136,7 @@ namespace LM
 
         void ReplaceFromClipboard(bool _IsNeedEmptyHeaderRow);
 
+        void CopySelectedToClipboard(bool _CopyHeader);
         void InsertFromClipboard();
 
         void SplitAndExpandTable();
@@ -166,8 +168,6 @@ namespace LM
         std::vector<ConstructionTreeConstr> m_Constructions;
         std::unordered_map<std::string, std::vector<std::string>> m_ConstructionsFields;
         std::unordered_map<std::string, FieldDescription> m_FieldsDescription;
-
-        bool m_IsOpenGlobalAddList = false;
 
         bool m_IsExtraInfoJsonLoaded = false;
         std::string m_ExtraInfoJsonPath;

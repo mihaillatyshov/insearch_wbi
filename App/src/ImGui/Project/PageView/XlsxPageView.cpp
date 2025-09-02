@@ -1,5 +1,7 @@
 #include "XlsxPageView.hpp"
 
+#include "Engine/Core/Application.h"
+#include "GLFW/glfw3.h"
 #include "ImGui/Overlays/Overlay.h"
 #include "Utils/FileFormat.h"
 
@@ -14,7 +16,9 @@
 #include <imgui_internal.h>
 #include <misc/cpp/imgui_stdlib.h>
 #include <optional>
+#include <ranges>
 #include <string>
+#include <string_view>
 #include <vector>
 #include <xlnt/xlnt.hpp>
 
@@ -63,6 +67,23 @@ namespace LM
 
     const std::vector<std::string> kProductBaseFields = { "fulldescription", "lcs", "moq", "codem" };
 
+    bool ContainsNewlineOrTab(std::string_view _Clipboard)
+    {
+        if (_Clipboard.empty())
+        {
+            return false;
+        }
+
+        for (const char* p = _Clipboard.data(); *p != '\0'; ++p)
+        {
+            if (*p == '\n' || *p == '\t')
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
     inline bool DeleteButton()
     {
         ImGui::PushStyleColor(ImGuiCol_Button, 0xFF0000AA);
@@ -72,17 +93,32 @@ namespace LM
         return result;
     }
 
-    inline std::string Join(const std::vector<int>& _Array, const std::string _Delimiter)
+    inline std::string Join(const std::vector<int>& _Array, const std::string& _Delimiter)
     {
         auto str_range = _Array | std::views::transform([](int x) { return std::to_string(x); });
 
         std::string result;
 
-        // вставляем первый элемент без запятой
         if (!_Array.empty())
         {
             result += *str_range.begin();
             std::for_each(std::next(str_range.begin()), str_range.end(), [&](const std::string& s) {
+                result += _Delimiter;
+                result += s;
+            });
+        }
+
+        return result;
+    }
+
+    inline std::string Join(const std::vector<std::string>& _Array, const std::string& _Delimiter)
+    {
+        std::string result;
+
+        if (!_Array.empty())
+        {
+            result += *_Array.begin();
+            std::for_each(std::next(_Array.begin()), _Array.end(), [&](const std::string& s) {
                 result += _Delimiter;
                 result += s;
             });
@@ -167,7 +203,7 @@ namespace LM
         ImGui::Text("Имя файла: %s", m_LoadedPageFilename.string().c_str());
 
         HandleImGuiEvents();
-        DrawTableActions();
+        // DrawTableActions();
 
         size_t colsCount = 0;
         if (!m_TableData.empty())
@@ -175,52 +211,6 @@ namespace LM
             colsCount = m_TableData[0].size();
         }
 
-        ImGui::Separator();
-
-        ImGui::Text("Constr");
-
-        ImGui::SameLine();
-        if (ImGui::Button("Изменить конструкцию"))
-        {
-            ImGui::OpenPopup("Изменить конструкцию");
-        }
-
-        if (ImGui::BeginPopup("Изменить конструкцию"))
-        {
-            static ImGuiTextFilter constrFilter;
-            constrFilter.Draw("Фильтрация конструкции");
-
-            ImGui::BeginChild("ConstrList", ImVec2(0.0f, ImGui::GetFontSize() * 24.0f), ImGuiChildFlags_AutoResizeX);
-            for (size_t i = 0; i < m_Constructions.size(); ++i)
-            {
-                const auto& constr = m_Constructions[i];
-                if (constrFilter.PassFilter(constr.Label.c_str()) || constrFilter.PassFilter(constr.Key.c_str()))
-                {
-                    ImGui::PushID(static_cast<int>(i));
-                    if (ImGui::Selectable(std::format("{}\n{}", constr.Label, constr.Key).c_str(), false))
-                    {
-                        ChangeHeadersByConstruction(constr.Key);
-                        ImGui::CloseCurrentPopup();
-                    }
-                    ImGui::PopID();
-                    ImGui::Spacing();
-                }
-            }
-            ImGui::EndChild();
-
-            if (ImGui::Button("Close"))
-            {
-                ImGui::CloseCurrentPopup();
-            }
-            ImGui::EndPopup();
-        }
-
-        ImGui::Spacing();
-
-        if (ImGui::Button("Глобальный список заполнения"))
-        {
-            m_IsOpenGlobalAddList = !m_IsOpenGlobalAddList;
-        }
         DrawGlobalAddList();
 
         DrawSimpleAddList();
@@ -241,6 +231,7 @@ namespace LM
                                             ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY;
 
         const float framePaddingX = 8.0f;
+        const float framePaddingY = 4.0f;
 
         std::vector<float> columnWidths(colsCount + 1, 0.0f);
         columnWidths[0] =
@@ -259,15 +250,13 @@ namespace LM
             }
         }
 
-        // ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0f);
-        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, { framePaddingX, 6.0f });
         ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, { 0.0f, 0.0f });
 
         if (ImGui::BeginTable("XLSX Table", static_cast<int>(colsCount + 1), tableFlags))
         {
             ImGui::TableSetupScrollFreeze(1, 1);
 
-            ImGui::PushStyleVarY(ImGuiStyleVar_CellPadding, 6.0f);
+            ImGui::PushStyleVarY(ImGuiStyleVar_CellPadding, framePaddingY);
             DrawTableHeaderReturn headerData = DrawTableHeader(colsCount);
             ImGui::PopStyleVar();
 
@@ -280,7 +269,11 @@ namespace LM
 
                 bool isRowHovered = false;
                 std::string rowIdStr = std::format("{}##RowId", rowId);
+
+                ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, { framePaddingX, framePaddingY });
                 ImGui::Button(rowIdStr.c_str(), ImVec2(columnWidths[0], 0.0f));
+                ImGui::PopStyleVar();
+
                 if (ImGui::IsItemHovered())
                 {
                     isRowHovered = true;
@@ -314,8 +307,11 @@ namespace LM
                     bool isColHovered = headerData.HoveredCol.has_value() && headerData.HoveredCol.value() == colId;
 
                     PushCellFrameBgColor(isRowHovered, isColHovered, rowId, colId);
+                    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, { framePaddingX, framePaddingY });
                     ImGui::InputText("##Input", &t);
+                    ImGui::PopStyleVar();
                     ImGui::PopStyleColor();
+
                     if (ImGui::IsItemActive())
                     {
                         m_IsAnyCellActive = true;
@@ -352,8 +348,6 @@ namespace LM
             ImGui::EndTable();
         }
         ImGui::PopStyleVar();
-        ImGui::PopStyleVar();
-        // ImGui::PopStyleVar();
 
         if (m_DeleteCol.has_value())
         {
@@ -369,10 +363,10 @@ namespace LM
 
     void XlsxPageView::DrawTableActions()
     {
-        if (ImGui::Button("Save"))
-        {
-            SaveXLSX();
-        }
+        // if (ImGui::Button("Save"))
+        // {
+        //     SaveXLSX();
+        // }
 
         if (ImGui::Button("Копировать без заголовка"))
         {
@@ -472,12 +466,48 @@ namespace LM
         {
             SplitAndExpandTable();
         }
+
+        ImGui::Separator();
+
+        if (ImGui::Button("Изменить конструкцию"))
+        {
+            ImGui::OpenPopup("Изменить конструкцию");
+        }
+        if (ImGui::BeginPopup("Изменить конструкцию"))
+        {
+            static ImGuiTextFilter constrFilter;
+            constrFilter.Draw("Фильтрация конструкции");
+
+            ImGui::BeginChild("ConstrList", ImVec2(0.0f, ImGui::GetFontSize() * 24.0f), ImGuiChildFlags_AutoResizeX);
+            for (size_t i = 0; i < m_Constructions.size(); ++i)
+            {
+                const auto& constr = m_Constructions[i];
+                if (constrFilter.PassFilter(constr.Label.c_str()) || constrFilter.PassFilter(constr.Key.c_str()))
+                {
+                    ImGui::PushID(static_cast<int>(i));
+                    if (ImGui::Selectable(std::format("{}\n{}", constr.Label, constr.Key).c_str(), false))
+                    {
+                        ChangeHeadersByConstruction(constr.Key);
+                        ImGui::CloseCurrentPopup();
+                    }
+                    ImGui::PopID();
+                    ImGui::Spacing();
+                }
+            }
+            ImGui::EndChild();
+
+            if (ImGui::Button("Close"))
+            {
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
+        }
     }
 
     void XlsxPageView::DrawGlobalAddList()
     {
         std::string windowName = "Глобальный список заполнения";
-        if (ImGui::Begin(windowName.c_str(), &m_IsOpenGlobalAddList))
+        if (ImGui::Begin(windowName.c_str()))
         {
             std::string toDeleteName;
 
@@ -737,7 +767,12 @@ namespace LM
         std::string windowTitle = "Постраничный список рассчета";
         std::function<void(std::string_view, SimpleAddListItem&)> handle = [](std::string_view _SimpleListFieldName,
                                                                               SimpleAddListItem& _SimpleListItem) {
-            ImGui::InputText(std::format("##{}", _SimpleListFieldName).c_str(), &_SimpleListItem.Value);
+            float height =
+                ImGui::GetTextLineHeight() * static_cast<float>(std::ranges::count(_SimpleListItem.Value, '\n') + 1) +
+                ImGui::GetStyle().FramePadding.y * 2;
+            ImGui::InputTextMultiline(std::format("##{}", _SimpleListFieldName).c_str(), &_SimpleListItem.Value,
+                                      { 0.0f, height });
+            // ImGui::InputText(std::format("##{}", _SimpleListFieldName).c_str(), &_SimpleListItem.Value);
         };
 
         if (ImGui::Begin(windowTitle.c_str()))
@@ -794,8 +829,23 @@ namespace LM
             Redo();
         }
 
+        // TODO: Add range for Key_X and Key_C
+
+        // TODO: Key_X
+        if (ImGui::IsKeyPressed(ImGuiKey_X) && io.KeyCtrl)
+        {
+            CopySelectedToClipboard(io.KeyShift);
+            // TODO: Clear Selected
+        }
+
+        if (ImGui::IsKeyPressed(ImGuiKey_C) && io.KeyCtrl)
+        {
+            CopySelectedToClipboard(io.KeyShift);
+        }
+
         if (ImGui::IsKeyPressed(ImGuiKey_V) && io.KeyCtrl)
         {
+            // TODO: Insert with column or row selectd (with shift and without)
             InsertFromClipboard();
         }
 
@@ -852,6 +902,7 @@ namespace LM
             return;
         }
 
+        // TODO:
         if (ImGui::IsKeyPressed(ImGuiKey_Delete) && !io.KeyCtrl && io.KeyShift && !io.KeyAlt)
         {
             if (m_SelectedRow.has_value())
@@ -929,17 +980,7 @@ namespace LM
         ImGui::TableHeader("  . . .  ##Header");
         if (ImGui::BeginPopupContextItem("Header_0"))
         {
-            ImGui::Text("Всплывающее окно для заголовка");
-
-            if (ImGui::Button("Удалить заголовок"))
-            {
-                m_DeleteRow = 0;
-                ImGui::CloseCurrentPopup();
-            }
-
-            ImGui::SameLine();
-
-            ImGui::Text("Вторая строка станет заголовком");
+            DrawTableHeaderRowContextMenu();
 
             ImGui::Separator();
 
@@ -1107,6 +1148,21 @@ namespace LM
         ImGui::PopID();
 
         return result;
+    }
+
+    void XlsxPageView::DrawTableHeaderRowContextMenu()
+    {
+        if (ImGui::Button("Удалить заголовок"))
+        {
+            m_DeleteRow = 0;
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::SameLine();
+
+        ImGui::Text("Вторая строка станет заголовком");
+
+        DrawTableActions();
     }
 
     template <DerivedFromSimpleListItemBase T>
@@ -1512,9 +1568,61 @@ namespace LM
         }
     }
 
+    void XlsxPageView::CopySelectedToClipboard(bool _CopyHeader)
+    {
+        if (!m_SelectedCell.has_value() && !m_SelectedRow.has_value() && !m_SelectedCol.has_value())
+        {
+            return;
+        }
+        size_t startRow = 0;
+        size_t startCol = 0;
+        size_t rowsCount = 1;
+        size_t colsCount = 1;
+
+        if (m_SelectedCell.has_value())
+        {
+            if (m_IsAnyCellActive)
+            {
+                return;
+            }
+            startRow = m_SelectedCell->x;
+            startCol = m_SelectedCell->y;
+        }
+        if (m_SelectedRow.has_value())
+        {
+            startRow = *m_SelectedRow;
+            colsCount = m_TableData[0].size();
+        }
+        if (m_SelectedCol.has_value())
+        {
+            size_t offset = _CopyHeader ? 0 : 1;
+            startCol = *m_SelectedCol;
+            startRow += offset;
+            rowsCount = m_TableData.size() - offset;
+        }
+
+        std::string result;
+        for (const auto& row :
+             std::ranges::subrange(m_TableData.begin() + startRow, m_TableData.begin() + startRow + rowsCount))
+        {
+            for (const auto& cell : std::ranges::subrange(row.begin() + startCol, row.begin() + startCol + colsCount))
+            {
+                result += cell.Value + "\t";
+            }
+            result += "\n";
+        }
+        ImGui::SetClipboardText(result.c_str());
+    }
+
     void XlsxPageView::InsertFromClipboard()
     {
-        if (const char* clipboard = ImGui::GetClipboardText(); clipboard && m_SelectedCell.has_value())
+        const char* clipboard = ImGui::GetClipboardText();
+        if (!clipboard)
+        {
+            return;
+        }
+
+        if (m_SelectedCell.has_value() && (!m_IsAnyCellActive || ContainsNewlineOrTab(clipboard)))
         {
             ImGui::ClearActiveID();
             std::istringstream iss(clipboard);
