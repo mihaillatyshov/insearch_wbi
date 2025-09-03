@@ -60,6 +60,14 @@ namespace LM
             std::optional<size_t> HoveredCol = std::nullopt;
         };
 
+        struct SelectionRegion
+        {
+            size_t StartRow = 0;
+            size_t StartCol = 0;
+            size_t RowsCount = 0;
+            size_t ColsCount = 0;
+        };
+
         struct FieldDescription
         {
             std::string Type;
@@ -136,8 +144,14 @@ namespace LM
 
         void ReplaceFromClipboard(bool _IsNeedEmptyHeaderRow);
 
-        void CopySelectedToClipboard(bool _CopyHeader);
+        SelectionRegion GetSelectionRegion(bool _IncludeHeader);
+        bool IsInSelectionRegion(const SelectionRegion& _SelectionRegion, size_t _RowId, size_t _ColId);
+
+        void CopySelectedToClipboard(const SelectionRegion& _SelectionRegion);
         void InsertFromClipboard();
+        void ClearSelected(const SelectionRegion& _SelectionRegion);
+
+        void UnSelectAll(bool _UnSelectExtraCell = true);
 
         void SplitAndExpandTable();
 
@@ -160,6 +174,7 @@ namespace LM
 
         bool m_IsAnyCellActive = false;
         std::optional<glm::u64vec2> m_SelectedCell = std::nullopt;
+        std::optional<glm::u64vec2> m_ExtraSelectedCell = std::nullopt;
         std::optional<size_t> m_SelectedCol = std::nullopt;
         std::optional<size_t> m_SelectedRow = std::nullopt;
         std::optional<size_t> m_DeleteCol = std::nullopt;

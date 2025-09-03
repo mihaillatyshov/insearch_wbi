@@ -8,7 +8,10 @@
 #include "Engine/Utils/Log.hpp"
 #include "Engine/Utils/json.hpp"
 #include "Engine/Utils/utf8.h"
+#include "glm/common.hpp"
+#include "glm/fwd.hpp"
 
+#include <array>
 #include <exception>
 #include <filesystem>
 #include <format>
@@ -282,9 +285,8 @@ namespace LM
 
                 if (ImGui::IsItemFocused())
                 {
+                    UnSelectAll();
                     m_SelectedRow = rowId;
-                    m_SelectedCell = std::nullopt;
-                    m_SelectedCol = std::nullopt;
                 }
 
                 if (ImGui::BeginPopupContextItem(rowIdStr.c_str()))
@@ -323,14 +325,28 @@ namespace LM
 
                     if (ImGui::IsItemActive() || ImGui::IsItemFocused())
                     {
-                        m_SelectedCell = { colId, rowId };
-                        m_SelectedRow = std::nullopt;
-                        m_SelectedCol = std::nullopt;
+                        if (!m_SelectedCell.has_value() || (m_SelectedCell->x != colId) || (m_SelectedCell->y != rowId))
+                        {
+                            UnSelectAll();
+                            m_SelectedCell = { colId, rowId };
+                        }
                     }
-                    // if (ImGui::IsItemHovered())
-                    // {
-                    //     ImGui::SetTooltip("Right-click to open popup");
-                    // }
+                    if (ImGui::IsItemHovered() && ImGui::IsMouseDown(ImGuiMouseButton_Middle))
+                    {
+                        if (ImGui::GetIO().KeyShift && m_SelectedCell.has_value())
+                        {
+                            m_ExtraSelectedCell = { colId, rowId };
+                        }
+                        else
+                        {
+                            UnSelectAll();
+                            m_SelectedCell = { colId, rowId };
+                            ImGui::ClearActiveID();
+                            ImGui::SetFocusID(ImGui::GetItemID(), ImGui::GetCurrentWindow());
+                            ImGui::SetWindowFocus();
+                        }
+                        // ImGui::SetTooltip("Right-click to open popup");
+                    }
                     if (ImGui::BeginPopupContextItem())
                     {
                         ImGui::Text("This a popup for Col: %zu Row:%zu", colId, rowId);
@@ -694,18 +710,21 @@ namespace LM
                             std::vector<int>& sharedPages = simpleListItem.SharedPages;
                             std::string sharedPagesStr = Join(sharedPages, ", ");
 
+                            ImGui::Text("\t");
+                            ImGui::SameLine();
+                            ImGui::BeginGroup();
                             ImGui::SetNextItemAllowOverlap();
                             if (ImGui::Selectable(
-                                    std::format("\t\n\t##{}", static_cast<void*>(&simpleListItem)).c_str(), false))
+                                    std::format("{}\n\t##{}", simpleListItem.Value, static_cast<void*>(&simpleListItem))
+                                        .c_str(),
+                                    false))
                             {
                                 sharedPages.push_back(m_LoadedPageId);
                                 std::ranges::sort(sharedPages);
                                 ImGui::CloseCurrentPopup();
                                 SaveExtraInfoJson();
                             }
-                            ImGui::SameLine();
-                            ImGui::BeginGroup();
-                            ImGui::Text("%s", std::format("{}", simpleListItem.Value).c_str());
+                            ImGui::SetCursorPosY(ImGui::GetCursorPosY() - ImGui::GetTextLineHeightWithSpacing());
                             ImGui::TextDisabled("%s", sharedPagesStr.c_str());
                             ImGui::EndGroup();
                         }
@@ -803,20 +822,25 @@ namespace LM
         {
             m_SelectedCol = std::nullopt;
         }
-        if (m_SelectedCell.has_value() &&
-            (((m_TableData.size() == 0) || (m_SelectedCell->x >= m_TableData[0].size())) ||
-             (m_SelectedCell->y >= m_TableData.size())))
+        for (auto& selectedCellRef :
+             std::array<std::reference_wrapper<std::optional<glm::u64vec2>>, 2> { m_SelectedCell, m_ExtraSelectedCell })
         {
-            m_SelectedCell = std::nullopt;
+            auto& selectedCell = selectedCellRef.get();
+            if (selectedCell.has_value() &&
+                (((m_TableData.size() == 0) || (selectedCell->x >= m_TableData[0].size())) ||
+                 (selectedCell->y >= m_TableData.size())))
+            {
+                selectedCell = std::nullopt;
+            }
         }
 
-        if (ImGui::IsKeyReleased(ImGuiKey_Escape))
+        if (ImGui::IsKeyPressed(ImGuiKey_Escape) && !m_IsAnyCellActive)
         {
             LOG_CORE_INFO("Escape key pressed");
-            m_SelectedCell = std::nullopt;
-            m_SelectedRow = std::nullopt;
-            m_SelectedCol = std::nullopt;
-
+            ImGui::ClearActiveID();
+            ImGui::SetNavID(0, ImGuiNavLayer_Main, 0, {});
+            ImGui::SetWindowFocus(GetWindowName());
+            UnSelectAll();
             return;
         }
 
@@ -831,16 +855,17 @@ namespace LM
 
         // TODO: Add range for Key_X and Key_C
 
-        // TODO: Key_X
         if (ImGui::IsKeyPressed(ImGuiKey_X) && io.KeyCtrl)
         {
-            CopySelectedToClipboard(io.KeyShift);
-            // TODO: Clear Selected
+            SelectionRegion selectedRegion = GetSelectionRegion(io.KeyShift);
+            CopySelectedToClipboard(selectedRegion);
+            ClearSelected(selectedRegion);
         }
 
         if (ImGui::IsKeyPressed(ImGuiKey_C) && io.KeyCtrl)
         {
-            CopySelectedToClipboard(io.KeyShift);
+            SelectionRegion selectedRegion = GetSelectionRegion(io.KeyShift);
+            CopySelectedToClipboard(selectedRegion);
         }
 
         if (ImGui::IsKeyPressed(ImGuiKey_V) && io.KeyCtrl)
@@ -849,6 +874,7 @@ namespace LM
             InsertFromClipboard();
         }
 
+        // TODO: Move to separate function
         if (ImGui::IsKeyPressed(ImGuiKey_Equal) && io.KeyCtrl)
         {
             size_t selectedRow = io.KeyAlt ? 0 : m_TableData.size();
@@ -903,21 +929,11 @@ namespace LM
         }
 
         // TODO:
-        if (ImGui::IsKeyPressed(ImGuiKey_Delete) && !io.KeyCtrl && io.KeyShift && !io.KeyAlt)
+        if (ImGui::IsKeyPressed(ImGuiKey_Delete))
         {
-            if (m_SelectedRow.has_value())
-            {
-                // TODO: Implement clear row
-            }
-            if (m_SelectedCol.has_value())
-            {
-                // TODO: Implement clear col
-            }
-            if (m_SelectedCell.has_value())
-            {
-                auto& cellValue = m_TableData[m_SelectedCell->y][m_SelectedCell->x].Value;
-                cellValue.clear();
-            }
+
+            SelectionRegion selectedRegion = GetSelectionRegion(io.KeyShift);
+            ClearSelected(selectedRegion);
             return;
         }
     }
@@ -928,10 +944,8 @@ namespace LM
         float frameBgBlue = 0.0f;
 
         bool isHovered = _IsRowHovered || _IsColHovered;
-        bool isSelected =
-            (m_SelectedRow.has_value() && *m_SelectedRow == _RowId) ||
-            (m_SelectedCol.has_value() && *m_SelectedCol == _ColId) ||
-            (m_SelectedCell.has_value() && (m_SelectedCell->x == _ColId) && (m_SelectedCell->y == _RowId));
+
+        bool isSelected = IsInSelectionRegion(GetSelectionRegion(false), _RowId, _ColId);
 
         // Check if the cell is selected
         if (isSelected && isHovered)
@@ -978,6 +992,10 @@ namespace LM
         ImGui::PushID(static_cast<int>(0));
         ImGui::TableSetColumnIndex(static_cast<int>(0));
         ImGui::TableHeader("  . . .  ##Header");
+        if (ImGui::IsKeyPressed(ImGuiKey_Escape) && !m_IsAnyCellActive)
+        {
+            ImGui::SetFocusID(ImGui::GetItemID(), ImGui::GetCurrentWindow());
+        }
         if (ImGui::BeginPopupContextItem("Header_0"))
         {
             DrawTableHeaderRowContextMenu();
@@ -1034,9 +1052,8 @@ namespace LM
 
             if (ImGui::IsItemFocused())
             {
+                UnSelectAll();
                 m_SelectedCol = colId;
-                m_SelectedCell = std::nullopt;
-                m_SelectedRow = std::nullopt;
             }
 
             if (ImGui::BeginPopupContextItem(std::format("Header_{}", colId).c_str()))
@@ -1178,9 +1195,7 @@ namespace LM
     void XlsxPageView::LoadXLSX()
     {
         m_LoadedPageId = -1;
-        m_SelectedCell = std::nullopt;
-        m_SelectedCol = std::nullopt;
-        m_SelectedRow = std::nullopt;
+        UnSelectAll();
         m_TableData.clear();
         ClearHistory();
 
@@ -1456,7 +1471,9 @@ namespace LM
     void XlsxPageView::RestoreFromHistory(const HistoryState& _HistoryState)
     {
         m_TableData = _HistoryState.DataTable;
+        // TODO: fix restore of m_SelectedCell and m_ExtraSelectedCell
         m_SelectedCell = _HistoryState.SelectedCell;
+        m_ExtraSelectedCell = std::nullopt;
         m_SelectedCol = _HistoryState.SelectedRow;
         m_SelectedRow = _HistoryState.SelectedRow;
     }
@@ -1568,44 +1585,71 @@ namespace LM
         }
     }
 
-    void XlsxPageView::CopySelectedToClipboard(bool _CopyHeader)
+    XlsxPageView::SelectionRegion XlsxPageView::GetSelectionRegion(bool _IncludeHeader)
     {
-        if (!m_SelectedCell.has_value() && !m_SelectedRow.has_value() && !m_SelectedCol.has_value())
+        if ((!m_SelectedCell.has_value() && !m_SelectedRow.has_value() && !m_SelectedCol.has_value()) ||
+            (m_SelectedCell.has_value() && m_IsAnyCellActive) || (m_TableData.empty() || m_TableData[0].empty()))
         {
-            return;
+            return { .StartRow = 0, .StartCol = 0, .RowsCount = 0, .ColsCount = 0 };
         }
-        size_t startRow = 0;
-        size_t startCol = 0;
-        size_t rowsCount = 1;
-        size_t colsCount = 1;
+
+        // TODO: Add checks if needed
 
         if (m_SelectedCell.has_value())
         {
-            if (m_IsAnyCellActive)
+            glm::u64vec2 minCell = *m_SelectedCell;
+            glm::u64vec2 maxCell = *m_SelectedCell;
+            if (m_ExtraSelectedCell.has_value())
             {
-                return;
+                minCell = glm::min(*m_SelectedCell, *m_ExtraSelectedCell);
+                maxCell = glm::max(*m_SelectedCell, *m_ExtraSelectedCell);
             }
-            startRow = m_SelectedCell->x;
-            startCol = m_SelectedCell->y;
+            return {
+                .StartRow = minCell.y,
+                .StartCol = minCell.x,
+                .RowsCount = maxCell.y - minCell.y + 1,
+                .ColsCount = maxCell.x - minCell.x + 1,
+            };
         }
         if (m_SelectedRow.has_value())
         {
-            startRow = *m_SelectedRow;
-            colsCount = m_TableData[0].size();
+            return { .StartRow = *m_SelectedRow, .StartCol = 0, .RowsCount = 1, .ColsCount = m_TableData[0].size() };
         }
         if (m_SelectedCol.has_value())
         {
-            size_t offset = _CopyHeader ? 0 : 1;
-            startCol = *m_SelectedCol;
-            startRow += offset;
-            rowsCount = m_TableData.size() - offset;
+            size_t offset = _IncludeHeader ? 0 : 1;
+            return {
+                .StartRow = offset, .StartCol = *m_SelectedCol, .RowsCount = m_TableData.size() - offset, .ColsCount = 1
+            };
         }
 
+        return { .StartRow = 0, .StartCol = 0, .RowsCount = 0, .ColsCount = 0 };
+    }
+
+    bool XlsxPageView::IsInSelectionRegion(const SelectionRegion& _SelectionRegion, size_t _RowId, size_t _ColId)
+    {
+        if (_SelectionRegion.RowsCount == 0 || _SelectionRegion.ColsCount == 0)
+        {
+            return false;
+        }
+
+        glm::u64vec2 minCell = { _SelectionRegion.StartRow, _SelectionRegion.StartCol };
+        glm::u64vec2 maxCell = { _SelectionRegion.StartRow + _SelectionRegion.RowsCount - 1,
+                                 _SelectionRegion.StartCol + _SelectionRegion.ColsCount - 1 };
+
+        return _RowId >= minCell.x && _RowId <= maxCell.x && _ColId >= minCell.y && _ColId <= maxCell.y;
+    }
+
+    void XlsxPageView::CopySelectedToClipboard(const SelectionRegion& _SelectionRegion)
+    {
         std::string result;
         for (const auto& row :
-             std::ranges::subrange(m_TableData.begin() + startRow, m_TableData.begin() + startRow + rowsCount))
+             std::ranges::subrange(m_TableData.begin() + _SelectionRegion.StartRow,
+                                   m_TableData.begin() + _SelectionRegion.StartRow + _SelectionRegion.RowsCount))
         {
-            for (const auto& cell : std::ranges::subrange(row.begin() + startCol, row.begin() + startCol + colsCount))
+            for (const auto& cell :
+                 std::ranges::subrange(row.begin() + _SelectionRegion.StartCol,
+                                       row.begin() + _SelectionRegion.StartCol + _SelectionRegion.ColsCount))
             {
                 result += cell.Value + "\t";
             }
@@ -1649,6 +1693,34 @@ namespace LM
             FixDimensions();
             PushHistory();
         }
+    }
+
+    void XlsxPageView::ClearSelected(const SelectionRegion& _SelectionRegion)
+    {
+        for (auto& row :
+             std::ranges::subrange(m_TableData.begin() + _SelectionRegion.StartRow,
+                                   m_TableData.begin() + _SelectionRegion.StartRow + _SelectionRegion.RowsCount))
+        {
+            for (auto& cell :
+                 std::ranges::subrange(row.begin() + _SelectionRegion.StartCol,
+                                       row.begin() + _SelectionRegion.StartCol + _SelectionRegion.ColsCount))
+            {
+                cell = {};
+            }
+        }
+
+        PushHistory();
+    }
+
+    void XlsxPageView::UnSelectAll(bool _UnSelectExtraCell)
+    {
+        m_SelectedCell = std::nullopt;
+        if (_UnSelectExtraCell)
+        {
+            m_ExtraSelectedCell = std::nullopt;
+        }
+        m_SelectedCol = std::nullopt;
+        m_SelectedRow = std::nullopt;
     }
 
     void XlsxPageView::SplitAndExpandTable()
