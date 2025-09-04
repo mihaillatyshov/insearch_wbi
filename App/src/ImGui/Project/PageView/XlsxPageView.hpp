@@ -105,6 +105,10 @@ namespace LM
         void DrawGlobalAddList();
 
         template <DerivedFromSimpleListItemBase T>
+        void DeleteFromSimpleList(std::unordered_map<std::string, std::vector<T>>& _SimpleList,
+                                  std::string_view _DeleteName);
+
+        template <DerivedFromSimpleListItemBase T>
         void DrawSimpleListTemplate(std::string_view _WindowName,
                                     std::unordered_map<std::string, std::vector<T>>& _SimpleList,
                                     std::function<void(std::string_view, T&)> _ItemInputHandle);

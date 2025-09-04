@@ -504,6 +504,13 @@ namespace LM
                     if (ImGui::Selectable(std::format("{}\n{}", constr.Label, constr.Key).c_str(), false))
                     {
                         ChangeHeadersByConstruction(constr.Key);
+
+                        std::string fieldName = "constr";
+                        DeleteFromSimpleList(m_SimpleAddList, fieldName);
+                        m_SimpleAddList.try_emplace(fieldName);
+                        m_SimpleAddList[fieldName].push_back({ { { m_LoadedPageId } }, constr.Key });
+                        SaveExtraInfoJson();
+
                         ImGui::CloseCurrentPopup();
                     }
                     ImGui::PopID();
@@ -611,6 +618,33 @@ namespace LM
             }
         }
         ImGui::End();
+    }
+
+    template <DerivedFromSimpleListItemBase T>
+    void XlsxPageView::DeleteFromSimpleList(std::unordered_map<std::string, std::vector<T>>& _SimpleList,
+                                            std::string_view _DeleteName)
+    {
+        if (!_DeleteName.empty())
+        {
+            auto& items = _SimpleList[_DeleteName.data()];
+
+            if (auto it = std::ranges::find_if(items,
+                                               [this](T& item) {
+                                                   return std::ranges::find(item.SharedPages, m_LoadedPageId) !=
+                                                          item.SharedPages.end();
+                                               });
+                it != items.end())
+            {
+                std::erase(it->SharedPages, m_LoadedPageId);
+            }
+
+            std::erase_if(items, [](const T& item) { return item.SharedPages.empty(); });
+
+            if (items.empty())
+            {
+                _SimpleList.erase(_DeleteName.data());
+            }
+        }
     }
 
     template <DerivedFromSimpleListItemBase T>
@@ -743,27 +777,7 @@ namespace LM
             ImGui::EndPopup();
         }
 
-        if (!toDeleteName.empty())
-        {
-            auto& items = _SimpleList[toDeleteName];
-
-            if (auto it = std::ranges::find_if(items,
-                                               [this](T& item) {
-                                                   return std::ranges::find(item.SharedPages, m_LoadedPageId) !=
-                                                          item.SharedPages.end();
-                                               });
-                it != items.end())
-            {
-                std::erase(it->SharedPages, m_LoadedPageId);
-            }
-
-            std::erase_if(items, [](const T& item) { return item.SharedPages.empty(); });
-
-            if (items.empty())
-            {
-                _SimpleList.erase(toDeleteName);
-            }
-        }
+        DeleteFromSimpleList(_SimpleList, toDeleteName);
     }
 
     void XlsxPageView::DrawSimpleAddList()
@@ -1268,7 +1282,7 @@ namespace LM
 
     void XlsxPageView::SaveXLSX()
     {
-        if ((m_PageId < 0) || m_BasePath.empty())
+        if ((m_PageId < 0) || (m_LoadedPageId < 0) || m_BasePath.empty())
         {
             return;
         }
