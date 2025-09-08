@@ -8,6 +8,7 @@
 #include "Engine/Utils/Log.hpp"
 #include "Engine/Utils/json.hpp"
 #include "Engine/Utils/utf8.h"
+#include "Utils/MakeScreenShoot.hpp"
 #include "glm/common.hpp"
 #include "glm/fwd.hpp"
 
@@ -238,7 +239,7 @@ namespace LM
 
         std::vector<float> columnWidths(colsCount + 1, 0.0f);
         columnWidths[0] =
-            std::max(ImGui::CalcTextSize(std::to_string(m_TableData.size()).c_str()).x + framePaddingX * 2.0f,
+            glm::max(ImGui::CalcTextSize(std::to_string(m_TableData.size()).c_str()).x + framePaddingX * 2.0f,
                      ImGui::CalcTextSize("  . . .  ").x);
 
         for (size_t rowId = 0; rowId < m_TableData.size(); ++rowId)
@@ -383,6 +384,11 @@ namespace LM
         // {
         //     SaveXLSX();
         // }
+
+        if (ImGui::Button("Test ScreenShoot"))
+        {
+            MakeScreenShoot();
+        }
 
         if (ImGui::Button("Копировать без заголовка"))
         {

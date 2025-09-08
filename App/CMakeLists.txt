@@ -46,6 +46,7 @@ set(SOURCES
     
     src/Utils/FileFormat.h
     src/Utils/FileSystemUtils.h
+    src/Utils/MakeScreenShoot.hpp                               src/Utils/MakeScreenShoot.cpp      
 )
 
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SOURCES})
@@ -59,13 +60,21 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(xlnt)
 
+set(BUILD_EXAMPLE OFF CACHE BOOL "" FORCE)
+FetchContent_Declare(
+    screen_capture_lite
+    GIT_REPOSITORY https://github.com/smasherprog/screen_capture_lite.git
+    GIT_TAG 17.1.1368
+)
+FetchContent_MakeAvailable(screen_capture_lite)
+
 # find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
 # find_package(PythonLibs REQUIRED)
 
 add_executable(${PROJECT_NAME} ${SOURCES})
 target_include_directories(${PROJECT_NAME} PUBLIC ${PYTHON_INCLUDE_DIRS})
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
-target_link_libraries(${PROJECT_NAME} PRIVATE Engine xlnt)
+target_link_libraries(${PROJECT_NAME} PRIVATE Engine xlnt screen_capture_lite)
 # target_link_libraries(${PROJECT_NAME} PRIVATE Engine ${PYTHON_LIBRARIES} ${PYTHON_DEBUG_LIBRARY})
 
 # add_subdirectory(tests)
