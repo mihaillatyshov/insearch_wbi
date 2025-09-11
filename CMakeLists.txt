@@ -50,7 +50,7 @@ endif()
 
 option(DEBUG "Enable debug" ON)
 if (${DEBUG})
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 endif()
 
 add_compile_definitions(OPENGL RES_FOLDER="${CMAKE_SOURCE_DIR}/")

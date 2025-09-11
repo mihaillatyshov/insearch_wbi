@@ -127,6 +127,13 @@ namespace LM
         bool IsItemInSimpleListForCurrentPage(std::unordered_map<std::string, std::vector<T>>& _SimpleList,
                                               std::string_view _FieldName);
 
+        template <DerivedFromSimpleListItemBase T>
+        std::optional<const std::reference_wrapper<T>>
+        GetItemInSimpleListForCurrentPage(std::unordered_map<std::string, std::vector<T>>& _SimpleList,
+                                          std::string_view _FieldName);
+
+        std::optional<const std::reference_wrapper<std::string>> GetExtraListValue(std::string_view _Header);
+
         void LoadXLSX();
         void SaveXLSX();
 

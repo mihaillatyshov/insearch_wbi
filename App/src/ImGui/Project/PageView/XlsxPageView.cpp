@@ -15,6 +15,8 @@
 #include <exception>
 #include <filesystem>
 #include <format>
+#include <fstream>
+#include <functional>
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <misc/cpp/imgui_stdlib.h>
@@ -23,9 +25,8 @@
 #include <string>
 #include <string_view>
 #include <vector>
-#include <xlnt/xlnt.hpp>
 
-#include <fstream>
+#include <xlnt/xlnt.hpp>
 
 NLOHMANN_JSON_NAMESPACE_BEGIN
 template <typename T>
@@ -59,6 +60,37 @@ struct adl_serializer<std::optional<T>>
 };
 NLOHMANN_JSON_NAMESPACE_END
 
+bool CustomPassFilter(const ImGuiTextFilter& _TextFilter, std::string_view text)
+{
+    if (_TextFilter.Filters.Size == 0)
+    {
+        return true;
+    }
+
+    for (const ImGuiTextFilter::ImGuiTextRange& f : _TextFilter.Filters)
+    {
+        if (f.b == f.e)
+        {
+            continue;
+        }
+
+        std::string filterStr = StrToLowerRu(std::string_view(f.b, f.e));
+        std::string textStr = StrToLowerRu(text);
+        if (textStr.find(filterStr) != std::string::npos)
+        {
+            return true;
+        }
+    }
+
+    // // Implicit * grep
+    // if (CountGrep == 0)
+    // {
+    //     return true;
+    // }
+
+    return false;
+}
+
 namespace LM
 {
 
@@ -70,62 +102,11 @@ namespace LM
 
     const std::vector<std::string> kProductBaseFields = { "fulldescription", "lcs", "moq", "codem" };
 
-    bool ContainsNewlineOrTab(std::string_view _Clipboard)
-    {
-        if (_Clipboard.empty())
-        {
-            return false;
-        }
-
-        for (const char* p = _Clipboard.data(); *p != '\0'; ++p)
-        {
-            if (*p == '\n' || *p == '\t')
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-
     inline bool DeleteButton()
     {
         ImGui::PushStyleColor(ImGuiCol_Button, 0xFF0000AA);
         bool result = ImGui::Button("X");
         ImGui::PopStyleColor();
-
-        return result;
-    }
-
-    inline std::string Join(const std::vector<int>& _Array, const std::string& _Delimiter)
-    {
-        auto str_range = _Array | std::views::transform([](int x) { return std::to_string(x); });
-
-        std::string result;
-
-        if (!_Array.empty())
-        {
-            result += *str_range.begin();
-            std::for_each(std::next(str_range.begin()), str_range.end(), [&](const std::string& s) {
-                result += _Delimiter;
-                result += s;
-            });
-        }
-
-        return result;
-    }
-
-    inline std::string Join(const std::vector<std::string>& _Array, const std::string& _Delimiter)
-    {
-        std::string result;
-
-        if (!_Array.empty())
-        {
-            result += *_Array.begin();
-            std::for_each(std::next(_Array.begin()), _Array.end(), [&](const std::string& s) {
-                result += _Delimiter;
-                result += s;
-            });
-        }
 
         return result;
     }
@@ -236,20 +217,50 @@ namespace LM
         const float framePaddingX = 8.0f;
         const float framePaddingY = 4.0f;
 
+        // TODO: fix with: add col width for header and for content for future select in setwidth
+        std::vector<float> headerWidths(colsCount + 1, 0.0f);
         std::vector<float> columnWidths(colsCount + 1, 0.0f);
-        columnWidths[0] =
+        headerWidths[0] =
             std::max(ImGui::CalcTextSize(std::to_string(m_TableData.size()).c_str()).x + framePaddingX * 2.0f,
                      ImGui::CalcTextSize("  . . .  ").x);
 
-        for (size_t rowId = 0; rowId < m_TableData.size(); ++rowId)
+        if (m_TableData.size() > 0)
+        {
+            for (size_t colId = 0; colId < colsCount; ++colId)
+            {
+                const auto& cellText = m_TableData[0][colId].Value;
+                ImVec2 cellTextSize = ImGui::CalcTextSize(std::format("  {}  ", cellText).c_str());
+                headerWidths[colId + 1] = std::max(headerWidths[colId + 1], cellTextSize.x);
+                // + ImGui::GetFontSize() * 2.0f
+                if (m_TableData[0][colId].Value == "pl")
+                {
+                    LOG_CORE_WARN("PL");
+                }
+                if (std::optional<const std::reference_wrapper<std::string>> extraValue =
+                        GetExtraListValue(m_TableData[0][colId].Value);
+                    extraValue.has_value())
+                {
+                    std::string::difference_type textOffset =
+                        std::min(extraValue->get().end() - extraValue->get().begin(), 64ll);
+                    ImVec2 extraTextSize =
+                        ImGui::CalcTextSize(extraValue->get().c_str(), extraValue->get().c_str() + textOffset);
+                    if (m_TableData[0][colId].Value == "pl")
+                    {
+                        LOG_CORE_WARN("extr {}: {}", m_TableData[0][colId].Value, extraTextSize.x);
+                    }
+                    columnWidths[colId + 1] = std::max(columnWidths[colId + 1], extraTextSize.x + framePaddingX * 2.0f);
+                }
+            }
+        }
+
+        for (size_t rowId = 1; rowId < m_TableData.size(); ++rowId)
         {
             for (size_t colId = 0; colId < colsCount; ++colId)
             {
                 const auto& cellText = m_TableData[rowId][colId].Value;
-                ImVec2 cellTextSize =
-                    ImGui::CalcTextSize((rowId == 0 ? std::format("  {}  ", cellText) : cellText).c_str());
-                columnWidths[colId + 1] = std::max(
-                    columnWidths[colId + 1], cellTextSize.x + framePaddingX * 2.0f);    // + ImGui::GetFontSize() * 2.0f
+                float cellTextSize = ImGui::CalcTextSize(cellText.c_str()).x + ImGui::CalcTextSize(" ").x;
+                columnWidths[colId + 1] = std::max(columnWidths[colId + 1], cellTextSize + framePaddingX * 2.0f);
+                // + ImGui::GetFontSize() * 2.0f
             }
         }
 
@@ -264,6 +275,7 @@ namespace LM
             ImGui::PopStyleVar();
 
             m_IsAnyCellActive = false;
+            ImDrawList* draw_list = ImGui::GetWindowDrawList();
             for (size_t rowId = 1; rowId < m_TableData.size(); ++rowId)
             {
                 ImGui::TableNextRow();
@@ -274,7 +286,7 @@ namespace LM
                 std::string rowIdStr = std::format("{}##RowId", rowId);
 
                 ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, { framePaddingX, framePaddingY });
-                ImGui::Button(rowIdStr.c_str(), ImVec2(columnWidths[0], 0.0f));
+                ImGui::Button(rowIdStr.c_str(), ImVec2(std::max(headerWidths[0], columnWidths[0]), 0.0f));
                 ImGui::PopStyleVar();
 
                 if (ImGui::IsItemHovered())
@@ -305,12 +317,28 @@ namespace LM
                     ImGui::TableSetColumnIndex(static_cast<int>(colId + 1));
 
                     auto& t = m_TableData[rowId][colId].Value;
-                    ImGui::SetNextItemWidth(columnWidths[colId + 1]);
                     bool isColHovered = headerData.HoveredCol.has_value() && headerData.HoveredCol.value() == colId;
 
                     PushCellFrameBgColor(isRowHovered, isColHovered, rowId, colId);
                     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, { framePaddingX, framePaddingY });
-                    ImGui::InputText("##Input", &t);
+
+                    float width = std::max(headerWidths[colId + 1], columnWidths[colId + 1]);
+
+                    if (std::optional<const std::reference_wrapper<std::string>> extraValue =
+                            GetExtraListValue(m_TableData[0][colId].Value);
+                        extraValue.has_value())
+                    {
+                        ImVec2 cursorPos = ImGui::GetCursorScreenPos();
+                        ImVec4 clipRect(cursorPos.x + framePaddingX, cursorPos.y + framePaddingY,
+                                        cursorPos.x + width - framePaddingX,
+                                        cursorPos.y + ImGui::GetFontSize() + framePaddingY);
+                        const ImVec2 textPos = ImVec2(cursorPos.x + framePaddingX, cursorPos.y + framePaddingY);
+                        draw_list->AddText(ImGui::GetFont(), ImGui::GetFontSize(), textPos, 0xFF666666,
+                                           extraValue->get().c_str(), NULL, 0.0f, &clipRect);
+                    }
+
+                    ImGui::SetNextItemWidth(width);
+                    ImGui::InputText("##Input", &t, ImGuiInputTextFlags_NoHorizontalScroll);
                     ImGui::PopStyleVar();
                     ImGui::PopStyleColor();
 
@@ -498,7 +526,8 @@ namespace LM
             for (size_t i = 0; i < m_Constructions.size(); ++i)
             {
                 const auto& constr = m_Constructions[i];
-                if (constrFilter.PassFilter(constr.Label.c_str()) || constrFilter.PassFilter(constr.Key.c_str()))
+                if (CustomPassFilter(constrFilter, constr.Label.c_str()) ||
+                    CustomPassFilter(constrFilter, constr.Key.c_str()))
                 {
                     ImGui::PushID(static_cast<int>(i));
                     if (ImGui::Selectable(std::format("{}\n{}", constr.Label, constr.Key).c_str(), false))
@@ -667,7 +696,7 @@ namespace LM
 
                 ImGui::Text("%s", simpleListFieldName.c_str());
                 ImGui::SameLine();
-                std::string sharedPagesStr = Join(sharedPages, ", ");
+                std::string sharedPagesStr = StrJoin(sharedPages, ", ");
                 ImGui::TextDisabled("%s", sharedPagesStr.c_str());
 
                 if (IsExtraInfoAutoFocusField(_WindowName, simpleListFieldName))
@@ -742,7 +771,7 @@ namespace LM
                         for (T& simpleListItem : _SimpleList[fieldName])
                         {
                             std::vector<int>& sharedPages = simpleListItem.SharedPages;
-                            std::string sharedPagesStr = Join(sharedPages, ", ");
+                            std::string sharedPagesStr = StrJoin(sharedPages, ", ");
 
                             ImGui::Text("\t");
                             ImGui::SameLine();
@@ -1204,6 +1233,52 @@ namespace LM
                std::ranges::any_of(_SimpleList[_FieldName.data()], [this](const T& item) {
                    return std::ranges::find(item.SharedPages, m_LoadedPageId) != item.SharedPages.end();
                });
+    }
+
+    template <DerivedFromSimpleListItemBase T>
+    std::optional<const std::reference_wrapper<T>>
+    XlsxPageView::GetItemInSimpleListForCurrentPage(std::unordered_map<std::string, std::vector<T>>& _SimpleList,
+                                                    std::string_view _FieldName)
+    {
+        if (_SimpleList.contains(_FieldName.data()))
+        {
+            std::vector<T>& items = _SimpleList[_FieldName.data()];
+            if (auto it = std::ranges::find_if(items,
+                                               [this](T& item) {
+                                                   return std::ranges::find(item.SharedPages, m_LoadedPageId) !=
+                                                          item.SharedPages.end();
+                                               });
+                it != items.end())
+            {
+                return *it;
+            }
+        }
+
+        return std::nullopt;
+    }
+
+    std::optional<const std::reference_wrapper<std::string>> XlsxPageView::GetExtraListValue(std::string_view _Header)
+    {
+        if (std::optional<std::reference_wrapper<SimpleAddListItem>> cell =
+                GetItemInSimpleListForCurrentPage(m_SimpleCalcList, _Header);
+            cell.has_value())
+        {
+            return cell->get().Value;
+        }
+
+        if (std::optional<std::reference_wrapper<SimpleAddListItem>> cell =
+                GetItemInSimpleListForCurrentPage(m_SimpleAddList, _Header);
+            cell.has_value())
+        {
+            return cell->get().Value;
+        }
+
+        if (m_GlobalAddList.contains(_Header.data()))
+        {
+            return m_GlobalAddList[_Header.data()];
+        }
+
+        return std::nullopt;
     }
 
     void XlsxPageView::LoadXLSX()
@@ -1680,7 +1755,7 @@ namespace LM
             return;
         }
 
-        if (m_SelectedCell.has_value() && (!m_IsAnyCellActive || ContainsNewlineOrTab(clipboard)))
+        if (m_SelectedCell.has_value() && (!m_IsAnyCellActive || StrContainsNewlineOrTab(clipboard)))
         {
             ImGui::ClearActiveID();
             std::istringstream iss(clipboard);
