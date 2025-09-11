@@ -8,6 +8,7 @@
 #include "Engine/Utils/Log.hpp"
 #include "Engine/Utils/json.hpp"
 #include "Engine/Utils/utf8.h"
+#include "Utils/MakeScreenShoot.hpp"
 #include "glm/common.hpp"
 #include "glm/fwd.hpp"
 
@@ -411,6 +412,11 @@ namespace LM
         // {
         //     SaveXLSX();
         // }
+
+        if (ImGui::Button("Test ScreenShoot"))
+        {
+            MakeScreenShoot();
+        }
 
         if (ImGui::Button("Копировать без заголовка"))
         {
