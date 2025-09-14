@@ -67,6 +67,10 @@ namespace LM
         {
             return GetPathInFolderAndCreateDirs("data/excel/startup/");
         }
+        std::string GetExcelTablesTypeRawImgsPath() const
+        {
+            return GetPathInFolderAndCreateDirs("data/excel/img_raw/");
+        }
 
         // =========== Catalog ================================================
         inline std::string GetCatalogBaseFilename() const { return m_Catalog.BaseFileName; }

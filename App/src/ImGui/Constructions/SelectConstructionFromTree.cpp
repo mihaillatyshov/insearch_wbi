@@ -76,7 +76,6 @@ namespace LM
             ImGui::DragInt("Размер элемента", &elementWidth, 0.5f, 128, 2048);
 
             ImVec2 buttonSize { static_cast<float>(elementWidth), static_cast<float>(elementWidth) };
-            ImGuiStyle& style = ImGui::GetStyle();
             float windowVisibleX2 = ImGui::GetCursorScreenPos().x + ImGui::GetContentRegionAvail().x;
             if (!m_SelectedEntityIndex.has_value())
             {
@@ -139,19 +138,20 @@ namespace LM
         const std::string imgFilename =
             (std::filesystem::path("assets/textures") / std::filesystem::path(_Img)).string();
 
-        if (!TextureManager::Contains(imgFilename))
+        if (!TextureManager::Contains(imgFilename) && std::filesystem::exists(imgFilename))
         {
             TextureManager::AddOrReplace(imgFilename);
         }
 
-        Ref<Texture2D> image = TextureManager::Get(imgFilename);
+        // TODO: fix for cases where image is not exists
+        Ref<Texture2D> texture = TextureManager::Get(imgFilename);
 
         ImGui::PushID(static_cast<int>(_Index));
         ImGui::BeginGroup();
         ImVec2 buttonPos = ImGui::GetCursorScreenPos();
-        float imgSizeCoef = glm::max(image->GetWidth(), image->GetHeight());
-        ImVec2 imgSize { image->GetWidth() / imgSizeCoef * buttonSize.x,
-                         image->GetHeight() / imgSizeCoef * buttonSize.y };
+        float imgSizeCoef = glm::max(texture->GetWidth(), texture->GetHeight());
+        ImVec2 imgSize { texture->GetWidth() / imgSizeCoef * buttonSize.x,
+                         texture->GetHeight() / imgSizeCoef * buttonSize.y };
         ImVec2 imgPos =
             ImVec2(buttonPos.x + (buttonSize.x - imgSize.x) * 0.5f, buttonPos.y + (buttonSize.y - imgSize.y) * 0.5f);
         if (ImGui::Button("", buttonSize))
@@ -161,7 +161,7 @@ namespace LM
         }
         ImVec2 textPos = ImGui::GetCursorScreenPos();
         ImGui::SetCursorScreenPos(imgPos);
-        ImGui::Image(reinterpret_cast<ImTextureID>(image->GetTextureId()), imgSize);
+        ImGui::Image(reinterpret_cast<ImTextureID>(texture->GetTextureId()), imgSize);
         ImGui::SetCursorScreenPos(textPos);
         float lastButtonX2 = ImGui::GetItemRectMax().x;
         float nextButtonX2 = lastButtonX2 + style.ItemSpacing.x + buttonSize.x;

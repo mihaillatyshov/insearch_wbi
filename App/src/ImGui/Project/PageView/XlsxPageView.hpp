@@ -102,19 +102,21 @@ namespace LM
 
     protected:
         void DrawTableActions();
-        void DrawGlobalAddList();
+        void DrawGlobalAddListWindow();
 
         template <DerivedFromSimpleListItemBase T>
         void DeleteFromSimpleList(std::unordered_map<std::string, std::vector<T>>& _SimpleList,
                                   std::string_view _DeleteName);
 
         template <DerivedFromSimpleListItemBase T>
-        void DrawSimpleListTemplate(std::string_view _WindowName,
-                                    std::unordered_map<std::string, std::vector<T>>& _SimpleList,
-                                    std::function<void(std::string_view, T&)> _ItemInputHandle);
+        void DrawSimpleListTemplateWindow(std::string_view _WindowName,
+                                          std::unordered_map<std::string, std::vector<T>>& _SimpleList,
+                                          std::function<void(std::string_view, T&)> _ItemInputHandle);
 
-        void DrawSimpleAddList();
-        void DrawSimpleCalcList();
+        void DrawSimpleAddListWindow();
+        void DrawSimpleCalcListWindow();
+
+        void DrawImgsPerListWindow();
 
         void HandleImGuiEvents();
 

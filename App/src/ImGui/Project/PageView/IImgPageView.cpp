@@ -21,14 +21,17 @@ namespace LM
         const ImU32 kColorRed = ImGui::GetColorU32(IM_COL32(255, 0, 0, 255));
 
         Ref<Texture2D> texture = nullptr;
-        std::string imgPath = m_BasePath + GetFileName();
-        if (TextureManager::Contains(imgPath))
+        // TODO: fix
+
+        const std::string imgFilename =
+            (std::filesystem::path(m_BasePath) / std::filesystem::path(GetFileName())).string();
+        if (TextureManager::Contains(imgFilename))
         {
-            texture = TextureManager::Get(imgPath);
+            texture = TextureManager::Get(imgFilename);
         }
-        else if (std::filesystem::exists(imgPath))
+        else if (std::filesystem::exists(imgFilename))
         {
-            texture = TextureManager::AddOrReplace(imgPath);
+            texture = TextureManager::AddOrReplace(imgFilename);
         }
 
         if (texture == Ref<Texture2D>())

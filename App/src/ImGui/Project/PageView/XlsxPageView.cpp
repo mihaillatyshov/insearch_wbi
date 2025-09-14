@@ -1,14 +1,14 @@
 #include "XlsxPageView.hpp"
 
-#include "Engine/Core/Application.h"
-#include "GLFW/glfw3.h"
+#include "Engine/Textures/Texture2D.h"
 #include "ImGui/Overlays/Overlay.h"
+#include "Managers/TextureManager.h"
 #include "Utils/FileFormat.h"
 
 #include "Engine/Utils/Log.hpp"
 #include "Engine/Utils/json.hpp"
 #include "Engine/Utils/utf8.h"
-#include "Utils/MakeScreenShoot.hpp"
+#include "Utils/MakeScreenshot.hpp"
 #include "glm/common.hpp"
 #include "glm/fwd.hpp"
 
@@ -102,6 +102,7 @@ namespace LM
     constexpr std::string_view kExtraInfoFile = "extra_info.json";
 
     const std::vector<std::string> kProductBaseFields = { "fulldescription", "lcs", "moq", "codem" };
+    const std::vector<std::string> kImgFileTypeList = { "pic", "drw" };
 
     inline bool DeleteButton()
     {
@@ -196,10 +197,11 @@ namespace LM
             colsCount = m_TableData[0].size();
         }
 
-        DrawGlobalAddList();
+        DrawGlobalAddListWindow();
 
-        DrawSimpleAddList();
-        DrawSimpleCalcList();
+        DrawSimpleAddListWindow();
+        DrawSimpleCalcListWindow();
+        DrawImgsPerListWindow();
 
         ImGui::Separator();
         if (m_SelectedCell.has_value())
@@ -233,10 +235,6 @@ namespace LM
                 ImVec2 cellTextSize = ImGui::CalcTextSize(std::format("  {}  ", cellText).c_str());
                 headerWidths[colId + 1] = std::max(headerWidths[colId + 1], cellTextSize.x);
                 // + ImGui::GetFontSize() * 2.0f
-                if (m_TableData[0][colId].Value == "pl")
-                {
-                    LOG_CORE_WARN("PL");
-                }
                 if (std::optional<const std::reference_wrapper<std::string>> extraValue =
                         GetExtraListValue(m_TableData[0][colId].Value);
                     extraValue.has_value())
@@ -245,10 +243,6 @@ namespace LM
                         std::min(extraValue->get().end() - extraValue->get().begin(), 64ll);
                     ImVec2 extraTextSize =
                         ImGui::CalcTextSize(extraValue->get().c_str(), extraValue->get().c_str() + textOffset);
-                    if (m_TableData[0][colId].Value == "pl")
-                    {
-                        LOG_CORE_WARN("extr {}: {}", m_TableData[0][colId].Value, extraTextSize.x);
-                    }
                     columnWidths[colId + 1] = std::max(columnWidths[colId + 1], extraTextSize.x + framePaddingX * 2.0f);
                 }
             }
@@ -415,7 +409,8 @@ namespace LM
 
         if (ImGui::Button("Test ScreenShoot"))
         {
-            MakeScreenShoot();
+            LOG_CORE_WARN("Call MakeScreenshot");
+            MakeScreenshot("C:/Users/mihai/Pictures/myscreenshot.png");
         }
 
         if (ImGui::Button("Копировать без заголовка"))
@@ -562,7 +557,7 @@ namespace LM
         }
     }
 
-    void XlsxPageView::DrawGlobalAddList()
+    void XlsxPageView::DrawGlobalAddListWindow()
     {
         std::string windowName = "Глобальный список заполнения";
         if (ImGui::Begin(windowName.c_str()))
@@ -683,9 +678,9 @@ namespace LM
     }
 
     template <DerivedFromSimpleListItemBase T>
-    void XlsxPageView::DrawSimpleListTemplate(std::string_view _WindowName,
-                                              std::unordered_map<std::string, std::vector<T>>& _SimpleList,
-                                              std::function<void(std::string_view, T&)> _ItemInputHandle)
+    void XlsxPageView::DrawSimpleListTemplateWindow(std::string_view _WindowName,
+                                                    std::unordered_map<std::string, std::vector<T>>& _SimpleList,
+                                                    std::function<void(std::string_view, T&)> _ItemInputHandle)
     {
         std::string toDeleteName;
 
@@ -815,7 +810,7 @@ namespace LM
         DeleteFromSimpleList(_SimpleList, toDeleteName);
     }
 
-    void XlsxPageView::DrawSimpleAddList()
+    void XlsxPageView::DrawSimpleAddListWindow()
     {
         std::string windowTitle = "Постраничный список заполнения";
         std::function<void(std::string_view, SimpleAddListItem&)> handle = [](std::string_view _SimpleListFieldName,
@@ -825,12 +820,12 @@ namespace LM
 
         if (ImGui::Begin(windowTitle.c_str()))
         {
-            DrawSimpleListTemplate(windowTitle, m_SimpleAddList, handle);
+            DrawSimpleListTemplateWindow(windowTitle, m_SimpleAddList, handle);
         }
         ImGui::End();
     }
 
-    void XlsxPageView::DrawSimpleCalcList()
+    void XlsxPageView::DrawSimpleCalcListWindow()
     {
         std::string windowTitle = "Постраничный список рассчета";
         std::function<void(std::string_view, SimpleAddListItem&)> handle = [](std::string_view _SimpleListFieldName,
@@ -849,7 +844,69 @@ namespace LM
                 "Python code. Example: result.append(df['bsg'][i].replace(' ', '_') + ':N' + str(df['dcon'][i]))");
             ImGui::Separator();
 
-            DrawSimpleListTemplate(windowTitle, m_SimpleCalcList, handle);
+            DrawSimpleListTemplateWindow(windowTitle, m_SimpleCalcList, handle);
+        }
+        ImGui::End();
+    }
+
+    void XlsxPageView::DrawImgsPerListWindow()
+    {
+        if (!m_Project)
+        {
+            return;
+        }
+
+        static float elementHeight = ImGui::GetFontSize() * 10;
+        static float elementWidth = elementHeight * 3;
+
+        // TODO: Implement Buttons
+        if (ImGui::Begin("Картинки для страницы"))
+        {
+            ImGui::Button("Обновить все");
+            for (std::string_view filetype : kImgFileTypeList)
+            {
+                ImGui::PushID(filetype.data());
+
+                ImGui::SeparatorText(filetype == "pic" ? "Фото" : "Чертеж");
+
+                std::filesystem::path filename = m_LoadedPageFilename;
+                filename.replace_extension();
+                filename = std::format("{}_{}.png", filename.string(), filetype);
+
+                const std::string imgFilename =
+                    (std::filesystem::path(m_Project->GetExcelTablesTypeRawImgsPath()) / filename).string();
+
+                LOG_CORE_WARN("Filename: {}", filename.string());
+
+                Ref<Texture2D> texture = nullptr;
+
+                if (TextureManager::Contains(imgFilename))
+                {
+                    texture = TextureManager::Get(imgFilename);
+                }
+                else if (std::filesystem::exists(imgFilename))
+                {
+                    texture = TextureManager::AddOrReplace(imgFilename);
+                }
+
+                if (texture)
+                {
+                    float imgSizeCoef =
+                        glm::min(elementWidth / texture->GetWidth(), elementHeight / texture->GetHeight());
+                    ImVec2 imgSize { texture->GetWidth() * imgSizeCoef, texture->GetHeight() * imgSizeCoef };
+                    ImGui::Image(reinterpret_cast<ImTextureID>(texture->GetTextureId()), imgSize);
+                }
+                else
+                {
+                    ImGui::Button("##empty", { elementHeight, elementHeight });
+                }
+
+                ImGui::Button("Сделать скиншот");
+                ImGui::SameLine();
+                ImGui::Button("Вставить из буфера");
+
+                ImGui::PopID();
+            }
         }
         ImGui::End();
     }

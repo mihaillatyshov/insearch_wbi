@@ -32,5 +32,9 @@ namespace LM
 
         SetupProject m_SetupProjectWindow;
         CreateNewProject m_CreateNewProject;
+
+        bool m_IsDrawImGuiDemoWindow = false;
+        bool m_IsDrawSelectConstructionWindow = false;
+        bool m_IsDrawTestTableWindow = false;
     };
 }    // namespace LM

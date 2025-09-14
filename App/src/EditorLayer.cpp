@@ -135,16 +135,41 @@ namespace LM
                 ImGui::EndMenu();
             }
 
+            if (ImGui::BeginMenu("Window"))
+            {
+                if (ImGui::MenuItem("Select Construction", nullptr, m_IsDrawSelectConstructionWindow))
+                {
+                    m_IsDrawSelectConstructionWindow = !m_IsDrawSelectConstructionWindow;
+                }
+
+                if (ImGui::MenuItem("Test Table", nullptr, m_IsDrawTestTableWindow))
+                {
+                    m_IsDrawTestTableWindow = !m_IsDrawTestTableWindow;
+                }
+
+                ImGui::Separator();
+
+                if (ImGui::MenuItem("ImGui Demo", nullptr, m_IsDrawImGuiDemoWindow))
+                {
+                    m_IsDrawImGuiDemoWindow = !m_IsDrawImGuiDemoWindow;
+                }
+
+                ImGui::EndMenu();
+            }
+
             ImGui::EndMenuBar();
         }
 
         ImGui::End();
 
-        if (ImGui::Begin("Test Table"))
+        if (m_IsDrawTestTableWindow)
         {
-            Table::DrawTable();
+            if (ImGui::Begin("Test Table", &m_IsDrawTestTableWindow))
+            {
+                Table::DrawTable();
+            }
+            ImGui::End();
         }
-        ImGui::End();
 
         if (m_CreateNewProject.Draw())
         {
@@ -169,12 +194,18 @@ namespace LM
         Overlay::Get()->Draw();
         ScriptPopup::Get()->Draw();
 
-        ImGui::ShowDemoWindow();
-
-        static SelectConstructionFromTree constrTreeTest;
-        if (auto construction = constrTreeTest(); !construction.empty())
+        if (m_IsDrawImGuiDemoWindow)
         {
-            LOG_CORE_WARN("Constr tree test message on select: {}", construction);
+            ImGui::ShowDemoWindow(&m_IsDrawImGuiDemoWindow);
+        }
+
+        if (m_IsDrawSelectConstructionWindow)
+        {
+            static SelectConstructionFromTree constrTreeTest;
+            if (auto construction = constrTreeTest(); !construction.empty())
+            {
+                LOG_CORE_WARN("Constr tree test message on select: {}", construction);
+            }
         }
     }
 

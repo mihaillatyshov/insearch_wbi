@@ -171,13 +171,13 @@ namespace LM
         // ============================================================================================================
 
         template <Concept::JsonSimpleType T>
-        constexpr nlohmann::json ToJson(const T& _Object) const
+        inline nlohmann::json ToJson(const T& _Object) const
         {
             return _Object;
         }
 
         template <Concept::Vec2 T>
-        constexpr nlohmann::json ToJson(const T& _Object) const
+        inline nlohmann::json ToJson(const T& _Object) const
         {
             nlohmann::json result;
             result["x"] = _Object.x;
@@ -186,7 +186,7 @@ namespace LM
         }
 
         template <typename T>
-        constexpr nlohmann::json ToJson(const std::vector<T>& _Object) const
+        inline nlohmann::json ToJson(const std::vector<T>& _Object) const
         {
             nlohmann::json result = nlohmann::json::array();
             for (const auto& item : _Object)
@@ -197,13 +197,13 @@ namespace LM
         }
 
         template <Concept::ProjectTypeConcept T>
-        constexpr nlohmann::json ToJson(const T& _Object) const
+        inline nlohmann::json ToJson(const T& _Object) const
         {
             return static_cast<uint32_t>(_Object);
         }
 
         template <typename T>
-        constexpr nlohmann::json ToJson(const T& _Object) const
+        inline nlohmann::json ToJson(const T& _Object) const
         {
             nlohmann::json result;
 
@@ -223,19 +223,19 @@ namespace LM
         // ============================================================================================================
 
         template <Concept::JsonSimpleType T>
-        constexpr void FromJson(T& _Object, const nlohmann::json& _Json) const
+        inline void FromJson(T& _Object, const nlohmann::json& _Json) const
         {
             _Object = _Json;
         }
 
         template <Concept::Vec2 T>
-        constexpr void FromJson(T& _Object, const nlohmann::json& _Json) const
+        inline void FromJson(T& _Object, const nlohmann::json& _Json) const
         {
             _Object = { _Json["x"], _Json["y"] };
         }
 
         template <typename T>
-        constexpr void FromJson(std::vector<T>& _Object, const nlohmann::json& _Json) const
+        inline void FromJson(std::vector<T>& _Object, const nlohmann::json& _Json) const
         {
             for (const auto& item : _Json)
             {
@@ -244,13 +244,13 @@ namespace LM
         }
 
         template <Concept::ProjectTypeConcept T>
-        constexpr void FromJson(T& _Object, const nlohmann::json& _Json) const
+        inline void FromJson(T& _Object, const nlohmann::json& _Json) const
         {
             _Object = static_cast<ProjectType>(_Json);
         }
 
         template <typename T>
-        constexpr void FromJson(T& _Object, const nlohmann::json& _Json) const
+        inline void FromJson(T& _Object, const nlohmann::json& _Json) const
         {
             constexpr auto properties = SerializerGetPropertiesAll::GetProperties<T>();
             constexpr auto nbProperties = std::tuple_size<decltype(properties)>::value;
