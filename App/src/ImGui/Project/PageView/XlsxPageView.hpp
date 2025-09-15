@@ -136,6 +136,8 @@ namespace LM
 
         std::optional<const std::reference_wrapper<std::string>> GetExtraListValue(std::string_view _Header);
 
+        std::string GetRawImgFilename(std::string_view _Filetype);
+
         void LoadXLSX();
         void SaveXLSX();
 

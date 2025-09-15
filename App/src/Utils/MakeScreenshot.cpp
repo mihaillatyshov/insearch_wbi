@@ -1,4 +1,5 @@
 #include "MakeScreenshot.hpp"
+#include <fstream>
 
 #define UNICODE
 #define _UNICODE
@@ -162,7 +163,7 @@ namespace LM
         HWND hwnd = CreateWindowEx(WS_EX_TOPMOST | WS_EX_LAYERED, wc.lpszClassName, L"", WS_POPUP, x, y, w, h, nullptr,
                                    nullptr, g_hInst, nullptr);
 
-        SetLayeredWindowAttributes(hwnd, 0, 128, LWA_ALPHA);
+        SetLayeredWindowAttributes(hwnd, 0, 64, LWA_ALPHA);
         ShowWindow(hwnd, SW_SHOW);
 
         MSG msg;
@@ -182,6 +183,68 @@ namespace LM
         RunSnippingOverlay(StringToWString(outputPath));
 
         Gdiplus::GdiplusShutdown(gdiplusToken);
+    }
+
+    void MakeScreenshotFromClipboard(const std::string& _OutputPath)
+    {
+        if (!OpenClipboard(nullptr))
+        {
+            return;
+        }
+
+        HBITMAP hBitmap = (HBITMAP)GetClipboardData(CF_BITMAP);
+        if (!hBitmap)
+        {
+            CloseClipboard();
+            return;
+        }
+
+        // Инициализация GDI+
+        Gdiplus::GdiplusStartupInput gdiplusStartupInput;
+        ULONG_PTR gdiplusToken;
+        if (Gdiplus::GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, nullptr) != Gdiplus::Ok)
+        {
+            CloseClipboard();
+            return;
+        }
+
+        {
+            Gdiplus::Bitmap bmp(hBitmap, nullptr);
+
+            // CLSID для PNG
+            CLSID clsid;
+            {
+                UINT num = 0, size = 0;
+                Gdiplus::GetImageEncodersSize(&num, &size);
+                if (size == 0)
+                {
+                    Gdiplus::GdiplusShutdown(gdiplusToken);
+                    CloseClipboard();
+                    return;
+                }
+                auto* pImageCodecInfo = (Gdiplus::ImageCodecInfo*)(malloc(size));
+                GetImageEncoders(num, size, pImageCodecInfo);
+                for (UINT j = 0; j < num; ++j)
+                {
+                    if (wcscmp(pImageCodecInfo[j].MimeType, L"image/png") == 0)
+                    {
+                        clsid = pImageCodecInfo[j].Clsid;
+                        break;
+                    }
+                }
+                free(pImageCodecInfo);
+            }
+
+            if (bmp.Save(StringToWString(_OutputPath).c_str(), &clsid, nullptr) != Gdiplus::Ok)
+            {
+                Gdiplus::GdiplusShutdown(gdiplusToken);
+                CloseClipboard();
+                return;
+            }
+        }
+
+        Gdiplus::GdiplusShutdown(gdiplusToken);
+        CloseClipboard();
     }
 
 }    // namespace LM

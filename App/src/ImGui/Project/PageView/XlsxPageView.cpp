@@ -857,7 +857,7 @@ namespace LM
         }
 
         static float elementHeight = ImGui::GetFontSize() * 10;
-        static float elementWidth = elementHeight * 3;
+        float elementWidth = elementHeight * 3;
 
         // TODO: Implement Buttons
         if (ImGui::Begin("Картинки для страницы"))
@@ -869,17 +869,8 @@ namespace LM
 
                 ImGui::SeparatorText(filetype == "pic" ? "Фото" : "Чертеж");
 
-                std::filesystem::path filename = m_LoadedPageFilename;
-                filename.replace_extension();
-                filename = std::format("{}_{}.png", filename.string(), filetype);
-
-                const std::string imgFilename =
-                    (std::filesystem::path(m_Project->GetExcelTablesTypeRawImgsPath()) / filename).string();
-
-                LOG_CORE_WARN("Filename: {}", filename.string());
-
                 Ref<Texture2D> texture = nullptr;
-
+                const std::string imgFilename = GetRawImgFilename(filetype);
                 if (TextureManager::Contains(imgFilename))
                 {
                     texture = TextureManager::Get(imgFilename);
@@ -891,6 +882,7 @@ namespace LM
 
                 if (texture)
                 {
+                    elementWidth = ImGui::GetContentRegionAvail().x;
                     float imgSizeCoef =
                         glm::min(elementWidth / texture->GetWidth(), elementHeight / texture->GetHeight());
                     ImVec2 imgSize { texture->GetWidth() * imgSizeCoef, texture->GetHeight() * imgSizeCoef };
@@ -901,9 +893,19 @@ namespace LM
                     ImGui::Button("##empty", { elementHeight, elementHeight });
                 }
 
-                ImGui::Button("Сделать скиншот");
+                if (ImGui::Button("Сделать скиншот"))
+                {
+                    const std::string imgFilename = GetRawImgFilename(filetype);
+                    MakeScreenshot(imgFilename);
+                    TextureManager::RemoveFile(imgFilename);
+                }
                 ImGui::SameLine();
-                ImGui::Button("Вставить из буфера");
+                if (ImGui::Button("Вставить из буфера"))
+                {
+                    const std::string imgFilename = GetRawImgFilename(filetype);
+                    MakeScreenshotFromClipboard(imgFilename);
+                    TextureManager::RemoveFile(imgFilename);
+                }
 
                 ImGui::PopID();
             }
@@ -1342,6 +1344,15 @@ namespace LM
         }
 
         return std::nullopt;
+    }
+
+    std::string XlsxPageView::GetRawImgFilename(std::string_view _Filetype)
+    {
+        std::filesystem::path filename = m_LoadedPageFilename;
+        filename.replace_extension();
+        filename = std::format("{}_{}.png", filename.string(), _Filetype);
+
+        return (std::filesystem::path(m_Project->GetExcelTablesTypeRawImgsPath()) / filename).string();
     }
 
     void XlsxPageView::LoadXLSX()
