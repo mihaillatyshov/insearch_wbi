@@ -81,6 +81,13 @@ namespace LM
             std::string Description;
         };
 
+        struct FieldRepresentationItem
+        {
+            std::string Key;
+            std::string RuShort;
+            std::string Ru;
+        };
+
         struct ExtraInfoAutoFocusField
         {
             std::string WindowName;
@@ -198,6 +205,7 @@ namespace LM
         std::vector<ConstructionTreeConstr> m_Constructions;
         std::unordered_map<std::string, std::vector<std::string>> m_ConstructionsFields;
         std::unordered_map<std::string, FieldDescription> m_FieldsDescription;
+        std::unordered_map<std::string, std::vector<FieldRepresentationItem>> m_FieldsRepresentation;
 
         bool m_IsExtraInfoJsonLoaded = false;
         std::string m_ExtraInfoJsonPath;

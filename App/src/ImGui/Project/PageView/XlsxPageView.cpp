@@ -813,9 +813,44 @@ namespace LM
     void XlsxPageView::DrawSimpleAddListWindow()
     {
         std::string windowTitle = "Постраничный список заполнения";
-        std::function<void(std::string_view, SimpleAddListItem&)> handle = [](std::string_view _SimpleListFieldName,
-                                                                              SimpleAddListItem& _SimpleListItem) {
-            ImGui::InputText(std::format("##{}", _SimpleListFieldName).c_str(), &_SimpleListItem.Value);
+        std::function<void(std::string_view, SimpleAddListItem&)> handle = [this](std::string_view _SimpleListFieldName,
+                                                                                  SimpleAddListItem& _SimpleListItem) {
+            if (m_FieldsRepresentation.contains(_SimpleListFieldName.data()))
+            {
+                const auto& items = m_FieldsRepresentation[_SimpleListFieldName.data()];
+
+                std::string displayName = _SimpleListItem.Value;
+                for (const auto& item : items)
+                {
+                    if (item.Key == _SimpleListItem.Value)
+                    {
+                        displayName = std::format("{} ({})", item.Key, item.Ru);
+                        break;
+                    }
+                }
+
+                if (ImGui::BeginCombo("##Combo", displayName.c_str()))
+                {
+                    for (const auto& item : items)
+                    {
+                        const bool is_selected = (_SimpleListItem.Value == item.Key);
+                        if (ImGui::Selectable(std::format("{} ({})", item.Key, item.Ru).c_str(), is_selected))
+                        {
+                            _SimpleListItem.Value = item.Key;
+                        }
+
+                        if (is_selected)
+                        {
+                            ImGui::SetItemDefaultFocus();
+                        }
+                    }
+                    ImGui::EndCombo();
+                }
+            }
+            else
+            {
+                ImGui::InputText(std::format("##{}", _SimpleListFieldName).c_str(), &_SimpleListItem.Value);
+            }
         };
 
         if (ImGui::Begin(windowTitle.c_str()))
@@ -2089,7 +2124,52 @@ namespace LM
         }
     }
 
-    void XlsxPageView::LoadRepresentationFieldsDescription() { }
+    void XlsxPageView::LoadRepresentationFieldsDescription()
+    {
+        std::ifstream infile(kDefaultRepresentationFieldsDescriptionFile.data());
+        if (!infile.is_open())
+        {
+            Overlay::Get()->Start(Format("Не удалось открыть стандартный файл представления полей: \n{}",
+                                         kDefaultRepresentationFieldsDescriptionFile));
+        }
+
+        try
+        {
+            nlohmann::json json;
+            infile >> json;
+
+            for (const auto& element : json.items())
+            {
+                std::vector<FieldRepresentationItem> v;
+                for (const auto& item : element.value())
+                {
+                    std::string key;
+                    if (item["key"].is_number())
+                    {
+                        uint32_t val = item["key"];
+                        key = std::to_string(val);
+                    }
+                    else
+                    {
+                        key = item["key"];
+                    }
+
+                    v.push_back({
+                        .Key = key,
+                        .RuShort = item["rushort"],
+                        .Ru = item["ru"],
+                    });
+                }
+                m_FieldsRepresentation[element.key()] = v;
+            }
+        }
+        catch (std::exception& e)
+        {
+            LOG_CORE_WARN("{}", e.what());
+            Overlay::Get()->Start(
+                Format("Ошибка во время чтения формата json: \n{}", kDefaultRepresentationFieldsDescriptionFile));
+        }
+    }
 
     bool XlsxPageView::IsExtraInfoAutoFocusField(std::string_view _WindowName, std::string_view _FieldName)
     {
