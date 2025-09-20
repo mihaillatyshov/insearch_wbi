@@ -55,6 +55,12 @@ namespace LM
 
         const ApplicationSpecification& GetSpecification() const { return m_Specification; }
 
+        inline void SetIsMainMenuAnyItemHovered(bool _IsHovered) { m_IsMainMenuAnyItemHovered = _IsHovered; }
+        inline bool GetIsMainMenuAnyItemHovered() const { return m_IsMainMenuAnyItemHovered; }
+
+        inline void SetMainMenuFrameHeight(float _Height) { m_MainMenuFrameHeight = _Height; }
+        inline float GetMainMenuFrameHeight() { return m_MainMenuFrameHeight; }
+
     private:
         void Run();
         bool OnWindowClose(WindowCloseEvent& e);
@@ -68,6 +74,9 @@ namespace LM
         bool m_Minimized = false;
         LayerStack m_LayerStack;
         float m_LastFrameTime = 0.0f;
+
+        bool m_IsMainMenuAnyItemHovered = false;
+        float m_MainMenuFrameHeight = 48.0f;
 
     private:
         static Application* s_Instance;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Engine/Textures/Texture2D.h"
 #include "ImGui/Project/CreateNewProject.h"
 #include "ImGui/Project/SetupProject.h"
 #include "Project/Project.h"
@@ -32,6 +33,8 @@ namespace LM
 
         SetupProject m_SetupProjectWindow;
         CreateNewProject m_CreateNewProject;
+
+        Ref<Texture2D> m_AppLogoLight;
 
         bool m_IsDrawImGuiDemoWindow = false;
         bool m_IsDrawSelectConstructionWindow = false;

@@ -1,8 +1,8 @@
 #pragma once
 
 #include <cstdint>
-#include <string>
 #include <functional>
+#include <string>
 
 #include "Engine/Core/Base.h"
 #include "Engine/Events/Event.h"
@@ -26,6 +26,11 @@ namespace LM
         virtual uint32_t GetWidth() const = 0;
         virtual uint32_t GetHeight() const = 0;
         virtual float GetMonitorScale() const = 0;
+        virtual bool IsWindowMaximized() const = 0;
+
+        virtual void Maximize() = 0;
+        virtual void Minimize() = 0;
+        virtual void Restore() = 0;
 
         virtual void OnUpdate() = 0;
 

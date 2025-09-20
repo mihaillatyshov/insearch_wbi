@@ -16,7 +16,12 @@ namespace LM
         virtual uint32_t GetWidth() const override { return m_Data.Width; }
         virtual uint32_t GetHeight() const override { return m_Data.Height; }
         virtual float GetMonitorScale() const override { return m_Data.MonitorScale; }
-        
+        virtual bool IsWindowMaximized() const override;
+
+        virtual void Maximize() override;
+        virtual void Minimize() override;
+        virtual void Restore() override;
+
         virtual void OnUpdate() override;
 
         void SetEventCallback(const EventCallbackFn& callback) override { m_Data.EventCallback = callback; }

@@ -1,7 +1,5 @@
 #include "ImGuiLayer.h"
 
-#include <fstream>
-
 #include <imgui.h>
 #include <imgui_internal.h>
 
@@ -9,13 +7,15 @@
 #include <Engine/ImGui/imgui_impl_opengl3.h>
 
 #include "Engine/Core/Application.h"
-#include "Engine/Core/Inputs.h"
 #include "Engine/Events/EventDispatcher.h"
-#include "Engine/Utils/json.hpp"
+#include "Engine/ImGui/Fonts/ImGuiFontDefinesIconsFA.inl"
+#include "Engine/ImGui/Fonts/ImGuiFontDefinesIconsFABrands.inl"
 
 // TODO: Remove TEMPORARY
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
+
+#include <filesystem>
 
 #define USE_CUSTOM_FONT true
 
@@ -24,6 +24,7 @@ namespace LM
 
     const std::string regFont = "assets/fonts/roboto/Roboto-Regular.ttf";
     const std::string settingsFile = "assets/settings/imgui.json";
+    const std::string faFontsFolder = "assets/fonts/fa/";
 
     ImGuiLayer::ImGuiLayer() : Layer("ImGuiLayer") { }
 
@@ -133,6 +134,27 @@ namespace LM
     {
         ChangeFontSize(true);
 
+        Application& app = Application::Get();
+        GLFWwindow* window = static_cast<GLFWwindow*>(app.GetWindow().GetNativeWindow());
+        ImGuiIO& io = ImGui::GetIO();
+
+        int win_w, win_h;
+        glfwGetWindowSize(window, &win_w, &win_h);
+        double mouse_x, mouse_y;
+        glfwGetCursorPos(window, &mouse_x, &mouse_y);
+        // bool on_edge = mouse_x <= 8 || mouse_x >= win_w - 8 || mouse_y <= 8 || mouse_y >= win_h - 8;
+        bool on_edge = (mouse_x >= 0 && mouse_x <= win_w && mouse_y >= 0 && mouse_y <= win_h) &&
+                       (mouse_x <= 8 || mouse_x >= win_w - 8 || mouse_y <= 8 || mouse_y >= win_h - 8);
+
+        if (on_edge)
+        {
+            io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
+        }
+        else
+        {
+            io.ConfigFlags &= ~ImGuiConfigFlags_NoMouseCursorChange;
+        }
+
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
@@ -215,8 +237,28 @@ namespace LM
             }
             else
             {
-                font = io.Fonts->AddFontFromFileTTF(regFont.c_str(), static_cast<float>(m_FontSize), &config,
+                float fontSize = static_cast<float>(m_FontSize);
+                font = io.Fonts->AddFontFromFileTTF(regFont.c_str(), fontSize, &config,
                                                     io.Fonts->GetGlyphRangesCyrillic());
+
+                config.MergeMode = true;
+                config.GlyphMinAdvanceX = fontSize;    // Use if you want to make the icon monospaced
+                // config.DstFont = font;
+
+                static const ImWchar iconRangesFa[] = { ICON_MIN_FA, ICON_MAX_FA, 0 };
+                std::filesystem::path farPath =
+                    std::filesystem::path(faFontsFolder) / std::filesystem::path(FONT_ICON_FILE_NAME_FAR);
+                std::filesystem::path fasPath =
+                    std::filesystem::path(faFontsFolder) / std::filesystem::path(FONT_ICON_FILE_NAME_FAS);
+                io.Fonts->AddFontFromFileTTF(farPath.string().c_str(), fontSize, &config, iconRangesFa);
+                io.Fonts->AddFontFromFileTTF(fasPath.string().c_str(), fontSize, &config, iconRangesFa);
+                // io.Fonts->AddFontFromFileTTF(regFont.c_str(), fontSize, &config, );
+
+                static const ImWchar iconRangesFab[] = { ICON_MIN_FAB, ICON_MAX_FAB, 0 };
+                std::filesystem::path fabPath =
+                    std::filesystem::path(faFontsFolder) / std::filesystem::path(FONT_ICON_FILE_NAME_FAB);
+                io.Fonts->AddFontFromFileTTF(fabPath.string().c_str(), fontSize, &config, iconRangesFab);
+
                 m_Fonts[m_FontSize] = font;
             }
             io.FontDefault = font;
