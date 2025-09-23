@@ -1,6 +1,7 @@
 #include "XlsxPageView.hpp"
 
 #include "Engine/Textures/Texture2D.h"
+#include "Engine/Utils/Utf8Extras.hpp"
 #include "ImGui/Overlays/Overlay.h"
 #include "Managers/TextureManager.h"
 #include "Utils/FileFormat.h"
@@ -75,8 +76,12 @@ bool CustomPassFilter(const ImGuiTextFilter& _TextFilter, std::string_view text)
             continue;
         }
 
-        std::string filterStr = StrToLowerRu(std::string_view(f.b, f.e));
-        std::string textStr = StrToLowerRu(text);
+        std::string filterStr(f.b, f.e);
+        std::string textStr(text);
+        utf8upr(reinterpret_cast<utf8_int8_t*>(filterStr.data()));
+        utf8upr(reinterpret_cast<utf8_int8_t*>(textStr.data()));
+        // std::string filterStr = StrToLowerRu(std::string_view(f.b, f.e));
+        // std::string textStr = StrToLowerRu(text);
         if (textStr.find(filterStr) != std::string::npos)
         {
             return true;
@@ -208,6 +213,8 @@ namespace LM
         DrawSimpleAddListWindow();
         DrawSimpleCalcListWindow();
         DrawImgsPerListWindow();
+
+        DrawJoinModal();
 
         ImGui::Separator();
         if (m_SelectedCell.has_value())
@@ -628,6 +635,7 @@ namespace LM
                                 .WindowName = windowName,
                                 .Field = fieldName,
                             };
+                            fieldsFilter.Clear();
                             ImGui::CloseCurrentPopup();
                             SaveExtraInfoJson();
                         }
@@ -765,6 +773,7 @@ namespace LM
                             .WindowName = _WindowName.data(),
                             .Field = fieldName,
                         };
+                        fieldsFilter.Clear();
                         ImGui::CloseCurrentPopup();
                         SaveExtraInfoJson();
                     }
@@ -787,6 +796,7 @@ namespace LM
                             {
                                 sharedPages.push_back(m_LoadedPageId);
                                 std::ranges::sort(sharedPages);
+                                fieldsFilter.Clear();
                                 ImGui::CloseCurrentPopup();
                                 SaveExtraInfoJson();
                             }
@@ -950,6 +960,53 @@ namespace LM
         ImGui::End();
     }
 
+    void XlsxPageView::DrawJoinModal()
+    {
+        static bool isSkipEmpty = true;
+        static std::string joinStr;
+
+        if (m_IsJoinModalOpen)
+        {
+            if (ImGui::Begin("JoinModal", &m_IsJoinModalOpen))
+            {
+                ImGui::InputText("Разделитель", &joinStr);
+                ImGui::Text("Текст разделителя: '%s'", joinStr.c_str());
+                ImGui::Checkbox("Соединять пустые ячейки", &isSkipEmpty);
+
+                ImGui::Separator();
+
+                if (ImGui::Button("Применить"))
+                {
+                    SelectionRegion selectionRegion = GetSelectionRegion(false);
+                    if (selectionRegion.RowsCount > 0 && selectionRegion.ColsCount > 0)
+                    {
+                        for (auto& row : std::ranges::subrange(m_TableData.begin() + selectionRegion.StartRow,
+                                                               m_TableData.begin() + selectionRegion.StartRow +
+                                                                   selectionRegion.RowsCount))
+                        {
+                            auto& writeCell = *(row.begin() + selectionRegion.StartCol);
+                            for (auto& cell : std::ranges::subrange(row.begin() + selectionRegion.StartCol + 1,
+                                                                    row.begin() + selectionRegion.StartCol +
+                                                                        selectionRegion.ColsCount))
+                            {
+                                if (cell.Value.empty() && isSkipEmpty)
+                                {
+                                    continue;
+                                }
+                                writeCell.Value = StrJoin({ writeCell.Value, cell.Value }, joinStr);
+                                cell.Value = "";
+                            }
+                        }
+                    }
+
+                    PushHistory();
+                    m_IsJoinModalOpen = false;
+                }
+            }
+            ImGui::End();
+        }
+    }
+
     void XlsxPageView::HandleImGuiEvents()
     {
         if (!ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) || m_TableData.empty())
@@ -996,6 +1053,11 @@ namespace LM
         if (ImGui::IsKeyPressed(ImGuiKey_Y) && io.KeyCtrl && !m_IsAnyCellActive)
         {
             Redo();
+        }
+
+        if (ImGui::IsKeyPressed(ImGuiKey_J) && io.KeyCtrl)
+        {
+            m_IsJoinModalOpen = true;
         }
 
         // TODO: Add range for Key_X and Key_C
@@ -1196,16 +1258,16 @@ namespace LM
                 {
                     ImGui::SetTooltip("%s", m_FieldsDescription[t].Description.c_str());
                 }
-
-                if (ImGui::IsKeyPressed(ImGuiKey_F2))
-                {
-                    autoFocusNameChange = true;
-                    ImGui::OpenPopup(popupStrId.c_str());
-                }
             }
 
-            if (ImGui::IsItemActivated())
+            if (ImGui::IsItemActivated() && !ImGui::IsMouseDown(ImGuiMouseButton_Left))
             {
+                ImGui::OpenPopup(popupStrId.c_str());
+            }
+
+            if ((ImGui::IsItemHovered() || ImGui::IsItemFocused()) && ImGui::IsKeyPressed(ImGuiKey_F2))
+            {
+                autoFocusNameChange = true;
                 ImGui::OpenPopup(popupStrId.c_str());
             }
 

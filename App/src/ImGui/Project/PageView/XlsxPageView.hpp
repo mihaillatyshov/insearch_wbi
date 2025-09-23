@@ -125,6 +125,8 @@ namespace LM
 
         void DrawImgsPerListWindow();
 
+        void DrawJoinModal();
+
         void HandleImGuiEvents();
 
         void PushCellFrameBgColor(bool _IsRowHovered, bool _IsColHovered, size_t _RowId, size_t _ColId);
@@ -218,6 +220,8 @@ namespace LM
 
         size_t m_HistoryPointer = 0;
         std::vector<HistoryState> m_HistoryState;
+
+        bool m_IsJoinModalOpen = false;
     };
 
 }    // namespace LM
