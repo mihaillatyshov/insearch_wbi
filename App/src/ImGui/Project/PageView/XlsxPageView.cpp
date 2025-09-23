@@ -164,6 +164,7 @@ namespace LM
 
     void XlsxPageView::DrawWindowContent()
     {
+        m_IsMainWindowFocused = ImGui::IsWindowFocused();
         if (m_PageId == -1)
         {
             return;
@@ -187,6 +188,11 @@ namespace LM
         }
 
         ImGui::Text("Имя файла: %s", m_LoadedPageFilename.string().c_str());
+
+        if (m_IsAnyHeaderActive)
+        {
+            m_IsAnyCellActive = true;
+        }
 
         HandleImGuiEvents();
         // DrawTableActions();
@@ -266,6 +272,7 @@ namespace LM
             ImGui::TableSetupScrollFreeze(1, 1);
 
             ImGui::PushStyleVarY(ImGuiStyleVar_CellPadding, framePaddingY);
+            m_IsAnyHeaderActive = false;
             DrawTableHeaderReturn headerData = DrawTableHeader(colsCount);
             ImGui::PopStyleVar();
 
@@ -346,6 +353,11 @@ namespace LM
                         PushHistory();
                     }
 
+                    if (ImGui::IsItemFocused() && ImGui::IsKeyPressed(ImGuiKey_F2))
+                    {
+                        ImGui::ActivateItemByID(ImGui::GetItemID());
+                    }
+
                     if (ImGui::IsItemActive() || ImGui::IsItemFocused())
                     {
                         if (!m_SelectedCell.has_value() || (m_SelectedCell->x != colId) || (m_SelectedCell->y != rowId))
@@ -402,17 +414,6 @@ namespace LM
 
     void XlsxPageView::DrawTableActions()
     {
-        // if (ImGui::Button("Save"))
-        // {
-        //     SaveXLSX();
-        // }
-
-        if (ImGui::Button("Test ScreenShoot"))
-        {
-            LOG_CORE_WARN("Call MakeScreenshot");
-            MakeScreenshot("C:/Users/mihai/Pictures/myscreenshot.png");
-        }
-
         if (ImGui::Button("Копировать без заголовка"))
         {
             std::string copyText;
@@ -523,7 +524,8 @@ namespace LM
             static ImGuiTextFilter constrFilter;
             constrFilter.Draw("Фильтрация конструкции");
 
-            ImGui::BeginChild("ConstrList", ImVec2(0.0f, ImGui::GetFontSize() * 24.0f), ImGuiChildFlags_AutoResizeX);
+            ImGui::BeginChild("ConstrList", ImVec2(0.0f, ImGui::GetFontSize() * 24.0f),
+                              ImGuiChildFlags_AutoResizeX | ImGuiChildFlags_NavFlattened);
             for (size_t i = 0; i < m_Constructions.size(); ++i)
             {
                 const auto& constr = m_Constructions[i];
@@ -1135,7 +1137,7 @@ namespace LM
         ImGui::PushID(static_cast<int>(0));
         ImGui::TableSetColumnIndex(static_cast<int>(0));
         ImGui::TableHeader("  . . .  ##Header");
-        if (ImGui::IsKeyPressed(ImGuiKey_Escape) && !m_IsAnyCellActive)
+        if (ImGui::IsKeyPressed(ImGuiKey_Escape) && !m_IsAnyCellActive && m_IsMainWindowFocused)
         {
             ImGui::SetFocusID(ImGui::GetItemID(), ImGui::GetCurrentWindow());
         }
@@ -1183,6 +1185,9 @@ namespace LM
             ImGui::PushStyleColor(ImGuiCol_TableHeaderBg, headerColor);
             ImGui::TableHeader(std::format("  {}  ", t).c_str());
             ImGui::PopStyleColor();
+
+            bool autoFocusNameChange = false;
+            std::string popupStrId = std::format("Header_{}", colId);
             if (ImGui::IsItemHovered())
             {
                 result.HoveredCol = colId;
@@ -1191,6 +1196,17 @@ namespace LM
                 {
                     ImGui::SetTooltip("%s", m_FieldsDescription[t].Description.c_str());
                 }
+
+                if (ImGui::IsKeyPressed(ImGuiKey_F2))
+                {
+                    autoFocusNameChange = true;
+                    ImGui::OpenPopup(popupStrId.c_str());
+                }
+            }
+
+            if (ImGui::IsItemActivated())
+            {
+                ImGui::OpenPopup(popupStrId.c_str());
             }
 
             if (ImGui::IsItemFocused())
@@ -1199,9 +1215,22 @@ namespace LM
                 m_SelectedCol = colId;
             }
 
-            if (ImGui::BeginPopupContextItem(std::format("Header_{}", colId).c_str()))
+            if (ImGui::BeginPopupContextItem(popupStrId.c_str()))
             {
-                ImGui::InputText("Change col name##HeaderInput", &t);
+                if (autoFocusNameChange)
+                {
+                    ImGui::SetKeyboardFocusHere();
+                }
+                ImGui::InputText("Имя заголовка##HeaderInput", &t);
+                if (ImGui::IsItemDeactivatedAfterEdit())
+                {
+                    PushHistory();
+                    ImGui::CloseCurrentPopup();
+                }
+                if (ImGui::IsItemActive())
+                {
+                    m_IsAnyHeaderActive = true;
+                }
 
                 ImGui::SeparatorText("Fix Data");
 

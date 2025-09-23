@@ -194,7 +194,9 @@ namespace LM
         int m_LoadedPageId = -1;
         std::filesystem::path m_LoadedPageFilename;
 
+        bool m_IsMainWindowFocused = false;
         bool m_IsAnyCellActive = false;
+        bool m_IsAnyHeaderActive = false;
         std::optional<glm::u64vec2> m_SelectedCell = std::nullopt;
         std::optional<glm::u64vec2> m_ExtraSelectedCell = std::nullopt;
         std::optional<size_t> m_SelectedCol = std::nullopt;
