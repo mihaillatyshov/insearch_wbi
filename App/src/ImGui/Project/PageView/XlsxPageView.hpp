@@ -126,6 +126,7 @@ namespace LM
         void DrawImgsPerListWindow();
 
         void DrawJoinModal();
+        void DrawFindAndReplaceModal();
 
         void HandleImGuiEvents();
 
@@ -187,6 +188,7 @@ namespace LM
         void LoadConstructionsFields();
         void LoadFieldsDescription();
         void LoadRepresentationFieldsDescription();
+        void LoadConstrExample(std::string_view _Constr);
 
         bool IsExtraInfoAutoFocusField(std::string_view _WindowName, std::string_view _FieldName);
 
@@ -217,11 +219,17 @@ namespace LM
         std::unordered_map<std::string, std::string> m_GlobalAddList;
         std::unordered_map<std::string, std::vector<SimpleAddListItem>> m_SimpleAddList;
         std::unordered_map<std::string, std::vector<SimpleAddListItem>> m_SimpleCalcList;
+        // TODO: implement
+        // std::unordered_map<std::string, std::vector<PageImgListItem>> m_SimpleRuleImgList;
+        std::unordered_map<std::string, std::unordered_map<std::string, std::vector<std::string>>> m_ConstrExamples;
 
         size_t m_HistoryPointer = 0;
         std::vector<HistoryState> m_HistoryState;
 
         bool m_IsJoinModalOpen = false;
+        bool m_IsFindAndReplaceModalOpen = false;
+
+        bool m_IsShowConstrExamples = false;
     };
 
 }    // namespace LM

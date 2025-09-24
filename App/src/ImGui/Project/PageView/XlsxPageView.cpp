@@ -10,8 +10,16 @@
 #include "Engine/Utils/json.hpp"
 #include "Engine/Utils/utf8.h"
 #include "Utils/MakeScreenshot.hpp"
+
 #include "glm/common.hpp"
 #include "glm/fwd.hpp"
+#include <cstdint>
+#include <imgui.h>
+#include <imgui_internal.h>
+#include <imstb_textedit.h>
+#include <limits>
+#include <misc/cpp/imgui_stdlib.h>
+#include <xlnt/xlnt.hpp>
 
 #include <array>
 #include <exception>
@@ -19,16 +27,11 @@
 #include <format>
 #include <fstream>
 #include <functional>
-#include <imgui.h>
-#include <imgui_internal.h>
-#include <misc/cpp/imgui_stdlib.h>
 #include <optional>
 #include <ranges>
 #include <string>
 #include <string_view>
 #include <vector>
-
-#include <xlnt/xlnt.hpp>
 
 NLOHMANN_JSON_NAMESPACE_BEGIN
 template <typename T>
@@ -215,16 +218,12 @@ namespace LM
         DrawImgsPerListWindow();
 
         DrawJoinModal();
+        DrawFindAndReplaceModal();
 
         ImGui::Separator();
-        if (m_SelectedCell.has_value())
-        {
-            ImGui::Text("Selected cell Col: %llu; Row: %llu", m_SelectedCell->x, m_SelectedCell->y);
-        }
-        else
-        {
-            ImGui::Text("No cell selected");
-        }
+
+        ImGui::Checkbox("Показать примеры", &m_IsShowConstrExamples);
+
         ImGui::Separator();
 
         static ImGuiTableFlags tableFlags = ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_Borders |
@@ -282,6 +281,50 @@ namespace LM
             m_IsAnyHeaderActive = false;
             DrawTableHeaderReturn headerData = DrawTableHeader(colsCount);
             ImGui::PopStyleVar();
+
+            auto constrItem = GetItemInSimpleListForCurrentPage(m_SimpleAddList, "constr");
+            if (constrItem.has_value() && m_IsShowConstrExamples)
+            {
+                const auto& constr = constrItem->get().Value;
+                LoadConstrExample(constr);
+                if (m_ConstrExamples.contains(constr))
+                {
+                    auto& constrExample = m_ConstrExamples[constr];
+                    size_t rowsCount = (*constrExample.begin()).second.size();
+
+                    ImGui::PushStyleColor(ImGuiCol_TableRowBg, 0x0a00ff00);
+                    ImGui::PushStyleColor(ImGuiCol_TableRowBgAlt, 0x1900ff00);
+                    for (size_t rowId = 1; rowId <= rowsCount; ++rowId)
+                    {
+                        ImGui::TableNextRow();
+                        ImGui::PushID(-static_cast<int>(rowId));
+                        ImGui::TableSetColumnIndex(static_cast<int>(0));
+                        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, { framePaddingX, framePaddingY });
+                        ImGui::Button("##RowId", ImVec2(std::max(headerWidths[0], columnWidths[0]), 0.0f));
+                        ImGui::PopStyleVar();
+
+                        for (size_t colId = 0; colId < colsCount; ++colId)
+                        {
+                            ImGui::PushID(static_cast<int>(colId));
+                            ImGui::TableSetColumnIndex(static_cast<int>(colId + 1));
+
+                            const std::string& header = m_TableData[0][colId].Value;
+                            if (constrExample.contains(header))
+                            {
+                                ImGui::Text("  %s  ", constrExample[header][rowId - 1].c_str());
+                                float cellTextSize = ImGui::CalcTextSize(constrExample[header][rowId - 1].c_str()).x +
+                                                     ImGui::CalcTextSize("    ").x;
+                                columnWidths[colId + 1] = std::max(columnWidths[colId + 1], cellTextSize);
+                            }
+
+                            ImGui::PopID();
+                        }
+                        ImGui::PopID();
+                    }
+                    ImGui::TableNextRow();
+                    ImGui::PopStyleColor(2);
+                }
+            }
 
             m_IsAnyCellActive = false;
             ImDrawList* draw_list = ImGui::GetWindowDrawList();
@@ -350,6 +393,34 @@ namespace LM
                     ImGui::InputText("##Input", &t, ImGuiInputTextFlags_NoHorizontalScroll);
                     ImGui::PopStyleVar();
                     ImGui::PopStyleColor();
+
+                    ImGuiIO& io = ImGui::GetIO();
+
+                    if (ImGui::IsItemFocused() && !ImGui::IsItemActive() && !io.InputQueueCharacters.empty())
+                    {
+                        // TODO:: may need to clear buffer
+                        for (unsigned short c : io.InputQueueCharacters)
+                        {
+                            if (c >= 32)
+                            {
+                                t.push_back((char)c);
+                            }
+                        }
+                        io.InputQueueCharacters.resize(0);
+
+                        ImGui::ActivateItemByID(ImGui::GetItemID());
+                    }
+
+                    if (ImGui::IsItemActive() && ImGui::IsItemEdited() == false)
+                    {
+                        ImGuiInputTextState* state = ImGui::GetInputTextState(ImGui::GetItemID());
+                        if (state)
+                        {
+                            state->CursorAnimReset();    // сброс мигания
+                            state->CursorClamp();    // убедиться, что курсор в допустимых границах
+                            state->ClearSelection();
+                        }
+                    }
 
                     if (ImGui::IsItemActive())
                     {
@@ -967,7 +1038,7 @@ namespace LM
 
         if (m_IsJoinModalOpen)
         {
-            if (ImGui::Begin("JoinModal", &m_IsJoinModalOpen))
+            if (ImGui::Begin("Объединение колонок", &m_IsJoinModalOpen))
             {
                 ImGui::InputText("Разделитель", &joinStr);
                 ImGui::Text("Текст разделителя: '%s'", joinStr.c_str());
@@ -997,13 +1068,62 @@ namespace LM
                                 cell.Value = "";
                             }
                         }
-                    }
 
-                    PushHistory();
-                    m_IsJoinModalOpen = false;
+                        PushHistory();
+                        m_IsJoinModalOpen = false;
+                    }
                 }
             }
             ImGui::End();
+        }
+    }
+
+    void XlsxPageView::DrawFindAndReplaceModal()
+    {
+        static std::string findStr;
+        static std::string replaceStr;
+        if (m_IsFindAndReplaceModalOpen)
+        {
+            if (ImGui::Begin("Найти и заменить", &m_IsFindAndReplaceModalOpen))
+            {
+                ImGui::InputText("Найти", &findStr);
+                ImGui::InputText("Заменить на", &replaceStr);
+
+                ImGui::Separator();
+
+                if (ImGui::Button("Применить"))
+                {
+                    SelectionRegion selectionRegion = GetSelectionRegion(false);
+                    if (!findStr.empty())
+                    {
+                        for (auto& row : std::ranges::subrange(m_TableData.begin() + selectionRegion.StartRow,
+                                                               m_TableData.begin() + selectionRegion.StartRow +
+                                                                   selectionRegion.RowsCount))
+                        {
+                            for (auto& cell : std::ranges::subrange(row.begin() + selectionRegion.StartCol,
+                                                                    row.begin() + selectionRegion.StartCol +
+                                                                        selectionRegion.ColsCount))
+                            {
+                                size_t pos = 0;
+                                for (uint8_t i = 0; i < std::numeric_limits<uint8_t>::max(); ++i)
+                                {
+                                    pos = cell.Value.find(findStr, pos);
+                                    if (pos == std::string::npos)
+                                    {
+                                        break;
+                                    }
+                                    cell.Value.replace(pos, findStr.size(), replaceStr);
+                                    pos += replaceStr.size();
+                                }
+                            }
+                        }
+
+                        PushHistory();
+                        m_IsFindAndReplaceModalOpen = false;
+                    }
+                }
+                ImGui::End();
+            }
         }
     }
 
@@ -1058,6 +1178,11 @@ namespace LM
         if (ImGui::IsKeyPressed(ImGuiKey_J) && io.KeyCtrl)
         {
             m_IsJoinModalOpen = true;
+        }
+
+        if (ImGui::IsKeyPressed(ImGuiKey_F) && io.KeyCtrl)
+        {
+            m_IsFindAndReplaceModalOpen = true;
         }
 
         // TODO: Add range for Key_X and Key_C
@@ -1147,11 +1272,12 @@ namespace LM
 
     void XlsxPageView::PushCellFrameBgColor(bool _IsRowHovered, bool _IsColHovered, size_t _RowId, size_t _ColId)
     {
-        float frameBgAlpha = 0.125f;
+        float frameBgAlpha = 0.0;
         float frameBgBlue = 0.0f;
 
         bool isHovered = _IsRowHovered || _IsColHovered;
 
+        // TODO: move GetSelectionRegion upper for optimization
         bool isSelected = IsInSelectionRegion(GetSelectionRegion(false), _RowId, _ColId);
 
         // Check if the cell is selected
@@ -1169,6 +1295,11 @@ namespace LM
         {
             frameBgAlpha = 0.75f;
             frameBgBlue = 0.75f;
+        }
+
+        if (frameBgAlpha == 0.0f && m_TableData[_RowId][_ColId].Check != CheckStatus::kNone)
+        {
+            frameBgAlpha = 0.125f;
         }
 
         switch (m_TableData[_RowId][_ColId].Check)
@@ -2259,6 +2390,57 @@ namespace LM
             LOG_CORE_WARN("{}", e.what());
             Overlay::Get()->Start(
                 Format("Ошибка во время чтения формата json: \n{}", kDefaultRepresentationFieldsDescriptionFile));
+        }
+    }
+
+    void XlsxPageView::LoadConstrExample(std::string_view _Constr)
+    {
+        if (m_ConstrExamples.contains(_Constr.data()))
+        {
+            return;
+        }
+
+        std::filesystem::path path = std::filesystem::path("assets/constructions/examples") /
+                                     std::filesystem::path(std::format("{}.xlsx", _Constr));
+
+        LOG_CORE_INFO("Loading file: {}", path.string());
+
+        if (!std::filesystem::exists(path))
+        {
+            return;
+        }
+
+        xlnt::workbook wb;
+
+        try
+        {
+            wb.load(path);
+        }
+        catch (const std::exception& e)
+        {
+            LOG_CORE_ERROR("Failed to load workbook: {}", e.what());
+            return;
+        }
+
+        xlnt::worksheet ws = wb.active_sheet();
+
+        m_ConstrExamples[_Constr.data()] = {};
+        auto& constr = m_ConstrExamples[_Constr.data()];
+        for (const auto& col : ws.columns(true))
+        {
+            if (col.length() < 2 || !col[0].has_value())
+            {
+                continue;
+            }
+
+            std::vector<std::string> values;
+            auto begin = col.begin();
+            ++begin;
+            for (const auto& cell : std::ranges::subrange(begin, col.end()))
+            {
+                values.push_back(cell.has_value() ? cell.to_string() : "");
+            }
+            constr[col[0].to_string()] = values;
         }
     }
 
