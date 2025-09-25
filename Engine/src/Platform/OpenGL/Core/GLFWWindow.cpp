@@ -6,6 +6,8 @@
 #include "Engine/Events/WindowEvent.h"
 #include "Engine/Utils/Log.hpp"
 #include "GLFW/glfw3.h"
+#include "glm/common.hpp"
+#include <cmath>
 
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include "GLFW/glfw3native.h"
@@ -19,6 +21,7 @@ namespace LM
 {
 
     WNDPROC original_proc;
+    float g_MonitorScale = 1.0f;
 
     bool IsWindowMaximizedAlt(HWND hWnd)
     {
@@ -47,17 +50,19 @@ namespace LM
                     NCCALCSIZE_PARAMS* pParams = reinterpret_cast<NCCALCSIZE_PARAMS*>(lParam);
                     if (IsZoomed(hWnd) != 0)
                     {
-                        pParams->rgrc[0].top += 12;
-                        pParams->rgrc[0].right -= 12;
-                        pParams->rgrc[0].bottom -= 12;
-                        pParams->rgrc[0].left += 12;
+                        LONG offset = std::lround(8.0f * g_MonitorScale);
+                        pParams->rgrc[0].top += offset;
+                        pParams->rgrc[0].right -= offset;
+                        pParams->rgrc[0].bottom -= offset;
+                        pParams->rgrc[0].left += offset;
                     }
                     else
                     {
+                        LONG offset = std::lround(1.0f * g_MonitorScale);
                         pParams->rgrc[0].top += 1;
-                        pParams->rgrc[0].right -= 2;
-                        pParams->rgrc[0].bottom -= 2;
-                        pParams->rgrc[0].left += 2;
+                        pParams->rgrc[0].right -= offset;
+                        pParams->rgrc[0].bottom -= offset;
+                        pParams->rgrc[0].left += offset;
                     }
                 }
                 return 0;
@@ -77,7 +82,7 @@ namespace LM
                 GetWindowRect(hWnd, &rect);
                 OffsetRect(&rect, -rect.left, -rect.top);
 
-                HBRUSH brush = CreateSolidBrush(RGB(128, 128, 128));
+                HBRUSH brush = CreateSolidBrush(RGB(64, 64, 64));
                 FillRect(hdc, &rect, brush);
                 DeleteObject(brush);
 
@@ -93,7 +98,7 @@ namespace LM
                     GetWindowRect(hWnd, &rect);
                     OffsetRect(&rect, -rect.left, -rect.top);
 
-                    HBRUSH brush = CreateSolidBrush(RGB(128, 128, 128));
+                    HBRUSH brush = CreateSolidBrush(RGB(64, 64, 64));
                     FillRect(hdc, &rect, brush);
                     DeleteObject(brush);
 
@@ -366,8 +371,6 @@ namespace LM
         }
         glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
         m_Window = glfwCreateWindow(m_Data.Width, m_Data.Height, m_Data.Title.c_str(), NULL, NULL);
-        disableTitlebar(m_Window);
-        glfwMaximizeWindow(m_Window);
 
         if (!m_Window)
         {
@@ -381,6 +384,10 @@ namespace LM
             nowMonitor = glfwGetPrimaryMonitor();
         }
         glfwGetMonitorContentScale(nowMonitor, NULL, &m_Data.MonitorScale);
+        g_MonitorScale = m_Data.MonitorScale;
+        disableTitlebar(m_Window);
+        glfwMaximizeWindow(m_Window);
+
         LOG_CORE_INFO("Current monitor: {} scale: {}", static_cast<void*>(nowMonitor), m_Data.MonitorScale);
 
         glfwMakeContextCurrent(m_Window);
@@ -434,6 +441,8 @@ namespace LM
             if (newScale != data.MonitorScale)
             {
                 data.MonitorScale = newScale;
+                g_MonitorScale = newScale;
+
                 WindowMonitorScaleChangedEvent event(newScale);
                 data.EventCallback(event);
             }
@@ -458,6 +467,8 @@ namespace LM
             if (newScale != data.MonitorScale)
             {
                 data.MonitorScale = newScale;
+                g_MonitorScale = newScale;
+
                 WindowMonitorScaleChangedEvent event(newScale);
                 data.EventCallback(event);
             }

@@ -5,8 +5,8 @@
 namespace LM
 {
 
-    void MakeScreenshot(const std::string& _OutputPath);
+    bool MakeScreenshot(const std::string& _OutputPath);
 
-    void MakeScreenshotFromClipboard(const std::string& _OutputPath);
+    bool MakeScreenshotFromClipboard(const std::string& _OutputPath);
 
 }    // namespace LM

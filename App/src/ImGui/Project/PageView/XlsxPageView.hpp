@@ -29,6 +29,18 @@ namespace LM
         std::string Value;
     };
 
+    struct PageImgListItemValue
+    {
+        std::string Cmp = "EQ";
+        std::string CmpValue;
+        std::string ImgFilenameHash;
+    };
+
+    struct PageImgListItem : public SimpleListItemBase
+    {
+        std::vector<PageImgListItemValue> Value;
+    };
+
     class XlsxPageView : public IPageView
     {
     protected:
@@ -118,12 +130,17 @@ namespace LM
         template <DerivedFromSimpleListItemBase T>
         void DrawSimpleListTemplateWindow(std::string_view _WindowName,
                                           std::unordered_map<std::string, std::vector<T>>& _SimpleList,
-                                          std::function<void(std::string_view, T&)> _ItemInputHandle);
+                                          std::function<void(std::string_view, T&)> _ItemInputHandle,
+                                          std::function<std::string(const T&)> _ItemPreviewTextFn);
 
         void DrawSimpleAddListWindow();
         void DrawSimpleCalcListWindow();
-
+        bool PageImgListItemValueFilenameExists(std::string_view _Hash);
+        void DrawSimpleRuleImgListWindow();
         void DrawImgsPerListWindow();
+
+        void DrawImgPreview(std::string_view _ImgFilename);
+        bool DrawImgMakeScreenshot(std::string_view _ImgFilename);
 
         void DrawJoinModal();
         void DrawFindAndReplaceModal();
@@ -147,6 +164,7 @@ namespace LM
         std::optional<const std::reference_wrapper<std::string>> GetExtraListValue(std::string_view _Header);
 
         std::string GetRawImgFilename(std::string_view _Filetype);
+        std::string GetSimpleRuleImgFilename(std::string_view _Filename);
 
         void LoadXLSX();
         void SaveXLSX();
@@ -219,8 +237,7 @@ namespace LM
         std::unordered_map<std::string, std::string> m_GlobalAddList;
         std::unordered_map<std::string, std::vector<SimpleAddListItem>> m_SimpleAddList;
         std::unordered_map<std::string, std::vector<SimpleAddListItem>> m_SimpleCalcList;
-        // TODO: implement
-        // std::unordered_map<std::string, std::vector<PageImgListItem>> m_SimpleRuleImgList;
+        std::unordered_map<std::string, std::vector<PageImgListItem>> m_SimpleRuleImgList;
         std::unordered_map<std::string, std::unordered_map<std::string, std::vector<std::string>>> m_ConstrExamples;
 
         size_t m_HistoryPointer = 0;

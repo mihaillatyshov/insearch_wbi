@@ -1,5 +1,6 @@
 #pragma once
 
+#include <filesystem>
 #include <string>
 #include <vector>
 
@@ -50,8 +51,11 @@ namespace LM
         inline const std::string& GetFolder() const { return m_Folder; }
         inline void SetFolder(std::string_view _Folder) { m_Folder = _Folder; }
         const std::string GetPathInFolder(std::string_view _Path) const;
+        std::string GetPathInFolderAndCreateDirs(std::string_view _Path) const;
 
         inline std::string GetProjectFilename() const { return GetPathInFolder(s_ProjectFileName); }
+        inline std::filesystem::path GetDataFolder() const { return GetPathInFolderAndCreateDirs("data"); }
+        inline std::filesystem::path GetBackupFolder() const { return GetPathInFolderAndCreateDirs("backup"); }
         inline std::string GetCatalogFilename() const { return GetPathInFolder("data/catalog/catalog.pdf"); }
         inline std::string GetTmpPath() const { return GetPathInFolder("tmp/"); }
 
@@ -71,6 +75,12 @@ namespace LM
         {
             return GetPathInFolderAndCreateDirs("data/excel/img_raw/");
         }
+        std::string GetExcelTablesTypeSimpleRuleImgsPath() const
+        {
+            return GetPathInFolderAndCreateDirs("data/excel/img_simple/");
+        }
+
+        void MakeBackup();
 
         // =========== Catalog ================================================
         inline std::string GetCatalogBaseFilename() const { return m_Catalog.BaseFileName; }
@@ -142,8 +152,6 @@ namespace LM
 
         static inline const Ref<Project> s_ProjectNotOpen = Ref<Project>();
         static inline const std::string s_ProjectFileName = "project.lmproj";
-
-        std::string GetPathInFolderAndCreateDirs(std::string_view _Path) const;
 
     private:
         Project(std::string_view _Folder = std::string());

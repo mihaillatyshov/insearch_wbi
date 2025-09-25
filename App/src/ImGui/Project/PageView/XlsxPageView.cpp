@@ -8,7 +8,6 @@
 
 #include "Engine/Utils/Log.hpp"
 #include "Engine/Utils/json.hpp"
-#include "Engine/Utils/utf8.h"
 #include "Utils/MakeScreenshot.hpp"
 
 #include "glm/common.hpp"
@@ -19,6 +18,7 @@
 #include <imstb_textedit.h>
 #include <limits>
 #include <misc/cpp/imgui_stdlib.h>
+#include <random>
 #include <xlnt/xlnt.hpp>
 
 #include <array>
@@ -111,6 +111,23 @@ namespace LM
 
     const std::vector<std::string> kProductBaseFields = { "fulldescription", "lcs", "moq", "codem" };
     const std::vector<std::string> kImgFileTypeList = { "pic", "drw" };
+
+    std::string Random64CharStr()
+    {
+        const std::string chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+        std::string result;
+        result.reserve(64);    // заранее резервируем память
+
+        std::random_device rd;     // источник энтропии
+        std::mt19937 gen(rd());    // генератор случайных чисел
+        std::uniform_int_distribution<size_t> dist(0, chars.size() - 1);
+
+        for (int i = 0; i < 64; ++i)
+        {
+            result += chars[dist(gen)];
+        }
+        return result;
+    }
 
     inline bool DeleteButton()
     {
@@ -215,6 +232,8 @@ namespace LM
 
         DrawSimpleAddListWindow();
         DrawSimpleCalcListWindow();
+        DrawSimpleRuleImgListWindow();
+
         DrawImgsPerListWindow();
 
         DrawJoinModal();
@@ -411,13 +430,13 @@ namespace LM
                         ImGui::ActivateItemByID(ImGui::GetItemID());
                     }
 
-                    if (ImGui::IsItemActive() && ImGui::IsItemEdited() == false)
+                    if (ImGui::IsItemActivated() && ImGui::IsItemEdited() == false)
                     {
                         ImGuiInputTextState* state = ImGui::GetInputTextState(ImGui::GetItemID());
                         if (state)
                         {
                             state->CursorAnimReset();    // сброс мигания
-                            state->CursorClamp();    // убедиться, что курсор в допустимых границах
+                            state->CursorClamp();        // убедиться, что курсор в допустимых границах
                             state->ClearSelection();
                         }
                     }
@@ -761,7 +780,8 @@ namespace LM
     template <DerivedFromSimpleListItemBase T>
     void XlsxPageView::DrawSimpleListTemplateWindow(std::string_view _WindowName,
                                                     std::unordered_map<std::string, std::vector<T>>& _SimpleList,
-                                                    std::function<void(std::string_view, T&)> _ItemInputHandle)
+                                                    std::function<void(std::string_view, T&)> _ItemInputHandle,
+                                                    std::function<std::string(const T&)> _ItemPreviewTextFn)
     {
         std::string toDeleteName;
 
@@ -839,7 +859,7 @@ namespace LM
                     if (ImGui::Selectable(std::format("{}\n{}", fieldDescr.Description, fieldName).c_str(), false))
                     {
                         _SimpleList.try_emplace(fieldName);
-                        _SimpleList[fieldName].push_back({ { { m_LoadedPageId } }, "" });
+                        _SimpleList[fieldName].push_back({ { { m_LoadedPageId } }, {} });
                         m_ExtraInfoAutoFocusField = ExtraInfoAutoFocusField {
                             .WindowName = _WindowName.data(),
                             .Field = fieldName,
@@ -860,10 +880,10 @@ namespace LM
                             ImGui::SameLine();
                             ImGui::BeginGroup();
                             ImGui::SetNextItemAllowOverlap();
-                            if (ImGui::Selectable(
-                                    std::format("{}\n\t##{}", simpleListItem.Value, static_cast<void*>(&simpleListItem))
-                                        .c_str(),
-                                    false))
+                            if (ImGui::Selectable(std::format("{}\n\t##{}", _ItemPreviewTextFn(simpleListItem),
+                                                              static_cast<void*>(&simpleListItem))
+                                                      .c_str(),
+                                                  false))
                             {
                                 sharedPages.push_back(m_LoadedPageId);
                                 std::ranges::sort(sharedPages);
@@ -938,9 +958,11 @@ namespace LM
 
         if (ImGui::Begin(windowTitle.c_str()))
         {
-            DrawSimpleListTemplateWindow(windowTitle, m_SimpleAddList, handle);
+            std::function<std::string(const SimpleAddListItem&)> previewTextFn =
+                [](const SimpleAddListItem& _SimpleListItem) { return _SimpleListItem.Value; };
+            DrawSimpleListTemplateWindow(windowTitle, m_SimpleAddList, handle, previewTextFn);
+            ImGui::End();
         }
-        ImGui::End();
     }
 
     void XlsxPageView::DrawSimpleCalcListWindow()
@@ -953,7 +975,6 @@ namespace LM
                 ImGui::GetStyle().FramePadding.y * 2;
             ImGui::InputTextMultiline(std::format("##{}", _SimpleListFieldName).c_str(), &_SimpleListItem.Value,
                                       { 0.0f, height });
-            // ImGui::InputText(std::format("##{}", _SimpleListFieldName).c_str(), &_SimpleListItem.Value);
         };
 
         if (ImGui::Begin(windowTitle.c_str()))
@@ -962,7 +983,94 @@ namespace LM
                 "Python code. Example: result.append(df['bsg'][i].replace(' ', '_') + ':N' + str(df['dcon'][i]))");
             ImGui::Separator();
 
-            DrawSimpleListTemplateWindow(windowTitle, m_SimpleCalcList, handle);
+            std::function<std::string(const SimpleAddListItem&)> previewTextFn =
+                [](const SimpleAddListItem& _SimpleListItem) { return _SimpleListItem.Value; };
+            DrawSimpleListTemplateWindow(windowTitle, m_SimpleCalcList, handle, previewTextFn);
+        }
+        ImGui::End();
+    }
+
+    bool XlsxPageView::PageImgListItemValueFilenameExists(std::string_view _Hash)
+    {
+        for (auto& [key, list] : m_SimpleRuleImgList)
+        {
+            for (auto& page : list)
+            {
+                for (auto& v : page.Value)
+                {
+                    if (v.ImgFilenameHash == _Hash)
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    void XlsxPageView::DrawSimpleRuleImgListWindow()
+    {
+        std::string windowTitle = "Картинки по условию на странице";
+
+        std::function<void(std::string_view, PageImgListItem&)> handle = [&](std::string_view _SimpleListFieldName,
+                                                                             PageImgListItem& _SimpleListItem) {
+            // ImGui::Text("%s", Random64CharStr().data());
+            // TODO: Add Cmp
+
+            if (ImGui::Button("Добавить новое правило"))
+            {
+                std::string newFileName;
+                do
+                {
+                    newFileName = Random64CharStr();
+                }
+                while (PageImgListItemValueFilenameExists(newFileName));
+                _SimpleListItem.Value.emplace_back(PageImgListItemValue { .ImgFilenameHash = newFileName });
+            }
+            ImGui::Separator();
+
+            for (auto& v : _SimpleListItem.Value)
+            {
+                ImGui::PushID(v.ImgFilenameHash.c_str());
+
+                ImGui::Text("Сравнение по: %s", v.Cmp.c_str());
+                ImGui::InputText("##Value", &v.CmpValue);
+
+                for (std::string_view filetype : kImgFileTypeList)
+                {
+                    ImGui::PushID(filetype.data());
+
+                    ImGui::SeparatorText(filetype == "pic" ? "Фото" : "Чертеж");
+
+                    std::string imgFilename =
+                        GetSimpleRuleImgFilename(std::format("{}_{}.png", v.ImgFilenameHash, filetype));
+                    DrawImgPreview(imgFilename);
+                    DrawImgMakeScreenshot(imgFilename);
+
+                    ImGui::PopID();
+                }
+
+                ImGui::PopID();
+                ImGui::Separator();
+            }
+
+            // float height =
+            //     ImGui::GetTextLineHeight() * static_cast<float>(std::ranges::count(_SimpleListItem.Value,
+            //     '\n') + 1)
+            //     + ImGui::GetStyle().FramePadding.y * 2;
+            // ImGui::InputTextMultiline(std::format("##{}", _SimpleListFieldName).c_str(),
+            // &_SimpleListItem.Value,
+            //                           { 0.0f, height });
+            // ImGui::InputText(std::format("##{}", _SimpleListFieldName).c_str(), &_SimpleListItem.Value);
+        };
+
+        std::function<std::string(const PageImgListItem&)> previewTextFn = [](const PageImgListItem& _SimpleListItem) {
+            return "Используются на:";
+        };
+        if (ImGui::Begin(windowTitle.c_str()))
+        {
+            DrawSimpleListTemplateWindow(windowTitle, m_SimpleRuleImgList, handle, previewTextFn);
         }
         ImGui::End();
     }
@@ -974,9 +1082,6 @@ namespace LM
             return;
         }
 
-        static float elementHeight = ImGui::GetFontSize() * 10;
-        float elementWidth = elementHeight * 3;
-
         // TODO: Implement Buttons
         if (ImGui::Begin("Картинки для страницы"))
         {
@@ -987,48 +1092,61 @@ namespace LM
 
                 ImGui::SeparatorText(filetype == "pic" ? "Фото" : "Чертеж");
 
-                Ref<Texture2D> texture = nullptr;
-                const std::string imgFilename = GetRawImgFilename(filetype);
-                if (TextureManager::Contains(imgFilename))
-                {
-                    texture = TextureManager::Get(imgFilename);
-                }
-                else if (std::filesystem::exists(imgFilename))
-                {
-                    texture = TextureManager::AddOrReplace(imgFilename);
-                }
+                std::string imgFilename = GetRawImgFilename(filetype);
 
-                if (texture)
-                {
-                    elementWidth = ImGui::GetContentRegionAvail().x;
-                    float imgSizeCoef =
-                        glm::min(elementWidth / texture->GetWidth(), elementHeight / texture->GetHeight());
-                    ImVec2 imgSize { texture->GetWidth() * imgSizeCoef, texture->GetHeight() * imgSizeCoef };
-                    ImGui::Image(reinterpret_cast<ImTextureID>(texture->GetTextureId()), imgSize);
-                }
-                else
-                {
-                    ImGui::Button("##empty", { elementHeight, elementHeight });
-                }
-
-                if (ImGui::Button("Сделать скиншот"))
-                {
-                    const std::string imgFilename = GetRawImgFilename(filetype);
-                    MakeScreenshot(imgFilename);
-                    TextureManager::RemoveFile(imgFilename);
-                }
-                ImGui::SameLine();
-                if (ImGui::Button("Вставить из буфера"))
-                {
-                    const std::string imgFilename = GetRawImgFilename(filetype);
-                    MakeScreenshotFromClipboard(imgFilename);
-                    TextureManager::RemoveFile(imgFilename);
-                }
+                DrawImgPreview(imgFilename);
+                DrawImgMakeScreenshot(imgFilename);
 
                 ImGui::PopID();
             }
         }
         ImGui::End();
+    }
+
+    void XlsxPageView::DrawImgPreview(std::string_view _ImgFilename)
+    {
+        static float elementHeight = ImGui::GetFontSize() * 10;
+
+        Ref<Texture2D> texture = nullptr;
+        if (TextureManager::Contains(_ImgFilename.data()))
+        {
+            texture = TextureManager::Get(_ImgFilename);
+        }
+        else if (std::filesystem::exists(_ImgFilename))
+        {
+            texture = TextureManager::AddOrReplace(_ImgFilename);
+        }
+
+        if (texture)
+        {
+            float elementWidth = ImGui::GetContentRegionAvail().x;
+            float imgSizeCoef = glm::min(elementWidth / texture->GetWidth(), elementHeight / texture->GetHeight());
+            ImVec2 imgSize { texture->GetWidth() * imgSizeCoef, texture->GetHeight() * imgSizeCoef };
+            ImGui::Image(reinterpret_cast<ImTextureID>(texture->GetTextureId()), imgSize);
+        }
+        else
+        {
+            ImGui::Button("##empty", { elementHeight, elementHeight });
+        }
+    }
+
+    bool XlsxPageView::DrawImgMakeScreenshot(std::string_view _ImgFilename)
+    {
+        bool res = false;
+        if (ImGui::Button("Сделать скиншот"))
+        {
+            res = MakeScreenshot(_ImgFilename.data());
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Вставить из буфера"))
+        {
+            res = MakeScreenshotFromClipboard(_ImgFilename.data());
+        }
+        if (res)
+        {
+            TextureManager::RemoveFile(_ImgFilename);
+        }
+        return res;
     }
 
     void XlsxPageView::DrawJoinModal()
@@ -1612,6 +1730,11 @@ namespace LM
         return (std::filesystem::path(m_Project->GetExcelTablesTypeRawImgsPath()) / filename).string();
     }
 
+    std::string XlsxPageView::GetSimpleRuleImgFilename(std::string_view _Filename)
+    {
+        return (std::filesystem::path(m_Project->GetExcelTablesTypeSimpleRuleImgsPath()) / _Filename).string();
+    }
+
     void XlsxPageView::LoadXLSX()
     {
         m_LoadedPageId = -1;
@@ -1791,6 +1914,32 @@ namespace LM
                     }
                 }
             }
+
+            if (json.contains("per_page_simple_rule_img_list"))
+            {
+                for (const auto& item : json["per_page_simple_rule_img_list"])
+                {
+                    m_SimpleRuleImgList.try_emplace(item["name"]);
+                    for (const auto& values : item["values"])
+                    {
+                        std::vector<int> index;
+                        values["index"].get_to(index);
+
+                        std::vector<PageImgListItemValue> list;
+
+                        for (const auto& listItem : values["list"])
+                        {
+                            list.push_back({
+                                .Cmp = listItem["cmp"],
+                                .CmpValue = listItem["cmp_value"],
+                                .ImgFilenameHash = listItem["img_filename_hash"],
+                            });
+                        }
+
+                        m_SimpleRuleImgList[item["name"]].push_back({ { index }, list });
+                    }
+                }
+            }
         }
         catch (...)
         {
@@ -1861,6 +2010,37 @@ namespace LM
             }
 
             result["per_page_calc_list"].push_back(jsonItems);
+        }
+
+        for (const auto& [name, items] : m_SimpleRuleImgList)
+        {
+            if (items.size() == 0)
+            {
+                continue;
+            }
+
+            nlohmann::json jsonItems = {
+                {   "name",                    name },
+                { "values", nlohmann::json::array() }
+            };
+            for (const PageImgListItem& item : items)
+            {
+                nlohmann::json jsonList = nlohmann::json::array();
+                for (const PageImgListItemValue& listItem : item.Value)
+                {
+                    jsonList.push_back(nlohmann::json {
+                        {               "cmp",             listItem.Cmp },
+                        {         "cmp_value",        listItem.CmpValue },
+                        { "img_filename_hash", listItem.ImgFilenameHash }
+                    });
+                }
+                jsonItems["values"].push_back(nlohmann::json {
+                    { "index", item.SharedPages },
+                    {  "list",         jsonList }
+                });
+            }
+
+            result["per_page_simple_rule_img_list"].push_back(jsonItems);
         }
 
         fout << std::setw(4) << result;

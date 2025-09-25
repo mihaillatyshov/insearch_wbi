@@ -3,8 +3,8 @@
 #include "ImGui/Overlays/Overlay.h"
 #include "Serializer/Serializer.h"
 
-#include "Engine/Utils/Log.hpp"
 #include "Engine/Utils/FileDialogs.h"
+#include "Engine/Utils/Log.hpp"
 #include "Engine/Utils/json.hpp"
 #include "Engine/Utils/utf8.h"
 
@@ -85,6 +85,8 @@ namespace LM
                 project->m_Catalog.NeedRebuild ? Catalog::CreateDefaultLastBuildCatalog() : project->m_Catalog;
             Overlay::Get()->Start(Format("Проект успешно открыт: \n{}", _FileName));
 
+            project->MakeBackup();
+
             return project;
         }
         catch (...)
@@ -140,6 +142,29 @@ namespace LM
     std::string Project::GetPdfTablesWithOcrTypeRawExcelPath() const
     {
         return GetPathInFolderAndCreateDirs("data/catalog/raw_xlsx/");
+    }
+
+    void Project::MakeBackup()
+    {
+        try
+        {
+            auto now = std::chrono::system_clock::now();
+            std::string timestamp = std::format("{:%Y-%m-%d_%H-%M-%S}", now);
+            std::filesystem::path source = GetDataFolder();
+            std::filesystem::path backup = GetBackupFolder() / ("data_" + timestamp);
+
+            std::filesystem::create_directories(backup);
+
+            std::filesystem::copy(source, backup,
+                                  std::filesystem::copy_options::recursive |
+                                      std::filesystem::copy_options::overwrite_existing);
+
+            LOG_CORE_INFO("Бэкап завершён успешно.");
+        }
+        catch (const std::filesystem::filesystem_error& e)
+        {
+            Overlay::Get()->Start(Format("Не удалось сохранить бэкап: \n{}", e.what()));
+        }
     }
 
     bool Project::IsPageInGeneratedCatalogExcludePages(uint32_t _PageId) const

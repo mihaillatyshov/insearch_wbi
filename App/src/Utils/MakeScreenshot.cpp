@@ -22,6 +22,7 @@ namespace LM
         POINT g_ptEnd = { 0, 0 };
         bool g_selecting = false;
         std::wstring g_savePath = L"screenshot.png";
+        bool g_IsSaveResultOk = false;
     }    // namespace
 
     std::wstring StringToWString(const std::string& s)
@@ -101,6 +102,7 @@ namespace LM
                     PostQuitMessage(0);
 
                     CaptureRect(rc, g_savePath);
+                    g_IsSaveResultOk = true;
                 }
                 return 0;
             }
@@ -132,7 +134,7 @@ namespace LM
             case WM_KEYDOWN: {
                 if (wParam == VK_ESCAPE)
                 {
-
+                    g_selecting = false;
                     DestroyWindow(hwnd);
                     PostQuitMessage(0);
                 }
@@ -174,8 +176,9 @@ namespace LM
         }
     }
 
-    void MakeScreenshot(const std::string& outputPath)
+    bool MakeScreenshot(const std::string& outputPath)
     {
+        g_IsSaveResultOk = false;
         Gdiplus::GdiplusStartupInput gdiplusStartupInput;
         ULONG_PTR gdiplusToken;
         GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, nullptr);
@@ -183,35 +186,36 @@ namespace LM
         RunSnippingOverlay(StringToWString(outputPath));
 
         Gdiplus::GdiplusShutdown(gdiplusToken);
+
+        return g_IsSaveResultOk;
     }
 
-    void MakeScreenshotFromClipboard(const std::string& _OutputPath)
+    bool MakeScreenshotFromClipboard(const std::string& _OutputPath)
     {
+        g_IsSaveResultOk = false;
         if (!OpenClipboard(nullptr))
         {
-            return;
+            return false;
         }
 
         HBITMAP hBitmap = (HBITMAP)GetClipboardData(CF_BITMAP);
         if (!hBitmap)
         {
             CloseClipboard();
-            return;
+            return false;
         }
 
-        // Инициализация GDI+
         Gdiplus::GdiplusStartupInput gdiplusStartupInput;
         ULONG_PTR gdiplusToken;
         if (Gdiplus::GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, nullptr) != Gdiplus::Ok)
         {
             CloseClipboard();
-            return;
+            return false;
         }
 
         {
             Gdiplus::Bitmap bmp(hBitmap, nullptr);
 
-            // CLSID для PNG
             CLSID clsid;
             {
                 UINT num = 0, size = 0;
@@ -220,7 +224,7 @@ namespace LM
                 {
                     Gdiplus::GdiplusShutdown(gdiplusToken);
                     CloseClipboard();
-                    return;
+                    return false;
                 }
                 auto* pImageCodecInfo = (Gdiplus::ImageCodecInfo*)(malloc(size));
                 GetImageEncoders(num, size, pImageCodecInfo);
@@ -239,12 +243,14 @@ namespace LM
             {
                 Gdiplus::GdiplusShutdown(gdiplusToken);
                 CloseClipboard();
-                return;
+                return false;
             }
         }
 
         Gdiplus::GdiplusShutdown(gdiplusToken);
         CloseClipboard();
+
+        return true;
     }
 
 }    // namespace LM
