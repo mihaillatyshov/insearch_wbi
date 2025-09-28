@@ -34,6 +34,41 @@ namespace LM
         return false;
     }
 
+    glm::ivec4 calcOffset(HWND hWnd)
+    {
+        if (IsZoomed(hWnd) != 0)
+        {
+            LONG offset = std::lround(8.0f * g_MonitorScale);
+            return { offset, offset, offset, offset };
+        }
+        else
+        {
+            LONG offset = std::lround(1.0f * g_MonitorScale);
+            return { 1, offset, offset, offset };
+        }
+    }
+
+    void DrawBorder(HWND hWnd)
+    {
+        HDC hdc = GetWindowDC(hWnd);
+        RECT rect;
+        GetWindowRect(hWnd, &rect);
+        OffsetRect(&rect, -rect.left, -rect.top);
+
+        HPEN hPen = CreatePen(PS_SOLID, std::lround(2.0f * g_MonitorScale), RGB(64, 64, 64));
+        HPEN oldPen = (HPEN)SelectObject(hdc, hPen);
+        HBRUSH hBrush = (HBRUSH)GetStockObject(NULL_BRUSH);
+        HBRUSH oldBrush = (HBRUSH)SelectObject(hdc, hBrush);
+
+        Rectangle(hdc, rect.left, rect.top, rect.right, rect.bottom);
+
+        SelectObject(hdc, oldPen);
+        SelectObject(hdc, oldBrush);
+        DeleteObject(hPen);
+
+        ReleaseDC(hWnd, hdc);
+    }
+
     LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     {
         // if (uMsg != 124 && uMsg != 125)
@@ -44,91 +79,34 @@ namespace LM
         switch (uMsg)
         {
             case WM_NCCALCSIZE: {
-                // LOG_CORE_WARN("NC CALC SIZE");
                 if (wParam == TRUE && lParam != NULL)
                 {
                     NCCALCSIZE_PARAMS* pParams = reinterpret_cast<NCCALCSIZE_PARAMS*>(lParam);
-                    if (IsZoomed(hWnd) != 0)
-                    {
-                        LONG offset = std::lround(8.0f * g_MonitorScale);
-                        pParams->rgrc[0].top += offset;
-                        pParams->rgrc[0].right -= offset;
-                        pParams->rgrc[0].bottom -= offset;
-                        pParams->rgrc[0].left += offset;
-                    }
-                    else
-                    {
-                        LONG offset = std::lround(1.0f * g_MonitorScale);
-                        pParams->rgrc[0].top += 1;
-                        pParams->rgrc[0].right -= offset;
-                        pParams->rgrc[0].bottom -= offset;
-                        pParams->rgrc[0].left += offset;
-                    }
+                    glm::ivec4 offset = calcOffset(hWnd);
+                    pParams->rgrc[0].top += offset[0];
+                    pParams->rgrc[0].right -= offset[1];
+                    pParams->rgrc[0].bottom -= offset[2];
+                    pParams->rgrc[0].left += offset[3];
                 }
                 return 0;
             }
-            case WM_NCACTIVATE:
+            case WM_NCACTIVATE: return 0;
+            case WM_ACTIVATE: return 0;
             case WM_NCPAINT: {
                 LOG_CORE_WARN("NC PT");
-
-                LRESULT res = 0;
-                if (uMsg != WM_NCPAINT)
-                {
-                    res = CallWindowProc(original_proc, hWnd, uMsg, wParam, lParam);
-                }
-
-                HDC hdc = GetWindowDC(hWnd);
-                RECT rect;
-                GetWindowRect(hWnd, &rect);
-                OffsetRect(&rect, -rect.left, -rect.top);
-
-                HBRUSH brush = CreateSolidBrush(RGB(64, 64, 64));
-                FillRect(hdc, &rect, brush);
-                DeleteObject(brush);
-
-                ReleaseDC(hWnd, hdc);
-
-                return res;
+                DrawBorder(hWnd);
+                return 0;
             }
             case WM_PAINT: {
-                LOG_CORE_WARN("PT");
-                {
-                    HDC hdc = GetWindowDC(hWnd);
-                    RECT rect;
-                    GetWindowRect(hWnd, &rect);
-                    OffsetRect(&rect, -rect.left, -rect.top);
 
-                    HBRUSH brush = CreateSolidBrush(RGB(64, 64, 64));
-                    FillRect(hdc, &rect, brush);
-                    DeleteObject(brush);
+                PAINTSTRUCT ps;
+                BeginPaint(hWnd, &ps);
+                EndPaint(hWnd, nullptr);
 
-                    ReleaseDC(hWnd, hdc);
-                }
-
-                {
-                    PAINTSTRUCT ps;
-                    HDC hdc = BeginPaint(hWnd, &ps);
-
-                    RECT rc;
-                    GetClientRect(hWnd, &rc);
-
-                    RECT rcTitle = rc;
-                    rcTitle.bottom = static_cast<LONG>(Application::Get().GetMainMenuFrameHeight());
-                    HBRUSH hBrush = CreateSolidBrush(RGB(0, 120, 215));    // синий как в Win10
-                    FillRect(hdc, &rcTitle, hBrush);
-                    DeleteObject(hBrush);
-
-                    // Текст заголовка
-                    SetBkMode(hdc, TRANSPARENT);
-                    SetTextColor(hdc, RGB(255, 255, 255));
-                    DrawText(hdc, "Based On Vega Engine", -1, &rcTitle, DT_SINGLELINE | DT_VCENTER | DT_CENTER);
-
-                    EndPaint(hWnd, &ps);
-                }
+                DrawBorder(hWnd);
                 return 0;
             }
             case WM_NCHITTEST: {
-                // LOG_CORE_WARN("HT");
                 const int borderWidth = 8;
 
                 POINT mousePos = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
@@ -183,8 +161,6 @@ namespace LM
                 }
 
                 return HTCLIENT;
-
-                break;
             }
         }
 
