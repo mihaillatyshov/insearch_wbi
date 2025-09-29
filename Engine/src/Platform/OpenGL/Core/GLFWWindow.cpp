@@ -90,8 +90,13 @@ namespace LM
                 }
                 return 0;
             }
-            case WM_NCACTIVATE: return 0;
-            case WM_ACTIVATE: return 0;
+            // case WM_NCACTIVATE:
+            // case WM_ACTIVATE: {
+            //     LRESULT res = DefWindowProc(hWnd, uMsg, wParam, lParam);
+            //     // LONG res = CallWindowProc(original_proc, hWnd, uMsg, wParam, lParam);
+            //     DrawBorder(hWnd);
+            //     return res;
+            // }
             case WM_NCPAINT: {
                 LOG_CORE_WARN("NC PT");
                 DrawBorder(hWnd);
