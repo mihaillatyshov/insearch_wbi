@@ -16,6 +16,8 @@
 #define _UNICODE
 #include <Windows.h>
 #include <Windowsx.h>
+// #include <dwmapi.h>
+// #pragma comment(lib, "dwmapi.lib")
 
 namespace LM
 {
@@ -90,7 +92,7 @@ namespace LM
                 }
                 return 0;
             }
-            // case WM_NCACTIVATE:
+            case WM_NCACTIVATE: return 1;
             // case WM_ACTIVATE: {
             //     LRESULT res = DefWindowProc(hWnd, uMsg, wParam, lParam);
             //     // LONG res = CallWindowProc(original_proc, hWnd, uMsg, wParam, lParam);
@@ -182,6 +184,8 @@ namespace LM
         // lStyle &= ~WS_BORDER;
         // lStyle &= ~WS_DLGFRAME;
         SetWindowLongPtr(hWnd, GWL_STYLE, lStyle);
+        // MARGINS margins = {0, 0, 0, 0};
+        // DwmExtendFrameIntoClientArea(hWnd, &margins);
 
         RECT windowRect;
         GetWindowRect(hWnd, &windowRect);
