@@ -112,6 +112,8 @@ namespace LM
 
         virtual bool OnPageWillBeChanged(int _CurrentPageId, int _NewPageId) override;
 
+        virtual void Save() override;
+
     protected:
         virtual std::string GetBasePath() const override { return m_Project->GetExcelTablesTypeStartupPath(); }
         virtual const char* GetWindowName() const override { return "Первый Excel"; }

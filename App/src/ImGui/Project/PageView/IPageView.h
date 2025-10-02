@@ -18,6 +18,7 @@ namespace LM
         virtual bool OnPageWillBeChanged(int _CurrentPageId, int _NewPageId) { return true; }
 
         // virtual bool OnAppClose();
+        virtual void Save() { };
 
     protected:
         virtual std::string GetBasePath() const = 0;
@@ -26,8 +27,8 @@ namespace LM
 
         virtual void DrawWindowContent() = 0;
 
-        virtual void DrawTopMenuExtras() {};
-        virtual void DrawExtras() {};
+        virtual void DrawTopMenuExtras() { };
+        virtual void DrawExtras() { };
 
     protected:
         Ref<Project> m_Project;

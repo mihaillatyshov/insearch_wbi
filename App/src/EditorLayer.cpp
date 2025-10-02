@@ -321,6 +321,7 @@ namespace LM
     {
         if (Ref<Project> project = Project::Open(); project != Project::s_ProjectNotOpen)
         {
+            CloseProject();
             m_Project = project;
             m_SetupProjectWindow.Open();
             SaveLastProjectPath();
@@ -329,6 +330,7 @@ namespace LM
 
     void EditorLayer::NewProject()
     {
+        CloseProject();
         m_CreateNewProject.Open();
         /*if (Ref<Project> project = Project::New(); project != Project::s_ProjectNotOpen)
         {
@@ -350,6 +352,8 @@ namespace LM
 
     void EditorLayer::CloseProject()
     {
+        PageViewManager::Save();
+        PageViewManager::Clear();
         ClearLastProjectPath();
         m_Project = Project::s_ProjectNotOpen;
     }

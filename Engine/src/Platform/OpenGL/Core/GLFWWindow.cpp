@@ -6,7 +6,6 @@
 #include "Engine/Events/WindowEvent.h"
 #include "Engine/Utils/Log.hpp"
 #include "GLFW/glfw3.h"
-#include "glm/common.hpp"
 #include <cmath>
 
 #define GLFW_EXPOSE_NATIVE_WIN32

@@ -76,80 +76,9 @@ inline std::string StrJoin(const std::vector<std::string>& _Array, const std::st
     return result;
 }
 
-static const std::vector<std::pair<std::string_view, std::string_view>> letters = {
-    { "А", "а" },
-    { "Б", "б" },
-    { "В", "в" },
-    { "Г", "г" },
-    { "Д", "д" },
-    { "Е", "е" },
-    { "Ё", "ё" },
-    { "Ж", "ж" },
-    { "З", "з" },
-    { "И", "и" },
-    { "Й", "й" },
-    { "К", "к" },
-    { "Л", "л" },
-    { "М", "м" },
-    { "Н", "н" },
-    { "О", "о" },
-    { "П", "п" },
-    { "Р", "р" },
-    { "С", "с" },
-    { "Т", "т" },
-    { "У", "у" },
-    { "Ф", "ф" },
-    { "Х", "х" },
-    { "Ц", "ц" },
-    { "Ч", "ч" },
-    { "Ш", "ш" },
-    { "Щ", "щ" },
-    { "Ъ", "ъ" },
-    { "Ы", "ы" },
-    { "Ь", "ь" },
-    { "Э", "э" },
-    { "Ю", "ю" },
-    { "Я", "я" },
-
-    { "A", "a" },
-    { "B", "b" },
-    { "C", "c" },
-    { "D", "d" },
-    { "E", "e" },
-    { "F", "f" },
-    { "G", "g" },
-    { "H", "h" },
-    { "I", "i" },
-    { "J", "j" },
-    { "K", "k" },
-    { "L", "l" },
-    { "M", "m" },
-    { "N", "n" },
-    { "O", "o" },
-    { "P", "p" },
-    { "Q", "q" },
-    { "R", "r" },
-    { "S", "s" },
-    { "T", "t" },
-    { "U", "u" },
-    { "V", "v" },
-    { "W", "w" },
-    { "X", "x" },
-    { "Y", "y" },
-    { "Z", "z" }
-};
-
-inline std::string StrToLowerRu(std::string_view input)
+inline std::string StrTrim(const std::string& s)
 {
-    std::string result(input);    // создаём рабочую копию для замены
-    for (const auto& p : letters)
-    {
-        size_t pos = 0;
-        while ((pos = result.find(p.first, pos)) != std::string::npos)
-        {
-            result.replace(pos, p.first.size(), p.second);
-            pos += p.second.size();    // смещаемся дальше
-        }
-    }
-    return result;
+    auto start = std::find_if_not(s.begin(), s.end(), [](unsigned char ch) { return std::isspace(ch); });
+    auto end = std::find_if_not(s.rbegin(), s.rend(), [](unsigned char ch) { return std::isspace(ch); }).base();
+    return (start < end ? std::string(start, end) : std::string());
 }

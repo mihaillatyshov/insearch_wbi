@@ -14,6 +14,25 @@ namespace LM
 
     PageViewManager::PageViewManager() { }
 
+    bool PageViewManager::Save()
+    {
+        for (auto& [managerHash, manager] : s_Managers)
+        {
+            for (auto& view : manager->m_Views)
+            {
+                view->Save();
+            }
+        }
+
+        return true;
+    }
+
+    bool PageViewManager::Clear()
+    {
+        s_Managers.clear();
+        return true;
+    }
+
     bool PageViewManager::OnAppClose(Ref<Project> _Project)
     {
         for (auto& [managerHash, manager] : s_Managers)

@@ -10,12 +10,20 @@ namespace LM
     class PythonCommand
     {
     public:
+    public:
+        struct ArgType
+        {
+            std::string Arg;
+            std::string ArgName;
+        };
+
+    public:
         PythonCommand(std::string_view _Script);
 
-        void AddArg(std::string_view _Arg);
-        void AddArg(bool _Arg);
-        void AddArg(float _Arg);
-        void AddArg(int _Arg);
+        void AddArg(std::string_view _Arg, std::string_view _ArgName = "");
+        void AddArg(bool _Arg, std::string_view _ArgName = "");
+        void AddArg(float _Arg, std::string_view _ArgName = "");
+        void AddArg(int _Arg, std::string_view _ArgName = "");
 
         void Execute(std::function<void(const char*)> _LinePrintCallback = nullptr);
 
@@ -26,7 +34,7 @@ namespace LM
 
     protected:
         std::string m_Script;
-        std::vector<std::string> m_Args;
+        std::vector<ArgType> m_Args;
     };
 
 }    // namespace LM

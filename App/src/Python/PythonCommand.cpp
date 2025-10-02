@@ -18,15 +18,27 @@ namespace LM
 
     PythonCommand::PythonCommand(std::string_view _Script) : m_Script(_Script) { }
 
-    void PythonCommand::AddArg(std::string_view _Arg) { m_Args.emplace_back(_Arg); }
+    void PythonCommand::AddArg(std::string_view _Arg, std::string_view _ArgName)
+    {
+        m_Args.emplace_back(ArgType { .Arg = _Arg.data(), .ArgName = _ArgName.data() });
+    }
 
-    void PythonCommand::AddArg(bool _Arg) { m_Args.emplace_back(_Arg ? "1" : "0"); }
+    void PythonCommand::AddArg(bool _Arg, std::string_view _ArgName)
+    {
+        m_Args.emplace_back(ArgType { .Arg = _Arg ? "1" : "0", .ArgName = _ArgName.data() });
+    }
 
-    void PythonCommand::AddArg(float _Arg) { m_Args.emplace_back(std::to_string(_Arg)); }
+    void PythonCommand::AddArg(float _Arg, std::string_view _ArgName)
+    {
+        m_Args.emplace_back(ArgType { .Arg = std::to_string(_Arg), .ArgName = _ArgName.data() });
+    }
 
-    void PythonCommand::AddArg(int _Arg) { m_Args.emplace_back(std::to_string(_Arg)); }
+    void PythonCommand::AddArg(int _Arg, std::string_view _ArgName)
+    {
+        m_Args.emplace_back(ArgType { .Arg = std::to_string(_Arg), .ArgName = _ArgName.data() });
+    }
 
-    std::string PythonCommand::GetFullCommand() { return GetCommand() + " " + m_Script + " " + GetArgs(); }
+    std::string PythonCommand::GetFullCommand() { return GetCommand() + ' ' + m_Script + ' ' + GetArgs(); }
 
     std::string PythonCommand::GetCommand()
     {
@@ -42,7 +54,7 @@ namespace LM
         std::string result;
         for (const auto& arg : m_Args)
         {
-            result += '"' + arg + '"' + ' ';
+            result += arg.ArgName + ' ' + '"' + arg.Arg + '"' + ' ';
         }
         return result;
     }

@@ -3,7 +3,9 @@
 #include "Engine/Textures/Texture2D.h"
 #include "Engine/Utils/Utf8Extras.hpp"
 #include "ImGui/Overlays/Overlay.h"
+#include "ImGui/Overlays/ScriptPopup.h"
 #include "Managers/TextureManager.h"
+#include "Python/PythonCommand.h"
 #include "Utils/FileFormat.h"
 
 #include "Engine/Utils/Log.hpp"
@@ -83,8 +85,6 @@ bool CustomPassFilter(const ImGuiTextFilter& _TextFilter, std::string_view text)
         std::string textStr(text);
         utf8upr(reinterpret_cast<utf8_int8_t*>(filterStr.data()));
         utf8upr(reinterpret_cast<utf8_int8_t*>(textStr.data()));
-        // std::string filterStr = StrToLowerRu(std::string_view(f.b, f.e));
-        // std::string textStr = StrToLowerRu(text);
         if (textStr.find(filterStr) != std::string::npos)
         {
             return true;
@@ -183,6 +183,12 @@ namespace LM
     {
         SaveXLSX();
         return true;
+    }
+
+    void XlsxPageView::Save()
+    {
+        SaveXLSX();
+        SaveExtraInfoJson();
     }
 
     std::string XlsxPageView::GetFileName() const { return FileFormat::FormatXlsx(m_PageId); }
@@ -608,6 +614,47 @@ namespace LM
         if (ImGui::Button("Разделить столбцы по пробелу"))
         {
             SplitAndExpandTable();
+        }
+
+        ImGui::Separator();
+
+        if (ImGui::Button("Обработать файлы (парсер yg1-shop)"))
+        {
+
+            PythonCommand pythonCommand("./assets/scripts/excel_add_extra_info.py");
+            pythonCommand.AddArg(m_Project->GetExcelTablesTypeStartupPath(), "--xlsx_path");
+            pythonCommand.AddArg(m_Project->GetExcelTablesTypeAddExtraInfoPath(), "--save_path");
+            pythonCommand.AddArg(m_ExtraInfoJsonPath, "--rules_path");
+            pythonCommand.AddArg(m_Project->GetExcelTablesTypeRawImgsPath(), "--per_page_img_folder");
+            pythonCommand.AddArg(m_Project->GetExcelTablesTypeSimpleRuleImgsPath(), "--per_page_rule_img_folder");
+            pythonCommand.AddArg(std::string_view("yg1-shop"), "--extra_parser_type");
+
+            ScriptPopup::Get()->OpenPopup(pythonCommand,
+                                          { "Заполнение данных по правилам",
+                                            []() {
+                                                ImGui::Text("Работает скрипт заполнения данных по правилам");
+                                                ImGui::Text("Это может занять несколько минут");
+                                                ImGui::Text("После его завершения можно закрыть это окно");
+                                            },
+                                            []() {} });
+        }
+
+        ImGui::Separator();
+
+        if (ImGui::Button("Собрать файлы в один и добавить доп. поля для yg1-shop"))
+        {
+            PythonCommand pythonCommand("./assets/scripts/excel_add_extra_info-yg1-shop.py");
+            pythonCommand.AddArg(m_Project->GetExcelTablesTypeAddExtraInfoPath(), "--xlsx_path");
+            pythonCommand.AddArg(m_Project->GetExcelTablesTypeAddExtraInfoYg1Path(), "--save_path");
+
+            ScriptPopup::Get()->OpenPopup(pythonCommand,
+                                          { "Заполнение данных для yg1-shop",
+                                            []() {
+                                                ImGui::Text("Работает скрипт заполнения данных для yg1-shop");
+                                                ImGui::Text("Это может занять несколько минут");
+                                                ImGui::Text("После его завершения можно закрыть это окно");
+                                            },
+                                            []() {} });
         }
 
         ImGui::Separator();
@@ -1847,7 +1894,7 @@ namespace LM
             for (size_t colId = 0; colId < m_TableData[rowId].size(); ++colId)
             {
                 ws.cell(static_cast<xlnt::column_t>(colId + 1), static_cast<xlnt::row_t>(rowId + 1))
-                    .value(m_TableData[rowId][colId].Value);
+                    .value(StrTrim(m_TableData[rowId][colId].Value));
             }
         }
 

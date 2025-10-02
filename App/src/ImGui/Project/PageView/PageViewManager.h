@@ -19,6 +19,8 @@ namespace LM
     public:
         PageViewManager();
 
+        static bool Save();
+        static bool Clear();
         static bool OnAppClose(Ref<Project> _Project);
 
         static Ref<PageViewManager> GetPdfOcr();

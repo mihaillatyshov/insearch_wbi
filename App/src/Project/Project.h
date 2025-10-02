@@ -71,6 +71,14 @@ namespace LM
         {
             return GetPathInFolderAndCreateDirs("data/excel/startup/");
         }
+        std::string GetExcelTablesTypeAddExtraInfoPath() const
+        {
+            return GetPathInFolderAndCreateDirs("data/excel/xlsx_add_info/");
+        }
+        std::string GetExcelTablesTypeAddExtraInfoYg1Path() const
+        {
+            return GetPathInFolderAndCreateDirs("data/excel/xlsx_add_info_yg1-shop/");
+        }
         std::string GetExcelTablesTypeRawImgsPath() const
         {
             return GetPathInFolderAndCreateDirs("data/excel/img_raw/");
