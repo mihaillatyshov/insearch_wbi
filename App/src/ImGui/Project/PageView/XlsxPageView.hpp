@@ -210,6 +210,10 @@ namespace LM
         void LoadRepresentationFieldsDescription();
         void LoadConstrExample(std::string_view _Constr);
 
+        void LoadAmatiCodems();
+
+        void FindAndInsertAmatiCodems();
+
         bool IsExtraInfoAutoFocusField(std::string_view _WindowName, std::string_view _FieldName);
 
     protected:
@@ -241,6 +245,8 @@ namespace LM
         std::unordered_map<std::string, std::vector<SimpleAddListItem>> m_SimpleCalcList;
         std::unordered_map<std::string, std::vector<PageImgListItem>> m_SimpleRuleImgList;
         std::unordered_map<std::string, std::unordered_map<std::string, std::vector<std::string>>> m_ConstrExamples;
+
+        std::unordered_map<std::string, std::string> m_AmatiCodems;
 
         size_t m_HistoryPointer = 0;
         std::vector<HistoryState> m_HistoryState;

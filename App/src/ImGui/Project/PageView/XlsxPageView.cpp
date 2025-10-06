@@ -2,6 +2,7 @@
 
 #include "Engine/Textures/Texture2D.h"
 #include "Engine/Utils/Utf8Extras.hpp"
+#include "Engine/Utils/utf8.h"
 #include "ImGui/Overlays/Overlay.h"
 #include "ImGui/Overlays/ScriptPopup.h"
 #include "Managers/TextureManager.h"
@@ -102,15 +103,68 @@ bool CustomPassFilter(const ImGuiTextFilter& _TextFilter, std::string_view text)
 
 namespace LM
 {
+    using namespace std::literals;
 
     constexpr std::string_view kDefaultConstructionsTreeFile = "assets/constructions/constructions_tree.json";
     constexpr std::string_view kDefaultConstructionsFieldsFile = "assets/constructions/ctd_fields.json";
     constexpr std::string_view kDefaultFieldsDescriptionFile = "assets/constructions/gen_fields.json";
     constexpr std::string_view kDefaultRepresentationFieldsDescriptionFile = "assets/constructions/repr_fields.json";
+    constexpr std::string_view kDefaultAmatiCodemsFile = "assets/data/amati_codem.xlsx";
     constexpr std::string_view kExtraInfoFile = "extra_info.json";
 
     const std::vector<std::string> kProductBaseFields = { "fulldescription", "lcs", "moq", "codem" };
     const std::vector<std::string> kImgFileTypeList = { "pic", "drw" };
+
+    const std::array kInterpModelSuffixesToRemove = { "_AMATI"sv, "_ASKUP"sv, "_DEREK"sv, "_HT"sv,
+                                                      "_PL"sv,    "_LIK"sv,   "_ТИЗ"sv };
+
+    static const std::array kInterpModelLettersToRemove = {
+        std::pair {  " "sv,  ""sv },
+         std::pair {  " "sv,  ""sv },
+         std::pair {  "-"sv,  ""sv },
+         std::pair {  "."sv, ","sv },
+        std::pair {  "*"sv,  ""sv },
+         std::pair {  "^"sv,  ""sv },
+         std::pair { "\\"sv,  ""sv },
+         std::pair {  "/"sv,  ""sv },
+        std::pair {  "К"sv, "K"sv },
+         std::pair {  "Е"sv, "E"sv },
+         std::pair {  "Н"sv, "H"sv },
+         std::pair {  "Х"sv, "X"sv },
+        std::pair {  "В"sv, "B"sv },
+         std::pair {  "А"sv, "A"sv },
+         std::pair {  "Р"sv, "P"sv },
+         std::pair {  "О"sv, "O"sv },
+        std::pair {  "С"sv, "C"sv },
+         std::pair {  "М"sv, "M"sv },
+         std::pair {  "Т"sv, "T"sv },
+    };
+
+    const std::string InterpolateModel(std::string_view _Model)
+    {
+        std::string result = StrTrim(_Model.data());
+        utf8upr(reinterpret_cast<utf8_int8_t*>(result.data()));
+        for (auto suffix : kInterpModelSuffixesToRemove)
+        {
+            if (result.ends_with(suffix))
+            {
+                if (size_t pos = result.find(suffix); pos != std::string::npos)
+                {
+                    result.replace(pos, suffix.size(), "");
+                }
+            }
+        }
+        for (const auto& p : kInterpModelLettersToRemove)
+        {
+            size_t pos = 0;
+            while ((pos = result.find(p.first, pos)) != std::string::npos)
+            {
+                result.replace(pos, p.first.size(), p.second);
+                pos += p.second.size();
+            }
+        }
+        return result;
+    }
 
     std::string Random64CharStr()
     {
@@ -163,6 +217,7 @@ namespace LM
         LoadConstructionsFields();
         LoadFieldsDescription();
         LoadRepresentationFieldsDescription();
+        LoadAmatiCodems();
     }
 
     XlsxPageView::~XlsxPageView()
@@ -618,6 +673,13 @@ namespace LM
 
         ImGui::Separator();
 
+        if (ImGui::Button("Вставить артикул AMATI"))
+        {
+            FindAndInsertAmatiCodems();
+        }
+
+        ImGui::Separator();
+
         if (ImGui::Button("Обработать файлы (парсер yg1-shop)"))
         {
 
@@ -719,6 +781,9 @@ namespace LM
                 {
                     ImGui::SetKeyboardFocusHere();
                 }
+                const auto& style = ImGui::GetStyle();
+                ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize("X").x -
+                                        style.ItemSpacing.x - style.FramePadding.x * 2.0f);
                 ImGui::InputText(std::format("##{}", globalAddListFieldName).c_str(), &globalAddListFieldValue);
                 if (ImGui::IsItemDeactivatedAfterEdit())
                 {
@@ -965,6 +1030,10 @@ namespace LM
         std::string windowTitle = "Постраничный список заполнения";
         std::function<void(std::string_view, SimpleAddListItem&)> handle = [this](std::string_view _SimpleListFieldName,
                                                                                   SimpleAddListItem& _SimpleListItem) {
+            const auto& style = ImGui::GetStyle();
+            ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize("X").x -
+                                    style.ItemSpacing.x - style.FramePadding.x * 2.0f);
+
             if (m_FieldsRepresentation.contains(_SimpleListFieldName.data()))
             {
                 const auto& items = m_FieldsRepresentation[_SimpleListFieldName.data()];
@@ -1017,9 +1086,13 @@ namespace LM
         std::string windowTitle = "Постраничный список рассчета";
         std::function<void(std::string_view, SimpleAddListItem&)> handle = [](std::string_view _SimpleListFieldName,
                                                                               SimpleAddListItem& _SimpleListItem) {
+            const auto& style = ImGui::GetStyle();
             float height =
                 ImGui::GetTextLineHeight() * static_cast<float>(std::ranges::count(_SimpleListItem.Value, '\n') + 1) +
-                ImGui::GetStyle().FramePadding.y * 2;
+                style.FramePadding.y * 2;
+
+            ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize("X").x -
+                                    style.ItemSpacing.x - style.FramePadding.x * 2.0f);
             ImGui::InputTextMultiline(std::format("##{}", _SimpleListFieldName).c_str(), &_SimpleListItem.Value,
                                       { 0.0f, height });
         };
@@ -1082,6 +1155,8 @@ namespace LM
                 ImGui::PushID(v.ImgFilenameHash.c_str());
 
                 ImGui::Text("Сравнение по: %s", v.Cmp.c_str());
+
+                ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
                 ImGui::InputText("##Value", &v.CmpValue);
 
                 for (std::string_view filetype : kImgFileTypeList)
@@ -2669,6 +2744,72 @@ namespace LM
             }
             constr[col[0].to_string()] = values;
         }
+    }
+
+    void XlsxPageView::LoadAmatiCodems()
+    {
+        xlnt::workbook wb;
+
+        try
+        {
+            wb.load(kDefaultAmatiCodemsFile.data());
+        }
+        catch (const std::exception& e)
+        {
+            LOG_CORE_ERROR("Failed to load workbook: {}", e.what());
+            return;
+        }
+
+        xlnt::worksheet ws = wb.active_sheet();
+
+        for (auto row : ws.rows(false))
+        {
+            if (row.length() < 2)
+            {
+                continue;
+            }
+            m_AmatiCodems[InterpolateModel(row[0].to_string())] = StrTrim(row[1].to_string());
+        }
+    }
+
+    void XlsxPageView::FindAndInsertAmatiCodems()
+    {
+        std::optional<size_t> modelColId;
+        std::optional<size_t> codemColId;
+
+        if (m_TableData.empty())
+        {
+            return;
+        }
+
+        for (size_t i = 0; i < m_TableData[0].size(); ++i)
+        {
+            const auto& cell = m_TableData[0][i];
+            if (cell.Value == "model")
+            {
+                modelColId = i;
+            }
+            if (cell.Value == "codem")
+            {
+                codemColId = i;
+            }
+        }
+
+        if (!modelColId.has_value() || !codemColId.has_value())
+        {
+            return;
+        }
+
+        for (auto& row : m_TableData)
+        {
+            std::string iterpmodel = InterpolateModel(row[*modelColId].Value);
+            if (m_AmatiCodems.contains(iterpmodel))
+            {
+                row[*codemColId].Value = m_AmatiCodems[iterpmodel];
+            }
+        }
+
+        PushHistory();
     }
 
     bool XlsxPageView::IsExtraInfoAutoFocusField(std::string_view _WindowName, std::string_view _FieldName)
