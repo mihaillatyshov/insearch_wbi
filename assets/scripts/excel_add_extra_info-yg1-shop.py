@@ -1,6 +1,7 @@
 import os
 import traceback
 from pathlib import Path
+from functools import partial
 
 import pandas as pd
 from base import ArgsBase, parse_args_new, print_to_cpp
@@ -8,50 +9,110 @@ import pydantic
 
 constr_to_lvl = {
     "ctd_jse_m": {
+        "dop": "Метчик цельный машинный",
         "l1": "Метчики",
         "l2": "Метчики метрические"
     },
     "ctd_arbm_pullstud": {
+        "dop": "Штревель",
         "l1": "Оснастка",
         "l2": "Штревели"
     },
+    "ctd_collet_spring": {
+        "dop": "Цанга с конической образующей для цилиндрических хвостовиков",
+        "l1": "Оснастка",
+        "l2": "Цанги"
+    },
+    "ctd_arb_extension": {
+        "dop": "Удлинитель-переходник",
+        "l1": "Оснастка",
+        "l2": "Цанговые удлинители"
+    },
+    "ctd_arbm_hydroholdchuck": {
+        "dop": "Патрон фрезерный гидропластовый",
+        "l1": "Оснастка",
+        "l2": "Фрезерные патроны и оправки"
+    },
+    "ctd_arbm_powerchuck": {
+        "dop": "Патрон фрезерный силовой",
+        "l1": "Оснастка",
+        "l2": "Фрезерные патроны и оправки"
+    },
+    "ctd_arbm_weldonchuck": {
+        "dop": "Патрон фрезерный с прямым закреплением винтом",
+        "l1": "Оснастка",
+        "l2": "Фрезерные патроны и оправки"
+    },
     "ctd_arbm_colletchuck": {
+        "dop": "Патрон фрезерный цанговый",
         "l1": "Оснастка",
         "l2": "Фрезерные патроны и оправки"
     },
     "ctd_arbm_shellchuck": {
+        "dop": "Оправка фрезерная для насадных фрез",
+        "l1": "Оснастка",
+        "l2": "Фрезерные патроны и оправки"
+    },
+    "ctd_arbm_shrinkchuck": {
+        "dop": "Термопатрон фрезерный",
+        "l1": "Оснастка",
+        "l2": "Фрезерные патроны и оправки"
+    },
+    "ctd_collet_round": {
+        "dop": "Цанга цилиндрическая",
         "l1": "Оснастка",
         "l2": "Фрезерные патроны и оправки"
     },
     "ctd_me1": {
+        "dop": "Фреза цельная с плоским торцом",
         "l1": "Фрезы",
         "l2": "Фрезы монолитные",
         "l3": "Фрезы с плоским торцом"
     },
     "ctd_me2": {
+        "dop": "Фреза цельная с плоским торцом и с обнижением",
         "l1": "Фрезы",
         "l2": "Фрезы монолитные",
         "l3": "Фрезы с плоским торцом"
     },
     "ctd_mr1": {
+        "dop": "Фреза цельная с радиусом",
         "l1": "Фрезы",
         "l2": "Фрезы монолитные",
         "l3": "Фрезы с плоским торцом"
     },
     "ctd_mr2": {
+        "dop": "Фреза цельная с радиусом и обнижением",
         "l1": "Фрезы",
         "l2": "Фрезы монолитные",
         "l3": "Фрезы с плоским торцом"
     },
     "ctd_ma3": {
+        "dop": "Фреза цельная для обработки фасок и галтелью",
         "l1": "Фрезы",
         "l2": "Фрезы монолитные",
         "l3": "Фрезы для обработки фасок"
     },
     "ctd_me5": {
+        "dop": "Фреза насадная цельная",
         "l1": "Фрезы",
         "l2": "Фрезы монолитные",
         "l3": "Фрезы насадные"
+    },
+    "ctd_ds1": {
+        "dop": "Сверло цельное спиральное",
+        "l1": "Сверла",
+        "l2": "Сверла монолитные",
+    },
+    "ctd_ds4": {
+        "dop": "Сверло цельное спиральное с коническим хвостовиком",
+        "l1": "Сверла",
+        "l2": "Сверла монолитные",
+    },
+    "ctd_ds5": {
+        "dop": "Сверло центровочное",
+        "l1": "Сверла",
+        "l2": "Сверла монолитные",
     },
 }
 
@@ -59,16 +120,14 @@ constr_to_lvl = {
 class Args(ArgsBase):
     xlsx_path: str = pydantic.Field(description="Папка исходных файлов")
     save_path: str = pydantic.Field(description="Папка для сохранения")
+    img_prefix: str = pydantic.Field(description="Префикс для добавления к картинкам", default="")
 
 
-def get_img_with_prefix(img_full_path: str):
-    return os.path.join("http://194.113.153.157/nameduploads/",
-                        Path(img_full_path).parent.parent.parent.parent.name,
-                        Path(img_full_path).parent.name,
-                        Path(img_full_path).name).replace("\"", "/")
+def get_img_with_prefix(img_prefix: str, img_full_path: str):
+    return os.path.join(img_prefix, img_full_path).replace("\"", "/") if img_prefix != "" else img_full_path
 
 
-def process_row(row):
+def process_row(img_prefix: str, row):
     drw = str(row["img_drw"]).strip()
     pic = str(row["img_pic"]).strip()
 
@@ -79,19 +138,35 @@ def process_row(row):
         if img_list:
             first_img = img_list.pop(0)
             row["img_pic"] = first_img
+
             row["img_drw"] = ";".join(img_list)
+
+    drw = str(row["img_drw"]).strip()
+    is_drw_not_empty = drw and drw.lower() != "nan" and drw.strip() != ""
+    if is_drw_not_empty:
+        img_list = [p.strip() for p in drw.split(";") if p.strip()]
+        row["img_drw"] = ";".join([get_img_with_prefix(img_prefix, x) for x in img_list])
+
+    pic = str(row["img_pic"]).strip()
+    is_pic_not_empty = pic and pic.lower() != "nan" and pic.strip() != ""
+    if is_pic_not_empty:
+        img_list = [p.strip() for p in pic.split(";") if p.strip()]
+        row["img_pic"] = ";".join([get_img_with_prefix(img_prefix, x) for x in img_list])
 
     lvl = constr_to_lvl.get(row["constr"])
     if lvl is not None:
         row["Раздел 1"] = lvl.get("l1")
         row["Раздел 2"] = lvl.get("l2")
         row["Раздел 3"] = lvl.get("l3")
-
+        row["DOP_NAIMENOVANIE"] = lvl.get("dop")
     return row
 
 
 def add_extra_info(args: Args):
     os.makedirs(args.save_path, exist_ok=True)
+
+    bound_process_row = partial(process_row, args.img_prefix)
+
     all_dfs = []
     for filename in os.scandir(args.xlsx_path):
         if filename.is_file():
@@ -101,13 +176,15 @@ def add_extra_info(args: Args):
             print_to_cpp(filename.name)
 
             df = pd.read_excel(filename, index_col=None, engine="openpyxl")
-            df.insert(0, "Раздел 3", None)
-            df.insert(0, "Раздел 2", None)
-            df.insert(0, "Раздел 1", None)
-            df = df.apply(process_row, axis=1)
+            if "Раздел 3" not in df.columns: df.insert(0, "Раздел 3", None)
+            if "Раздел 2" not in df.columns: df.insert(0, "Раздел 2", None)
+            if "Раздел 1" not in df.columns: df.insert(0, "Раздел 1", None)
+            if "DOP_NAIMENOVANIE" not in df.columns: df.insert(3, "DOP_NAIMENOVANIE", None)
+            df = df.apply(bound_process_row, axis=1)
             all_dfs.append(df)
 
     combined_df = pd.concat(all_dfs, ignore_index=True)
+    combined_df.dropna(axis=1, how='all', inplace=True)
 
     writer = pd.ExcelWriter(os.path.join(args.save_path, "ALL.xlsx"), engine="xlsxwriter")                              # pylint: disable=abstract-class-instantiated
     combined_df.to_excel(writer, sheet_name="sm", freeze_panes=(1, 0), index=False)
