@@ -7,6 +7,25 @@ import pandas as pd
 from base import ArgsBase, parse_args_new, print_to_cpp
 import pydantic
 
+SECTION_1_FIELD = "Название раздела {ISECT1_NAME}"
+SECTION_2_FIELD = "Название раздела {ISECT2_NAME}"
+SECTION_3_FIELD = "Название раздела {ISECT3_NAME}"
+
+MANUF_FIELD = "Производитель [MANUFACTURER] {IP_PROP668}"
+CODEM_FIELD = "Артикул [CML2_ARTICLE] {IP_PROP380}"
+NAME_FIELD = "Наименование элемента {IE_NAME}"
+FULLDESCRIPTION_FIELD = "Наименование [NAIMENOVANIE] {IP_PROP666}"
+
+FIELDS_MAP = {
+    "Раздел 1": SECTION_1_FIELD,
+    "Раздел 2": SECTION_2_FIELD,
+    "Раздел 3": SECTION_3_FIELD,
+    "manuf": MANUF_FIELD,
+    "codem": CODEM_FIELD,
+    "model": NAME_FIELD,
+    "fulldescription": FULLDESCRIPTION_FIELD,
+}
+
 constr_to_lvl = {
     "ctd_jse_m": {
         "dop": "Метчик цельный машинный",
@@ -99,6 +118,12 @@ constr_to_lvl = {
         "l2": "Фрезы монолитные",
         "l3": "Фрезы насадные"
     },
+    "ctd_mt1": {
+        "dop": "Фреза цельная резьбовая",
+        "l1": "Фрезы",
+        "l2": "Фрезы монолитные",
+        "l3": "Резьбофрезы монолитные"
+    },
     "ctd_ds1": {
         "dop": "Сверло цельное спиральное",
         "l1": "Сверла",
@@ -114,6 +139,11 @@ constr_to_lvl = {
         "l1": "Сверла",
         "l2": "Сверла монолитные",
     },
+    "ctd_inserts": {
+        "dop": "Токарная пластина",
+        "l1": "Пластины",
+        "l2": "Токарные пластины",
+    }
 }
 
 
@@ -155,9 +185,9 @@ def process_row(img_prefix: str, row):
 
     lvl = constr_to_lvl.get(row["constr"])
     if lvl is not None:
-        row["Раздел 1"] = lvl.get("l1")
-        row["Раздел 2"] = lvl.get("l2")
-        row["Раздел 3"] = lvl.get("l3")
+        row[SECTION_1_FIELD] = lvl.get("l1")
+        row[SECTION_2_FIELD] = lvl.get("l2")
+        row[SECTION_3_FIELD] = lvl.get("l3")
         row["DOP_NAIMENOVANIE"] = lvl.get("dop")
     return row
 
@@ -176,9 +206,12 @@ def add_extra_info(args: Args):
             print_to_cpp(filename.name)
 
             df = pd.read_excel(filename, index_col=None, engine="openpyxl")
-            if "Раздел 3" not in df.columns: df.insert(0, "Раздел 3", None)
-            if "Раздел 2" not in df.columns: df.insert(0, "Раздел 2", None)
-            if "Раздел 1" not in df.columns: df.insert(0, "Раздел 1", None)
+            for key, value in FIELDS_MAP.items():
+                if key in df.columns:
+                    df.rename(columns={key: value}, inplace=True)
+            if SECTION_3_FIELD not in df.columns: df.insert(0, SECTION_3_FIELD, None)
+            if SECTION_2_FIELD not in df.columns: df.insert(0, SECTION_2_FIELD, None)
+            if SECTION_1_FIELD not in df.columns: df.insert(0, SECTION_1_FIELD, None)
             if "DOP_NAIMENOVANIE" not in df.columns: df.insert(3, "DOP_NAIMENOVANIE", None)
             df = df.apply(bound_process_row, axis=1)
             all_dfs.append(df)
@@ -207,3 +240,8 @@ except Exception as e:
 # python excel_add_extra_info.py `
 # --xlsx_path W:\Work\WBI\ToolinformProjects\WBI_Stock_2\data\excel\xlsx_add_info `
 # --save_path W:\Work\WBI\ToolinformProjects\WBI_Stock_2\data\excel\xlsx_add_info-shop `
+
+# python .\excel_add_extra_info-yg1-shop.py `
+# --xlsx_path "W:\Work\WBI\yg1-shop_ru\from-Alena\2025-10-20\Excel" `
+# --save_path "W:\Work\WBI\yg1-shop_ru\from-Alena\2025-10-20\ExcelForImport" `
+# --img_prefix "http://194.113.153.157/nameduploads/YG1/AlenaImg/"
