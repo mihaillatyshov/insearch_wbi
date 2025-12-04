@@ -23,6 +23,10 @@ namespace LM
         virtual void OnDetach() override;
         virtual void OnEvent(Event& e) override;
 
+        static ImGuiLayer* Get() { return s_Instance; }
+
+        bool PushConsolasFont();
+
         void Begin();
         void End();
 
@@ -34,15 +38,15 @@ namespace LM
 
         void ChangeFontSize(bool _NeedUpdateFontTexture);
 
-        void SetFontSizeByMonitorScale(float _MonitorScale) { m_FontSize = static_cast<int>(14.0f * _MonitorScale); }
-
     private:
+        static inline ImGuiLayer* s_Instance = nullptr;
+
         bool m_BlockEvents = true;
 
         bool m_ChangeSize = false;
-        int m_FontSize = 13;
+        int m_FontSize = 16;
 
-        std::unordered_map<int, ImFont*> m_Fonts;
+        ImFont* m_ConsolasFont = nullptr;
     };
 
 }    // namespace LM

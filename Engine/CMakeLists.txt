@@ -69,7 +69,7 @@ set(GLFW_INSTALL OFF CACHE BOOL "" FORCE)
 FetchContent_Declare(
     glfw
     GIT_REPOSITORY https://github.com/glfw/glfw.git
-    GIT_TAG b35641f4a3c62aa86a0b3c983d163bc0fe36026d
+    GIT_TAG 162896e5b9a40dc382c5c438cd12c90a5ff86ddd
 )
 FetchContent_MakeAvailable(glfw)
 
@@ -83,21 +83,21 @@ FetchContent_MakeAvailable(glew)
 FetchContent_Declare(
     glm
     GIT_REPOSITORY https://github.com/g-truc/glm.git
-    GIT_TAG fc8f4bb442b9540969f2f3f351c4960d91bca17a
+    GIT_TAG 1.0.2
 )
 FetchContent_MakeAvailable(glm)
 
 FetchContent_Declare(
     args
     GIT_REPOSITORY https://github.com/Taywee/args.git
-    GIT_TAG e3e6e46699f1ce487a42fd64838f53daeb5aa89b
+    GIT_TAG 6.4.7
 )
 FetchContent_MakeAvailable(args)
 
 FetchContent_Declare(
     imgui
     GIT_REPOSITORY https://github.com/ocornut/imgui.git
-    GIT_TAG v1.91.5-docking
+    GIT_TAG v1.92.4-docking
 )
 FetchContent_GetProperties(imgui)
 if (NOT imgui_POPULATED)
@@ -136,19 +136,19 @@ FetchContent_MakeAvailable(stb)
 
 FetchContent_Declare(
     nativefiledialog
-    GIT_REPOSITORY https://github.com/mihaillatyshov/nativefiledialog-extended.git
-    GIT_TAG 75cbdf819785d9f94855987724e30a6ba0a87e29
+    GIT_REPOSITORY https://github.com/btzy/nativefiledialog-extended.git
+    GIT_TAG v1.2.1
 )
 FetchContent_MakeAvailable(nativefiledialog)
 
 # add_subdirectory(tests)
 
-if(MSVC)
-    set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER "Engine")
-    set_target_properties(glfw PROPERTIES FOLDER "Engine/deps")
-    set_target_properties(uninstall PROPERTIES FOLDER "Engine/deps")
-    set_target_properties(update_mappings PROPERTIES FOLDER "Engine/deps")
-    set_target_properties(glew PROPERTIES FOLDER "Engine/deps")
-    set_target_properties(imgui PROPERTIES FOLDER "Engine/deps")
-    set_target_properties(nfd PROPERTIES FOLDER "Engine/deps")
-endif()
+# if(MSVC)
+#     set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER "Engine")
+#     set_target_properties(glfw PROPERTIES FOLDER "Engine/deps")
+#     set_target_properties(uninstall PROPERTIES FOLDER "Engine/deps")
+#     set_target_properties(update_mappings PROPERTIES FOLDER "Engine/deps")
+#     set_target_properties(glew PROPERTIES FOLDER "Engine/deps")
+#     set_target_properties(imgui PROPERTIES FOLDER "Engine/deps")
+#     set_target_properties(nfd PROPERTIES FOLDER "Engine/deps")
+# endif()

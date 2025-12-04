@@ -10,6 +10,7 @@
 #include "Engine/Events/EventDispatcher.h"
 #include "Engine/ImGui/Fonts/ImGuiFontDefinesIconsFA.inl"
 #include "Engine/ImGui/Fonts/ImGuiFontDefinesIconsFABrands.inl"
+#include "Engine/Utils/Log.hpp"
 
 // TODO: Remove TEMPORARY
 #include <GLFW/glfw3.h>
@@ -23,10 +24,11 @@ namespace LM
 {
 
     const std::string regFont = "assets/fonts/roboto/Roboto-Regular.ttf";
+    const std::string regConsolas = "assets/fonts/consolas/consolas.ttf";
     const std::string settingsFile = "assets/settings/imgui.json";
     const std::string faFontsFolder = "assets/fonts/fa/";
 
-    ImGuiLayer::ImGuiLayer() : Layer("ImGuiLayer") { }
+    ImGuiLayer::ImGuiLayer() : Layer("ImGuiLayer") { s_Instance = this; }
 
     void ImGuiLayer::OnAttach()
     {
@@ -41,13 +43,12 @@ namespace LM
         io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;    // Enable Multi-Viewport / Platform Windows
         // io.ConfigFlags |= ImGuiConfigFlags_ViewportsNoTaskBarIcons;
         // io.ConfigFlags |= ImGuiConfigFlags_ViewportsNoMerge;
+        io.ConfigDpiScaleFonts = true;
 
 #if USE_CUSTOM_FONT
 
-        SetFontSizeByMonitorScale(Application::Get().GetWindow().GetMonitorScale());
         m_ChangeSize = true;
         ChangeFontSize(false);
-
 #endif
 
         // ImFontGlyphRangesBuilder
@@ -100,8 +101,8 @@ namespace LM
         EventDispatcher dispatcher(e);
 
         dispatcher.Dispatch<WindowMonitorScaleChangedEvent>([&](WindowMonitorScaleChangedEvent& event) {
-            SetFontSizeByMonitorScale(event.GetScale());
-            m_ChangeSize = true;
+            // m_ChangeSize = true;
+
             // bool control = Input::IsKeyPressed(LM::Key::LeftControl) || Input::IsKeyPressed(LM::Key::RightControl);
             // bool shift = Input::IsKeyPressed(LM::Key::LeftShift) || Input::IsKeyPressed(LM::Key::RightShift);
             //{
@@ -128,6 +129,17 @@ namespace LM
             e.Handled |= e.IsInCategory(EventCategoryMouse) & io.WantCaptureMouse;
             e.Handled |= e.IsInCategory(EventCategoryKeyboard) & io.WantCaptureKeyboard;
         }
+    }
+
+    bool ImGuiLayer::PushConsolasFont()
+    {
+        if (m_ConsolasFont)
+        {
+            LOG_CORE_INFO("Font pushed");
+            ImGui::PushFont(m_ConsolasFont);
+            return true;
+        }
+        return false;
     }
 
     void ImGuiLayer::Begin()
@@ -227,43 +239,34 @@ namespace LM
 
             ImFontConfig config;
 
-            bool isFontExists = m_Fonts.contains(m_FontSize);
-
             ImFont* font = nullptr;
 
-            if (isFontExists)
-            {
-                font = m_Fonts[m_FontSize];
-            }
-            else
-            {
-                float fontSize = static_cast<float>(m_FontSize);
-                font = io.Fonts->AddFontFromFileTTF(regFont.c_str(), fontSize, &config,
-                                                    io.Fonts->GetGlyphRangesCyrillic());
+            float fontSize = static_cast<float>(m_FontSize);
+            font = io.Fonts->AddFontFromFileTTF(regFont.c_str(), fontSize, &config, io.Fonts->GetGlyphRangesCyrillic());
 
-                config.MergeMode = true;
-                config.GlyphMinAdvanceX = fontSize;    // Use if you want to make the icon monospaced
-                // config.DstFont = font;
+            config.MergeMode = true;
+            config.GlyphMinAdvanceX = fontSize;    // Use if you want to make the icon monospaced
+            // config.DstFont = font;
 
-                static const ImWchar iconRangesFa[] = { ICON_MIN_FA, ICON_MAX_FA, 0 };
-                std::filesystem::path farPath =
-                    std::filesystem::path(faFontsFolder) / std::filesystem::path(FONT_ICON_FILE_NAME_FAR);
-                std::filesystem::path fasPath =
-                    std::filesystem::path(faFontsFolder) / std::filesystem::path(FONT_ICON_FILE_NAME_FAS);
-                io.Fonts->AddFontFromFileTTF(farPath.string().c_str(), fontSize, &config, iconRangesFa);
-                io.Fonts->AddFontFromFileTTF(fasPath.string().c_str(), fontSize, &config, iconRangesFa);
-                // io.Fonts->AddFontFromFileTTF(regFont.c_str(), fontSize, &config, );
+            static const ImWchar iconRangesFa[] = { ICON_MIN_FA, ICON_MAX_FA, 0 };
+            std::filesystem::path farPath =
+                std::filesystem::path(faFontsFolder) / std::filesystem::path(FONT_ICON_FILE_NAME_FAR);
+            std::filesystem::path fasPath =
+                std::filesystem::path(faFontsFolder) / std::filesystem::path(FONT_ICON_FILE_NAME_FAS);
+            io.Fonts->AddFontFromFileTTF(farPath.string().c_str(), fontSize, &config, iconRangesFa);
+            io.Fonts->AddFontFromFileTTF(fasPath.string().c_str(), fontSize, &config, iconRangesFa);
+            // io.Fonts->AddFontFromFileTTF(regFont.c_str(), fontSize, &config, );
 
-                static const ImWchar iconRangesFab[] = { ICON_MIN_FAB, ICON_MAX_FAB, 0 };
-                std::filesystem::path fabPath =
-                    std::filesystem::path(faFontsFolder) / std::filesystem::path(FONT_ICON_FILE_NAME_FAB);
-                io.Fonts->AddFontFromFileTTF(fabPath.string().c_str(), fontSize, &config, iconRangesFab);
+            static const ImWchar iconRangesFab[] = { ICON_MIN_FAB, ICON_MAX_FAB, 0 };
+            std::filesystem::path fabPath =
+                std::filesystem::path(faFontsFolder) / std::filesystem::path(FONT_ICON_FILE_NAME_FAB);
+            io.Fonts->AddFontFromFileTTF(fabPath.string().c_str(), fontSize, &config, iconRangesFab);
 
-                m_Fonts[m_FontSize] = font;
-            }
+            m_ConsolasFont = io.Fonts->AddFontFromFileTTF(regConsolas.c_str(), fontSize);
+
             io.FontDefault = font;
 
-            if (_NeedUpdateFontTexture && !isFontExists)
+            if (_NeedUpdateFontTexture)
             {
                 io.Fonts->Build();
                 ImGui_ImplOpenGL3_DestroyFontsTexture();

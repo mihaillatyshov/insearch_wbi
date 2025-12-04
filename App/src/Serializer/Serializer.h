@@ -211,7 +211,7 @@ namespace LM
             constexpr auto nbProperties = std::tuple_size<decltype(properties)>::value;
 
             for_sequence(std::make_index_sequence<nbProperties> {}, [&](auto i) {
-                constexpr auto property = std::get<i>(properties);
+                auto property = std::get<i>(properties);
                 result[property.Name] = ToJson(_Object.*(property.Member));
             });
 
@@ -256,7 +256,7 @@ namespace LM
             constexpr auto nbProperties = std::tuple_size<decltype(properties)>::value;
 
             for_sequence(std::make_index_sequence<nbProperties> {}, [&](auto i) {
-                constexpr auto property = std::get<i>(properties);
+                auto property = std::get<i>(properties);
                 using Type = typename decltype(property)::Type;
                 if (!_Json.contains(property.Name))
                 {

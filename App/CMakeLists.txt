@@ -55,8 +55,8 @@ include(FetchContent)
 
 FetchContent_Declare(
     xlnt
-    GIT_REPOSITORY https://github.com/tfussell/xlnt.git
-    GIT_TAG 297b331435d6dee09bf89c8a5ad974b01f18039b
+    GIT_REPOSITORY https://github.com/xlnt-community/xlnt.git
+    GIT_TAG v1.6.1
 )
 FetchContent_MakeAvailable(xlnt)
 

@@ -73,3 +73,17 @@ def read_cv_file(path: str):
         chunk = f.read()
         chunk_arr = np.frombuffer(chunk, dtype=np.uint8)
         return cv2.imdecode(chunk_arr, cv2.IMREAD_COLOR)
+
+
+def remove_suffix(input_string, suffix):
+    if suffix and input_string.endswith(suffix):
+        return input_string[:-len(suffix)]
+    return input_string
+
+
+def remove_model_suffix(val) -> str:
+    result = val
+    for suf in ["_AMATI", "_ASKUP", "_DEREK", "_HT", "_PL", "_LIK", "_ТИЗ"]:
+        result = remove_suffix(result, suf)
+
+    return result

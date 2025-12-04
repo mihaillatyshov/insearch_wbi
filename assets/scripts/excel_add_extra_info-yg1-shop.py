@@ -4,7 +4,7 @@ from pathlib import Path
 from functools import partial
 
 import pandas as pd
-from base import ArgsBase, parse_args_new, print_to_cpp
+from base import ArgsBase, parse_args_new, print_to_cpp, remove_model_suffix
 import pydantic
 
 SECTION_1_FIELD = "Название раздела {ISECT1_NAME}"
@@ -106,6 +106,18 @@ constr_to_lvl = {
         "l2": "Фрезы монолитные",
         "l3": "Фрезы с плоским торцом"
     },
+    "ctd_mb1": {
+        "dop": "Фреза цельная полусферическая",
+        "l1": "Фрезы",
+        "l2": "Фрезы монолитные",
+        "l3": "Полусферические"
+    },
+    "ctd_ma1": {
+        "dop": "Фреза цельная для обработки фасок",
+        "l1": "Фрезы",
+        "l2": "Фрезы монолитные",
+        "l3": "Фрезы для обработки фасок"
+    },
     "ctd_ma3": {
         "dop": "Фреза цельная для обработки фасок и галтелью",
         "l1": "Фрезы",
@@ -123,6 +135,12 @@ constr_to_lvl = {
         "l1": "Фрезы",
         "l2": "Фрезы монолитные",
         "l3": "Резьбофрезы монолитные"
+    },
+    "ctd_mhr": {
+        "dop": "Головка фрезерная с радиусом",
+        "l1": "Фрезы",
+        "l2": "Фрезерные головки",
+        "l3": "Головки фрезерные с радиусом"
     },
     "ctd_ds1": {
         "dop": "Сверло цельное спиральное",
@@ -143,6 +161,22 @@ constr_to_lvl = {
         "dop": "Токарная пластина",
         "l1": "Пластины",
         "l2": "Токарные пластины",
+    },
+    "ctd_the": {
+        "dop": "Державка наружная токарная для пластин ISO",
+        "l1": "Резцы",
+        "l2": "Резцы сборные",
+        "l3": "Токарные державки с СМП",
+    },
+    "ctd_tsmb_turn": {
+        "dop": "Вставка цельная для растачивания",
+        "l1": "Резцы",
+        "l2": "Микрорасточные цельные вставки",
+        "l3": "Вставки расточные",
+    },
+    "ctd_tsmb_turn": {
+        "dop": "Развертка цельная машинная концевая",
+        "l1": "Развертки",
     }
 }
 
@@ -182,6 +216,8 @@ def process_row(img_prefix: str, row):
     if is_pic_not_empty:
         img_list = [p.strip() for p in pic.split(";") if p.strip()]
         row["img_pic"] = ";".join([get_img_with_prefix(img_prefix, x) for x in img_list])
+
+    row[FIELDS_MAP["model"]] = remove_model_suffix(row[FIELDS_MAP["model"]])
 
     lvl = constr_to_lvl.get(row["constr"])
     if lvl is not None:

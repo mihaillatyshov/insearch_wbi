@@ -1,5 +1,6 @@
 #include "XlsxPageView.hpp"
 
+#include "Engine/Layers/ImGuiLayer.h"
 #include "Engine/Textures/Texture2D.h"
 #include "Engine/Utils/Utf8Extras.hpp"
 #include "Engine/Utils/utf8.h"
@@ -120,24 +121,24 @@ namespace LM
 
     static const std::array kInterpModelLettersToRemove = {
         std::pair {  " "sv,  ""sv },
-         std::pair {  " "sv,  ""sv },
+         std::pair { " "sv,  ""sv },
          std::pair {  "-"sv,  ""sv },
          std::pair {  "."sv, ","sv },
         std::pair {  "*"sv,  ""sv },
          std::pair {  "^"sv,  ""sv },
          std::pair { "\\"sv,  ""sv },
          std::pair {  "/"sv,  ""sv },
-        std::pair {  "К"sv, "K"sv },
-         std::pair {  "Е"sv, "E"sv },
-         std::pair {  "Н"sv, "H"sv },
-         std::pair {  "Х"sv, "X"sv },
-        std::pair {  "В"sv, "B"sv },
-         std::pair {  "А"sv, "A"sv },
-         std::pair {  "Р"sv, "P"sv },
-         std::pair {  "О"sv, "O"sv },
-        std::pair {  "С"sv, "C"sv },
-         std::pair {  "М"sv, "M"sv },
-         std::pair {  "Т"sv, "T"sv },
+        std::pair { "К"sv, "K"sv },
+         std::pair { "Е"sv, "E"sv },
+         std::pair { "Н"sv, "H"sv },
+         std::pair { "Х"sv, "X"sv },
+        std::pair { "В"sv, "B"sv },
+         std::pair { "А"sv, "A"sv },
+         std::pair { "Р"sv, "P"sv },
+         std::pair { "О"sv, "O"sv },
+        std::pair { "С"sv, "C"sv },
+         std::pair { "М"sv, "M"sv },
+         std::pair { "Т"sv, "T"sv },
     };
 
     const std::string InterpolateModel(std::string_view _Model)
@@ -497,7 +498,7 @@ namespace LM
                         if (state)
                         {
                             state->CursorAnimReset();    // сброс мигания
-                            state->CursorClamp();        // убедиться, что курсор в допустимых границах
+                            state->CursorClamp();    // убедиться, что курсор в допустимых границах
                             state->ClearSelection();
                         }
                     }
@@ -1093,8 +1094,14 @@ namespace LM
 
             ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize("X").x -
                                     style.ItemSpacing.x - style.FramePadding.x * 2.0f);
+
+            bool isFontPushed = ImGuiLayer::Get()->PushConsolasFont();
             ImGui::InputTextMultiline(std::format("##{}", _SimpleListFieldName).c_str(), &_SimpleListItem.Value,
                                       { 0.0f, height });
+            if (isFontPushed)
+            {
+                ImGui::PopFont();
+            }
         };
 
         if (ImGui::Begin(windowTitle.c_str()))

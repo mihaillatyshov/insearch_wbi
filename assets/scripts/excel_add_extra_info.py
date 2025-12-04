@@ -75,7 +75,7 @@ class ExtraInfoRules(BaseModel):
     simple_add_list: list[SimpleAddListObject]
     simple_rename_list: list[SimpleRenameListObject] | None = None
     constr_rename_list: dict[str, str] | None = None                                                                    # ConstrRenameList
-    per_page_calc_list: list[PerPageCalcListObject]
+    per_page_calc_list: list[PerPageCalcListObject] | None = None
     per_page_simple_rule_img_list: list[PerPageSimpleRuleImgListObject] | None = None
     per_constr_calc_list: dict[str, str] | None = None                                                                  # PerConstrCalcList
 
@@ -195,7 +195,10 @@ def handle_simple_add_list(df: pd.DataFrame, page_id: int, simple_add_list: list
         df.insert(pos, simple_add_list_obj.name, to_add_value)
 
 
-def handle_per_page_calc_list(df: pd.DataFrame, page_id: int, per_page_calc_list: list[PerPageCalcListObject]):
+def handle_per_page_calc_list(df: pd.DataFrame, page_id: int, per_page_calc_list: list[PerPageCalcListObject] | None):
+    if per_page_calc_list is None:
+        return
+
     for per_page_calc_list_obj in per_page_calc_list:
         calc_to_add_value = get_per_page_calc_list_result(page_id, df, per_page_calc_list_obj)
 
