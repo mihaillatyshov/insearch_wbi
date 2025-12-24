@@ -135,7 +135,6 @@ namespace LM
     {
         if (m_ConsolasFont)
         {
-            LOG_CORE_INFO("Font pushed");
             ImGui::PushFont(m_ConsolasFont);
             return true;
         }

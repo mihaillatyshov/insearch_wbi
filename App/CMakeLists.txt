@@ -18,6 +18,7 @@ set(SOURCES
     src/Project/CatalogCutPattern.cpp                           src/Project/CatalogCutPattern.h
     src/Project/Processing/GenImgsByCutPattern.cpp              src/Project/Processing/GenImgsByCutPattern.h
     src/Project/Processing/GenRawExcel.cpp                      src/Project/Processing/GenRawExcel.h
+src/Project/Processing/XlsxPageViewData.cpp                     src/Project/Processing/XlsxPageViewData.h
 
     src/ImGui/Tables/Table.cpp                                  src/ImGui/Tables/Table.h
     

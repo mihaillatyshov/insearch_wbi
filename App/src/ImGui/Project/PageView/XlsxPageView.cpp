@@ -1,12 +1,12 @@
 #include "XlsxPageView.hpp"
 
 #include "Engine/Layers/ImGuiLayer.h"
-#include "Engine/Textures/Texture2D.h"
 #include "Engine/Utils/Utf8Extras.hpp"
 #include "Engine/Utils/utf8.h"
 #include "ImGui/Overlays/Overlay.h"
 #include "ImGui/Overlays/ScriptPopup.h"
 #include "Managers/TextureManager.h"
+#include "Project/Processing/XlsxPageViewData.h"
 #include "Python/PythonCommand.h"
 #include "Utils/FileFormat.h"
 
@@ -16,11 +16,9 @@
 
 #include "glm/common.hpp"
 #include "glm/fwd.hpp"
-#include <cstdint>
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <imstb_textedit.h>
-#include <limits>
 #include <misc/cpp/imgui_stdlib.h>
 #include <random>
 #include <xlnt/xlnt.hpp>
@@ -32,7 +30,6 @@
 #include <fstream>
 #include <functional>
 #include <optional>
-#include <ranges>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -111,7 +108,6 @@ namespace LM
     constexpr std::string_view kDefaultFieldsDescriptionFile = "assets/constructions/gen_fields.json";
     constexpr std::string_view kDefaultRepresentationFieldsDescriptionFile = "assets/constructions/repr_fields.json";
     constexpr std::string_view kDefaultAmatiCodemsFile = "assets/data/amati_codem.xlsx";
-    constexpr std::string_view kExtraInfoFile = "extra_info.json";
 
     const std::vector<std::string> kProductBaseFields = { "fulldescription", "lcs", "moq", "codem" };
     const std::vector<std::string> kImgFileTypeList = { "pic", "drw" };
@@ -221,30 +217,18 @@ namespace LM
         LoadAmatiCodems();
     }
 
-    XlsxPageView::~XlsxPageView()
-    {
-        try
-        {
-            LOG_CORE_INFO("Start saving");
-            SaveXLSX();
-            LOG_CORE_INFO("End saving");
-        }
-        catch (std::exception& e)
-        {
-            LOG_CORE_WARN("WARN: {}", e.what());
-        }
-    }
+    XlsxPageView::~XlsxPageView() { }
 
-    bool XlsxPageView::OnPageWillBeChanged(int _CurrentPageId, int _NewPageId)
-    {
-        SaveXLSX();
-        return true;
-    }
+    bool XlsxPageView::OnPageWillBeChanged(int _CurrentPageId, int _NewPageId) { return true; }
 
     void XlsxPageView::Save()
     {
-        SaveXLSX();
-        SaveExtraInfoJson();
+        if (m_Project)
+        {
+            XlsxPageViewData& xlsxViewData = m_Project->GetXlsxPageViewData();
+            xlsxViewData.SavePageData();
+            xlsxViewData.SaveExtraInfoJson();
+        }
     }
 
     std::string XlsxPageView::GetFileName() const { return FileFormat::FormatXlsx(m_PageId); }
@@ -252,54 +236,54 @@ namespace LM
     void XlsxPageView::DrawWindowContent()
     {
         m_IsMainWindowFocused = ImGui::IsWindowFocused();
-        if (m_PageId == -1)
+        if (m_PageId == -1 || !m_Project)
         {
             return;
         }
 
-        if (m_LoadedPageId != m_PageId)
+        XlsxPageViewData& xlsxViewData = m_Project->GetXlsxPageViewData();
+
+        if (!xlsxViewData.IsPageLoaded(m_PageId))
         {
-            LoadXLSX();
+            UnSelectAll();
+            xlsxViewData.LoadPageData(m_PageId);
         }
 
-        if (!m_IsExtraInfoJsonLoaded)
-        {
-            LoadExtraInfoJson();
-            m_IsExtraInfoJsonLoaded = true;
-        }
-
-        if (m_TableData.empty() || m_LoadedPageId == -1 || m_LoadedPageId != m_PageId)
+        if (!xlsxViewData.IsPageLoaded(m_PageId))
         {
             ImGui::Text("No data loaded or file not found.");
             return;
         }
 
-        ImGui::Text("Имя файла: %s", m_LoadedPageFilename.string().c_str());
+        XlsxPageViewPageData& pageData = xlsxViewData.GetCurrentPageData();
+        XlsxPageViewDataTypes::TableData& tableData = pageData.GetTableData();
+
+        ImGui::Text("Имя файла: %s", pageData.GetPageFilename().string().c_str());
 
         if (m_IsAnyHeaderActive)
         {
             m_IsAnyCellActive = true;
         }
 
-        HandleImGuiEvents();
+        HandleImGuiEvents(xlsxViewData, tableData);
         // DrawTableActions();
 
         size_t colsCount = 0;
-        if (!m_TableData.empty())
+        if (!tableData.empty())
         {
-            colsCount = m_TableData[0].size();
+            colsCount = tableData[0].size();
         }
 
-        DrawGlobalAddListWindow();
+        DrawGlobalAddListWindow(xlsxViewData);
 
-        DrawSimpleAddListWindow();
-        DrawSimpleCalcListWindow();
-        DrawSimpleRuleImgListWindow();
+        DrawSimpleAddListWindow(xlsxViewData);
+        DrawSimpleCalcListWindow(xlsxViewData);
+        DrawSimpleRuleImgListWindow(xlsxViewData);
 
-        DrawImgsPerListWindow();
+        DrawImgsPerListWindow(xlsxViewData);
 
-        DrawJoinModal();
-        DrawFindAndReplaceModal();
+        DrawJoinModal(xlsxViewData, tableData);
+        DrawFindAndReplaceModal(xlsxViewData, tableData);
 
         ImGui::Separator();
 
@@ -317,19 +301,19 @@ namespace LM
         std::vector<float> headerWidths(colsCount + 1, 0.0f);
         std::vector<float> columnWidths(colsCount + 1, 0.0f);
         headerWidths[0] =
-            std::max(ImGui::CalcTextSize(std::to_string(m_TableData.size()).c_str()).x + framePaddingX * 2.0f,
+            std::max(ImGui::CalcTextSize(std::to_string(tableData.size()).c_str()).x + framePaddingX * 2.0f,
                      ImGui::CalcTextSize("  . . .  ").x);
 
-        if (m_TableData.size() > 0)
+        if (tableData.size() > 0)
         {
             for (size_t colId = 0; colId < colsCount; ++colId)
             {
-                const auto& cellText = m_TableData[0][colId].Value;
+                const auto& cellText = tableData[0][colId].Value;
                 ImVec2 cellTextSize = ImGui::CalcTextSize(std::format("  {}  ", cellText).c_str());
                 headerWidths[colId + 1] = std::max(headerWidths[colId + 1], cellTextSize.x);
                 // + ImGui::GetFontSize() * 2.0f
                 if (std::optional<const std::reference_wrapper<std::string>> extraValue =
-                        GetExtraListValue(m_TableData[0][colId].Value);
+                        GetExtraListValue(xlsxViewData, tableData[0][colId].Value);
                     extraValue.has_value())
                 {
                     std::string::difference_type textOffset =
@@ -341,11 +325,11 @@ namespace LM
             }
         }
 
-        for (size_t rowId = 1; rowId < m_TableData.size(); ++rowId)
+        for (size_t rowId = 1; rowId < tableData.size(); ++rowId)
         {
             for (size_t colId = 0; colId < colsCount; ++colId)
             {
-                const auto& cellText = m_TableData[rowId][colId].Value;
+                const auto& cellText = tableData[rowId][colId].Value;
                 float cellTextSize = ImGui::CalcTextSize(cellText.c_str()).x + ImGui::CalcTextSize(" ").x;
                 columnWidths[colId + 1] = std::max(columnWidths[colId + 1], cellTextSize + framePaddingX * 2.0f);
                 // + ImGui::GetFontSize() * 2.0f
@@ -360,10 +344,10 @@ namespace LM
 
             ImGui::PushStyleVarY(ImGuiStyleVar_CellPadding, framePaddingY);
             m_IsAnyHeaderActive = false;
-            DrawTableHeaderReturn headerData = DrawTableHeader(colsCount);
+            DrawTableHeaderReturn headerData = DrawTableHeader(colsCount, xlsxViewData, tableData);
             ImGui::PopStyleVar();
 
-            auto constrItem = GetItemInSimpleListForCurrentPage(m_SimpleAddList, "constr");
+            auto constrItem = xlsxViewData.GetItemInSimpleAddListForCurrentPage("constr");
             if (constrItem.has_value() && m_IsShowConstrExamples)
             {
                 const auto& constr = constrItem->get().Value;
@@ -389,7 +373,7 @@ namespace LM
                             ImGui::PushID(static_cast<int>(colId));
                             ImGui::TableSetColumnIndex(static_cast<int>(colId + 1));
 
-                            const std::string& header = m_TableData[0][colId].Value;
+                            const std::string& header = tableData[0][colId].Value;
                             if (constrExample.contains(header))
                             {
                                 ImGui::Text("  %s  ", constrExample[header][rowId - 1].c_str());
@@ -409,7 +393,7 @@ namespace LM
 
             m_IsAnyCellActive = false;
             ImDrawList* draw_list = ImGui::GetWindowDrawList();
-            for (size_t rowId = 1; rowId < m_TableData.size(); ++rowId)
+            for (size_t rowId = 1; rowId < tableData.size(); ++rowId)
             {
                 ImGui::TableNextRow();
                 ImGui::PushID(static_cast<int>(rowId));
@@ -449,16 +433,16 @@ namespace LM
                     ImGui::PushID(static_cast<int>(colId));
                     ImGui::TableSetColumnIndex(static_cast<int>(colId + 1));
 
-                    auto& t = m_TableData[rowId][colId].Value;
+                    auto& t = tableData[rowId][colId].Value;
                     bool isColHovered = headerData.HoveredCol.has_value() && headerData.HoveredCol.value() == colId;
 
-                    PushCellFrameBgColor(isRowHovered, isColHovered, rowId, colId);
+                    PushCellFrameBgColor(tableData, isRowHovered, isColHovered, rowId, colId);
                     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, { framePaddingX, framePaddingY });
 
                     float width = std::max(headerWidths[colId + 1], columnWidths[colId + 1]);
 
                     if (std::optional<const std::reference_wrapper<std::string>> extraValue =
-                            GetExtraListValue(m_TableData[0][colId].Value);
+                            GetExtraListValue(xlsxViewData, tableData[0][colId].Value);
                         extraValue.has_value())
                     {
                         ImVec2 cursorPos = ImGui::GetCursorScreenPos();
@@ -509,7 +493,7 @@ namespace LM
                     }
                     if (ImGui::IsItemDeactivatedAfterEdit())
                     {
-                        PushHistory();
+                        xlsxViewData.PushHistory();
                     }
 
                     if (ImGui::IsItemFocused() && ImGui::IsKeyPressed(ImGuiKey_F2))
@@ -561,26 +545,26 @@ namespace LM
 
         if (m_DeleteCol.has_value())
         {
-            DeleteCol(*m_DeleteCol);
+            pageData.DeleteCol(*m_DeleteCol);
             m_DeleteCol = std::nullopt;
         }
         if (m_DeleteRow.has_value())
         {
-            DeleteRow(*m_DeleteRow);
+            pageData.DeleteRow(*m_DeleteRow);
             m_DeleteRow = std::nullopt;
         }
     }
 
-    void XlsxPageView::DrawTableActions()
+    void XlsxPageView::DrawTableActions(XlsxPageViewData& _XlsxViewData, XlsxPageViewDataTypes::TableData& _TableData)
     {
         if (ImGui::Button("Копировать без заголовка"))
         {
             std::string copyText;
-            for (size_t rowId = 1; rowId < m_TableData.size(); ++rowId)
+            for (size_t rowId = 1; rowId < _TableData.size(); ++rowId)
             {
-                for (size_t colId = 0; colId < m_TableData[rowId].size(); ++colId)
+                for (size_t colId = 0; colId < _TableData[rowId].size(); ++colId)
                 {
-                    copyText += m_TableData[rowId][colId].Value + "\t";
+                    copyText += _TableData[rowId][colId].Value + "\t";
                 }
                 copyText += "\n";
             }
@@ -590,16 +574,16 @@ namespace LM
         if (ImGui::Button("Копировать с заголовком"))
         {
             std::string copyText;
-            for (size_t colId = 0; colId < m_TableData[0].size(); ++colId)
+            for (size_t colId = 0; colId < _TableData[0].size(); ++colId)
             {
-                copyText += m_TableData[0][colId].Value + "\t";
+                copyText += _TableData[0][colId].Value + "\t";
             }
             copyText += "\n";
-            for (size_t rowId = 1; rowId < m_TableData.size(); ++rowId)
+            for (size_t rowId = 1; rowId < _TableData.size(); ++rowId)
             {
-                for (size_t colId = 0; colId < m_TableData[rowId].size(); ++colId)
+                for (size_t colId = 0; colId < _TableData[rowId].size(); ++colId)
                 {
-                    copyText += m_TableData[rowId][colId].Value + "\t";
+                    copyText += _TableData[rowId][colId].Value + "\t";
                 }
                 copyText += "\n";
             }
@@ -609,18 +593,18 @@ namespace LM
         // TODO: Move to separate function
         if (ImGui::Button("Вставить из буфера (заменить все)"))
         {
-            ReplaceFromClipboard(false);
+            ReplaceFromClipboard(_XlsxViewData, _TableData, false);
         }
         ImGui::SameLine();
         if (ImGui::Button("Вставить из буфера (пустая строка заголовка)"))
         {
-            ReplaceFromClipboard(true);
+            ReplaceFromClipboard(_XlsxViewData, _TableData, true);
         }
 
         // TODO: Move to separate function
         if (ImGui::Button("Test Fix"))
         {
-            for (auto& row : m_TableData)
+            for (auto& row : _TableData)
             {
                 if (!row.empty())
                 {
@@ -631,7 +615,7 @@ namespace LM
                 }
             }
 
-            for (auto& row : m_TableData)
+            for (auto& row : _TableData)
             {
                 for (auto& cell : row)
                 {
@@ -662,21 +646,21 @@ namespace LM
                 }
             }
 
-            PushHistory();
+            _XlsxViewData.PushHistory();
         }
 
         ImGui::SameLine();
 
         if (ImGui::Button("Разделить столбцы по пробелу"))
         {
-            SplitAndExpandTable();
+            SplitAndExpandTable(_XlsxViewData, _TableData);
         }
 
         ImGui::Separator();
 
         if (ImGui::Button("Вставить артикул AMATI"))
         {
-            FindAndInsertAmatiCodems();
+            FindAndInsertAmatiCodems(_XlsxViewData, _TableData);
         }
 
         ImGui::Separator();
@@ -687,10 +671,31 @@ namespace LM
             PythonCommand pythonCommand("./assets/scripts/excel_add_extra_info.py");
             pythonCommand.AddArg(m_Project->GetExcelTablesTypeStartupPath(), "--xlsx_path");
             pythonCommand.AddArg(m_Project->GetExcelTablesTypeAddExtraInfoPath(), "--save_path");
-            pythonCommand.AddArg(m_ExtraInfoJsonPath, "--rules_path");
+            pythonCommand.AddPathArg(_XlsxViewData.GetExtraInfoJsonPath(), "--rules_path");
             pythonCommand.AddArg(m_Project->GetExcelTablesTypeRawImgsPath(), "--per_page_img_folder");
             pythonCommand.AddArg(m_Project->GetExcelTablesTypeSimpleRuleImgsPath(), "--per_page_rule_img_folder");
             pythonCommand.AddArg(std::string_view("yg1-shop"), "--extra_parser_type");
+
+            ScriptPopup::Get()->OpenPopup(pythonCommand,
+                                          { "Заполнение данных по правилам",
+                                            []() {
+                                                ImGui::Text("Работает скрипт заполнения данных по правилам");
+                                                ImGui::Text("Это может занять несколько минут");
+                                                ImGui::Text("После его завершения можно закрыть это окно");
+                                            },
+                                            []() {} });
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Обработать файлы (парсер WBI Tools)"))
+        {
+
+            PythonCommand pythonCommand("./assets/scripts/excel_add_extra_info.py");
+            pythonCommand.AddArg(m_Project->GetExcelTablesTypeStartupPath(), "--xlsx_path");
+            pythonCommand.AddArg(m_Project->GetExcelTablesTypeAddExtraInfoPath(), "--save_path");
+            pythonCommand.AddPathArg(_XlsxViewData.GetExtraInfoJsonPath(), "--rules_path");
+            pythonCommand.AddArg(m_Project->GetExcelTablesTypeRawImgsPath(), "--per_page_img_folder");
+            pythonCommand.AddArg(m_Project->GetExcelTablesTypeSimpleRuleImgsPath(), "--per_page_rule_img_folder");
+            pythonCommand.AddArg(std::string_view("wbi-tools"), "--extra_parser_type");
 
             ScriptPopup::Get()->OpenPopup(pythonCommand,
                                           { "Заполнение данных по правилам",
@@ -742,13 +747,14 @@ namespace LM
                     ImGui::PushID(static_cast<int>(i));
                     if (ImGui::Selectable(std::format("{}\n{}", constr.Label, constr.Key).c_str(), false))
                     {
-                        ChangeHeadersByConstruction(constr.Key);
+                        ChangeHeadersByConstruction(_XlsxViewData, _TableData, constr.Key);
 
                         std::string fieldName = "constr";
-                        DeleteFromSimpleList(m_SimpleAddList, fieldName);
-                        m_SimpleAddList.try_emplace(fieldName);
-                        m_SimpleAddList[fieldName].push_back({ { { m_LoadedPageId } }, constr.Key });
-                        SaveExtraInfoJson();
+                        _XlsxViewData.DeleteFromSimpleAddListForCurrentPage(fieldName);
+                        XlsxPageViewDataTypes::SimpleAddList& simpleAddList = _XlsxViewData.GetSimpleAddList();
+                        simpleAddList.try_emplace(fieldName);
+                        simpleAddList[fieldName].push_back({ { { _XlsxViewData.GetCurrentPageId() } }, constr.Key });
+                        _XlsxViewData.SaveExtraInfoJson();
 
                         ImGui::CloseCurrentPopup();
                     }
@@ -766,14 +772,16 @@ namespace LM
         }
     }
 
-    void XlsxPageView::DrawGlobalAddListWindow()
+    void XlsxPageView::DrawGlobalAddListWindow(XlsxPageViewData& _XlsxViewData)
     {
         std::string windowName = "Глобальный список заполнения";
         if (ImGui::Begin(windowName.c_str()))
         {
             std::string toDeleteName;
 
-            for (auto& [globalAddListFieldName, globalAddListFieldValue] : m_GlobalAddList)
+            XlsxPageViewDataTypes::GlobalAddList& globalAddList = _XlsxViewData.GetGlobalAddList();
+
+            for (auto& [globalAddListFieldName, globalAddListFieldValue] : globalAddList)
             {
                 ImGui::PushID(globalAddListFieldName.c_str());
                 ImGui::Text("%s", globalAddListFieldName.c_str());
@@ -788,8 +796,8 @@ namespace LM
                 ImGui::InputText(std::format("##{}", globalAddListFieldName).c_str(), &globalAddListFieldValue);
                 if (ImGui::IsItemDeactivatedAfterEdit())
                 {
-                    PushHistory();
-                    SaveExtraInfoJson();
+                    _XlsxViewData.PushHistory();
+                    _XlsxViewData.SaveExtraInfoJson();
                 }
 
                 ImGui::SameLine();
@@ -822,7 +830,7 @@ namespace LM
                                   ImGuiChildFlags_AutoResizeX | ImGuiChildFlags_NavFlattened);
                 for (const auto& [fieldName, fieldDescr] : m_FieldsDescription)
                 {
-                    if (m_GlobalAddList.contains(fieldName))
+                    if (globalAddList.contains(fieldName))
                     {
                         continue;
                     }
@@ -833,14 +841,14 @@ namespace LM
                         ImGui::PushID(fieldName.c_str());
                         if (ImGui::Selectable(std::format("{}\n{}", fieldDescr.Description, fieldName).c_str(), false))
                         {
-                            m_GlobalAddList[fieldName] = "";
+                            globalAddList[fieldName] = "";
                             m_ExtraInfoAutoFocusField = ExtraInfoAutoFocusField {
                                 .WindowName = windowName,
                                 .Field = fieldName,
                             };
                             fieldsFilter.Clear();
                             ImGui::CloseCurrentPopup();
-                            SaveExtraInfoJson();
+                            _XlsxViewData.SaveExtraInfoJson();
                         }
                         ImGui::PopID();
                         ImGui::Spacing();
@@ -857,41 +865,14 @@ namespace LM
 
             if (!toDeleteName.empty())
             {
-                m_GlobalAddList.erase(toDeleteName);
+                globalAddList.erase(toDeleteName);
             }
         }
         ImGui::End();
     }
 
-    template <DerivedFromSimpleListItemBase T>
-    void XlsxPageView::DeleteFromSimpleList(std::unordered_map<std::string, std::vector<T>>& _SimpleList,
-                                            std::string_view _DeleteName)
-    {
-        if (!_DeleteName.empty())
-        {
-            auto& items = _SimpleList[_DeleteName.data()];
-
-            if (auto it = std::ranges::find_if(items,
-                                               [this](T& item) {
-                                                   return std::ranges::find(item.SharedPages, m_LoadedPageId) !=
-                                                          item.SharedPages.end();
-                                               });
-                it != items.end())
-            {
-                std::erase(it->SharedPages, m_LoadedPageId);
-            }
-
-            std::erase_if(items, [](const T& item) { return item.SharedPages.empty(); });
-
-            if (items.empty())
-            {
-                _SimpleList.erase(_DeleteName.data());
-            }
-        }
-    }
-
-    template <DerivedFromSimpleListItemBase T>
-    void XlsxPageView::DrawSimpleListTemplateWindow(std::string_view _WindowName,
+    template <XlsxPageViewDataTypes::DerivedFromSimpleListItemBase T>
+    void XlsxPageView::DrawSimpleListTemplateWindow(std::string_view _WindowName, XlsxPageViewData& _XlsxViewData,
                                                     std::unordered_map<std::string, std::vector<T>>& _SimpleList,
                                                     std::function<void(std::string_view, T&)> _ItemInputHandle,
                                                     std::function<std::string(const T&)> _ItemPreviewTextFn)
@@ -904,7 +885,7 @@ namespace LM
             for (T& simpleListItem : simpleListPages)
             {
                 const std::vector<int>& sharedPages = simpleListItem.SharedPages;
-                if (std::ranges::find(sharedPages, m_LoadedPageId) == sharedPages.end())
+                if (std::ranges::find(sharedPages, _XlsxViewData.GetCurrentPageId()) == sharedPages.end())
                 {
                     continue;
                 }
@@ -921,8 +902,8 @@ namespace LM
                 _ItemInputHandle(simpleListFieldName, simpleListItem);
                 if (ImGui::IsItemDeactivatedAfterEdit())
                 {
-                    PushHistory();
-                    SaveExtraInfoJson();
+                    _XlsxViewData.PushHistory();
+                    _XlsxViewData.SaveExtraInfoJson();
                 }
 
                 ImGui::SameLine();
@@ -960,7 +941,7 @@ namespace LM
                               ImGuiChildFlags_AutoResizeX | ImGuiChildFlags_NavFlattened);
             for (const auto& [fieldName, fieldDescr] : m_FieldsDescription)
             {
-                if (IsItemInSimpleListForCurrentPage(_SimpleList, fieldName))
+                if (_XlsxViewData.IsItemInSimpleListForCurrentPage(_SimpleList, fieldName))
                 {
                     continue;
                 }
@@ -972,14 +953,14 @@ namespace LM
                     if (ImGui::Selectable(std::format("{}\n{}", fieldDescr.Description, fieldName).c_str(), false))
                     {
                         _SimpleList.try_emplace(fieldName);
-                        _SimpleList[fieldName].push_back({ { { m_LoadedPageId } }, {} });
+                        _SimpleList[fieldName].push_back({ { { _XlsxViewData.GetCurrentPageId() } }, {} });
                         m_ExtraInfoAutoFocusField = ExtraInfoAutoFocusField {
                             .WindowName = _WindowName.data(),
                             .Field = fieldName,
                         };
                         fieldsFilter.Clear();
                         ImGui::CloseCurrentPopup();
-                        SaveExtraInfoJson();
+                        _XlsxViewData.SaveExtraInfoJson();
                     }
 
                     if (_SimpleList.contains(fieldName))
@@ -998,11 +979,11 @@ namespace LM
                                                       .c_str(),
                                                   false))
                             {
-                                sharedPages.push_back(m_LoadedPageId);
+                                sharedPages.push_back(_XlsxViewData.GetCurrentPageId());
                                 std::ranges::sort(sharedPages);
                                 fieldsFilter.Clear();
                                 ImGui::CloseCurrentPopup();
-                                SaveExtraInfoJson();
+                                _XlsxViewData.SaveExtraInfoJson();
                             }
                             ImGui::SetCursorPosY(ImGui::GetCursorPosY() - ImGui::GetTextLineHeightWithSpacing());
                             ImGui::TextDisabled("%s", sharedPagesStr.c_str());
@@ -1023,86 +1004,87 @@ namespace LM
             ImGui::EndPopup();
         }
 
-        DeleteFromSimpleList(_SimpleList, toDeleteName);
+        _XlsxViewData.DeleteFromSimpleListForCurrentPage(_SimpleList, toDeleteName);
     }
 
-    void XlsxPageView::DrawSimpleAddListWindow()
+    void XlsxPageView::DrawSimpleAddListWindow(XlsxPageViewData& _XlsxViewData)
     {
         std::string windowTitle = "Постраничный список заполнения";
-        std::function<void(std::string_view, SimpleAddListItem&)> handle = [this](std::string_view _SimpleListFieldName,
-                                                                                  SimpleAddListItem& _SimpleListItem) {
-            const auto& style = ImGui::GetStyle();
-            ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize("X").x -
-                                    style.ItemSpacing.x - style.FramePadding.x * 2.0f);
+        std::function<void(std::string_view, XlsxPageViewDataTypes::SimpleAddListItem&)> handle =
+            [this](std::string_view _SimpleListFieldName, XlsxPageViewDataTypes::SimpleAddListItem& _SimpleListItem) {
+                const auto& style = ImGui::GetStyle();
+                ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize("X").x -
+                                        style.ItemSpacing.x - style.FramePadding.x * 2.0f);
 
-            if (m_FieldsRepresentation.contains(_SimpleListFieldName.data()))
-            {
-                const auto& items = m_FieldsRepresentation[_SimpleListFieldName.data()];
-
-                std::string displayName = _SimpleListItem.Value;
-                for (const auto& item : items)
+                if (m_FieldsRepresentation.contains(_SimpleListFieldName.data()))
                 {
-                    if (item.Key == _SimpleListItem.Value)
-                    {
-                        displayName = std::format("{} ({})", item.Key, item.Ru);
-                        break;
-                    }
-                }
+                    const auto& items = m_FieldsRepresentation[_SimpleListFieldName.data()];
 
-                if (ImGui::BeginCombo("##Combo", displayName.c_str()))
-                {
+                    std::string displayName = _SimpleListItem.Value;
                     for (const auto& item : items)
                     {
-                        const bool is_selected = (_SimpleListItem.Value == item.Key);
-                        if (ImGui::Selectable(std::format("{} ({})", item.Key, item.Ru).c_str(), is_selected))
+                        if (item.Key == _SimpleListItem.Value)
                         {
-                            _SimpleListItem.Value = item.Key;
-                        }
-
-                        if (is_selected)
-                        {
-                            ImGui::SetItemDefaultFocus();
+                            displayName = std::format("{} ({})", item.Key, item.Ru);
+                            break;
                         }
                     }
-                    ImGui::EndCombo();
+
+                    if (ImGui::BeginCombo("##Combo", displayName.c_str()))
+                    {
+                        for (const auto& item : items)
+                        {
+                            const bool is_selected = (_SimpleListItem.Value == item.Key);
+                            if (ImGui::Selectable(std::format("{} ({})", item.Key, item.Ru).c_str(), is_selected))
+                            {
+                                _SimpleListItem.Value = item.Key;
+                            }
+
+                            if (is_selected)
+                            {
+                                ImGui::SetItemDefaultFocus();
+                            }
+                        }
+                        ImGui::EndCombo();
+                    }
                 }
-            }
-            else
-            {
-                ImGui::InputText(std::format("##{}", _SimpleListFieldName).c_str(), &_SimpleListItem.Value);
-            }
-        };
+                else
+                {
+                    ImGui::InputText(std::format("##{}", _SimpleListFieldName).c_str(), &_SimpleListItem.Value);
+                }
+            };
 
         if (ImGui::Begin(windowTitle.c_str()))
         {
-            std::function<std::string(const SimpleAddListItem&)> previewTextFn =
-                [](const SimpleAddListItem& _SimpleListItem) { return _SimpleListItem.Value; };
-            DrawSimpleListTemplateWindow(windowTitle, m_SimpleAddList, handle, previewTextFn);
+            std::function<std::string(const XlsxPageViewDataTypes::SimpleAddListItem&)> previewTextFn =
+                [](const XlsxPageViewDataTypes::SimpleAddListItem& _SimpleListItem) { return _SimpleListItem.Value; };
+            DrawSimpleListTemplateWindow(windowTitle, _XlsxViewData, _XlsxViewData.GetSimpleAddList(), handle,
+                                         previewTextFn);
             ImGui::End();
         }
     }
 
-    void XlsxPageView::DrawSimpleCalcListWindow()
+    void XlsxPageView::DrawSimpleCalcListWindow(XlsxPageViewData& _XlsxViewData)
     {
         std::string windowTitle = "Постраничный список рассчета";
-        std::function<void(std::string_view, SimpleAddListItem&)> handle = [](std::string_view _SimpleListFieldName,
-                                                                              SimpleAddListItem& _SimpleListItem) {
-            const auto& style = ImGui::GetStyle();
-            float height =
-                ImGui::GetTextLineHeight() * static_cast<float>(std::ranges::count(_SimpleListItem.Value, '\n') + 1) +
-                style.FramePadding.y * 2;
+        std::function<void(std::string_view, XlsxPageViewDataTypes::SimpleAddListItem&)> handle =
+            [](std::string_view _SimpleListFieldName, XlsxPageViewDataTypes::SimpleAddListItem& _SimpleListItem) {
+                const auto& style = ImGui::GetStyle();
+                float height = ImGui::GetTextLineHeight() *
+                                   static_cast<float>(std::ranges::count(_SimpleListItem.Value, '\n') + 1) +
+                               style.FramePadding.y * 2;
 
-            ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize("X").x -
-                                    style.ItemSpacing.x - style.FramePadding.x * 2.0f);
+                ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize("X").x -
+                                        style.ItemSpacing.x - style.FramePadding.x * 2.0f);
 
-            bool isFontPushed = ImGuiLayer::Get()->PushConsolasFont();
-            ImGui::InputTextMultiline(std::format("##{}", _SimpleListFieldName).c_str(), &_SimpleListItem.Value,
-                                      { 0.0f, height });
-            if (isFontPushed)
-            {
-                ImGui::PopFont();
-            }
-        };
+                bool isFontPushed = ImGuiLayer::Get()->PushConsolasFont();
+                ImGui::InputTextMultiline(std::format("##{}", _SimpleListFieldName).c_str(), &_SimpleListItem.Value,
+                                          { 0.0f, height });
+                if (isFontPushed)
+                {
+                    ImGui::PopFont();
+                }
+            };
 
         if (ImGui::Begin(windowTitle.c_str()))
         {
@@ -1110,16 +1092,17 @@ namespace LM
                 "Python code. Example: result.append(df['bsg'][i].replace(' ', '_') + ':N' + str(df['dcon'][i]))");
             ImGui::Separator();
 
-            std::function<std::string(const SimpleAddListItem&)> previewTextFn =
-                [](const SimpleAddListItem& _SimpleListItem) { return _SimpleListItem.Value; };
-            DrawSimpleListTemplateWindow(windowTitle, m_SimpleCalcList, handle, previewTextFn);
+            std::function<std::string(const XlsxPageViewDataTypes::SimpleAddListItem&)> previewTextFn =
+                [](const XlsxPageViewDataTypes::SimpleAddListItem& _SimpleListItem) { return _SimpleListItem.Value; };
+            DrawSimpleListTemplateWindow(windowTitle, _XlsxViewData, _XlsxViewData.GetSimpleCalcList(), handle,
+                                         previewTextFn);
         }
         ImGui::End();
     }
 
-    bool XlsxPageView::PageImgListItemValueFilenameExists(std::string_view _Hash)
+    bool XlsxPageView::PageImgListItemValueFilenameExists(XlsxPageViewData& _XlsxViewData, std::string_view _Hash)
     {
-        for (auto& [key, list] : m_SimpleRuleImgList)
+        for (auto& [key, list] : _XlsxViewData.GetSimpleRuleImgList())
         {
             for (auto& page : list)
             {
@@ -1136,75 +1119,76 @@ namespace LM
         return false;
     }
 
-    void XlsxPageView::DrawSimpleRuleImgListWindow()
+    void XlsxPageView::DrawSimpleRuleImgListWindow(XlsxPageViewData& _XlsxViewData)
     {
         std::string windowTitle = "Картинки по условию на странице";
 
-        std::function<void(std::string_view, PageImgListItem&)> handle = [&](std::string_view _SimpleListFieldName,
-                                                                             PageImgListItem& _SimpleListItem) {
-            // ImGui::Text("%s", Random64CharStr().data());
-            // TODO: Add Cmp
+        std::function<void(std::string_view, XlsxPageViewDataTypes::PageImgListItem&)> handle =
+            [&](std::string_view _SimpleListFieldName, XlsxPageViewDataTypes::PageImgListItem& _SimpleListItem) {
+                // ImGui::Text("%s", Random64CharStr().data());
+                // TODO: Add Cmp
 
-            if (ImGui::Button("Добавить новое правило"))
-            {
-                std::string newFileName;
-                do
+                if (ImGui::Button("Добавить новое правило"))
                 {
-                    newFileName = Random64CharStr();
+                    std::string newFileName;
+                    do
+                    {
+                        newFileName = Random64CharStr();
+                    }
+                    while (PageImgListItemValueFilenameExists(_XlsxViewData, newFileName));
+                    _SimpleListItem.Value.emplace_back(
+                        XlsxPageViewDataTypes::PageImgListItemValue { .ImgFilenameHash = newFileName });
                 }
-                while (PageImgListItemValueFilenameExists(newFileName));
-                _SimpleListItem.Value.emplace_back(PageImgListItemValue { .ImgFilenameHash = newFileName });
-            }
-            ImGui::Separator();
+                ImGui::Separator();
 
-            for (auto& v : _SimpleListItem.Value)
-            {
-                ImGui::PushID(v.ImgFilenameHash.c_str());
-
-                ImGui::Text("Сравнение по: %s", v.Cmp.c_str());
-
-                ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-                ImGui::InputText("##Value", &v.CmpValue);
-
-                for (std::string_view filetype : kImgFileTypeList)
+                for (auto& v : _SimpleListItem.Value)
                 {
-                    ImGui::PushID(filetype.data());
+                    ImGui::PushID(v.ImgFilenameHash.c_str());
 
-                    ImGui::SeparatorText(filetype == "pic" ? "Фото" : "Чертеж");
+                    ImGui::Text("Сравнение по: %s", v.Cmp.c_str());
 
-                    std::string imgFilename =
-                        GetSimpleRuleImgFilename(std::format("{}_{}.png", v.ImgFilenameHash, filetype));
-                    DrawImgPreview(imgFilename);
-                    DrawImgMakeScreenshot(imgFilename);
+                    ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+                    ImGui::InputText("##Value", &v.CmpValue);
+
+                    for (std::string_view filetype : kImgFileTypeList)
+                    {
+                        ImGui::PushID(filetype.data());
+
+                        ImGui::SeparatorText(filetype == "pic" ? "Фото" : "Чертеж");
+
+                        std::string imgFilename =
+                            GetSimpleRuleImgFilename(std::format("{}_{}.png", v.ImgFilenameHash, filetype));
+                        DrawImgPreview(imgFilename);
+                        DrawImgMakeScreenshot(imgFilename);
+
+                        ImGui::PopID();
+                    }
 
                     ImGui::PopID();
+                    ImGui::Separator();
                 }
 
-                ImGui::PopID();
-                ImGui::Separator();
-            }
+                // float height =
+                //     ImGui::GetTextLineHeight() * static_cast<float>(std::ranges::count(_SimpleListItem.Value,
+                //     '\n') + 1)
+                //     + ImGui::GetStyle().FramePadding.y * 2;
+                // ImGui::InputTextMultiline(std::format("##{}", _SimpleListFieldName).c_str(),
+                // &_SimpleListItem.Value,
+                //                           { 0.0f, height });
+                // ImGui::InputText(std::format("##{}", _SimpleListFieldName).c_str(), &_SimpleListItem.Value);
+            };
 
-            // float height =
-            //     ImGui::GetTextLineHeight() * static_cast<float>(std::ranges::count(_SimpleListItem.Value,
-            //     '\n') + 1)
-            //     + ImGui::GetStyle().FramePadding.y * 2;
-            // ImGui::InputTextMultiline(std::format("##{}", _SimpleListFieldName).c_str(),
-            // &_SimpleListItem.Value,
-            //                           { 0.0f, height });
-            // ImGui::InputText(std::format("##{}", _SimpleListFieldName).c_str(), &_SimpleListItem.Value);
-        };
-
-        std::function<std::string(const PageImgListItem&)> previewTextFn = [](const PageImgListItem& _SimpleListItem) {
-            return "Используются на:";
-        };
+        std::function<std::string(const XlsxPageViewDataTypes::PageImgListItem&)> previewTextFn =
+            [](const XlsxPageViewDataTypes::PageImgListItem& _SimpleListItem) { return "Используются на:"; };
         if (ImGui::Begin(windowTitle.c_str()))
         {
-            DrawSimpleListTemplateWindow(windowTitle, m_SimpleRuleImgList, handle, previewTextFn);
+            DrawSimpleListTemplateWindow(windowTitle, _XlsxViewData, _XlsxViewData.GetSimpleRuleImgList(), handle,
+                                         previewTextFn);
         }
         ImGui::End();
     }
 
-    void XlsxPageView::DrawImgsPerListWindow()
+    void XlsxPageView::DrawImgsPerListWindow(XlsxPageViewData& _XlsxViewData)
     {
         if (!m_Project)
         {
@@ -1221,7 +1205,7 @@ namespace LM
 
                 ImGui::SeparatorText(filetype == "pic" ? "Фото" : "Чертеж");
 
-                std::string imgFilename = GetRawImgFilename(filetype);
+                std::string imgFilename = GetRawImgFilename(_XlsxViewData, filetype);
 
                 DrawImgPreview(imgFilename);
                 DrawImgMakeScreenshot(imgFilename);
@@ -1278,7 +1262,7 @@ namespace LM
         return res;
     }
 
-    void XlsxPageView::DrawJoinModal()
+    void XlsxPageView::DrawJoinModal(XlsxPageViewData& _XlsxViewData, XlsxPageViewDataTypes::TableData& _TableData)
     {
         static bool isSkipEmpty = true;
         static std::string joinStr;
@@ -1295,11 +1279,11 @@ namespace LM
 
                 if (ImGui::Button("Применить"))
                 {
-                    SelectionRegion selectionRegion = GetSelectionRegion(false);
+                    SelectionRegion selectionRegion = GetSelectionRegion(_TableData, false);
                     if (selectionRegion.RowsCount > 0 && selectionRegion.ColsCount > 0)
                     {
-                        for (auto& row : std::ranges::subrange(m_TableData.begin() + selectionRegion.StartRow,
-                                                               m_TableData.begin() + selectionRegion.StartRow +
+                        for (auto& row : std::ranges::subrange(_TableData.begin() + selectionRegion.StartRow,
+                                                               _TableData.begin() + selectionRegion.StartRow +
                                                                    selectionRegion.RowsCount))
                         {
                             auto& writeCell = *(row.begin() + selectionRegion.StartCol);
@@ -1316,7 +1300,7 @@ namespace LM
                             }
                         }
 
-                        PushHistory();
+                        _XlsxViewData.PushHistory();
                         m_IsJoinModalOpen = false;
                     }
                 }
@@ -1325,7 +1309,8 @@ namespace LM
         }
     }
 
-    void XlsxPageView::DrawFindAndReplaceModal()
+    void XlsxPageView::DrawFindAndReplaceModal(XlsxPageViewData& _XlsxViewData,
+                                               XlsxPageViewDataTypes::TableData& _TableData)
     {
         static std::string findStr;
         static std::string replaceStr;
@@ -1340,11 +1325,11 @@ namespace LM
 
                 if (ImGui::Button("Применить"))
                 {
-                    SelectionRegion selectionRegion = GetSelectionRegion(false);
+                    SelectionRegion selectionRegion = GetSelectionRegion(_TableData, false);
                     if (!findStr.empty())
                     {
-                        for (auto& row : std::ranges::subrange(m_TableData.begin() + selectionRegion.StartRow,
-                                                               m_TableData.begin() + selectionRegion.StartRow +
+                        for (auto& row : std::ranges::subrange(_TableData.begin() + selectionRegion.StartRow,
+                                                               _TableData.begin() + selectionRegion.StartRow +
                                                                    selectionRegion.RowsCount))
                         {
                             for (auto& cell : std::ranges::subrange(row.begin() + selectionRegion.StartCol,
@@ -1365,7 +1350,7 @@ namespace LM
                             }
                         }
 
-                        PushHistory();
+                        _XlsxViewData.PushHistory();
                         m_IsFindAndReplaceModalOpen = false;
                     }
                 }
@@ -1374,20 +1359,20 @@ namespace LM
         }
     }
 
-    void XlsxPageView::HandleImGuiEvents()
+    void XlsxPageView::HandleImGuiEvents(XlsxPageViewData& _XlsxViewData, XlsxPageViewDataTypes::TableData& _TableData)
     {
-        if (!ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) || m_TableData.empty())
+        if (!ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) || _TableData.empty())
         {
             return;
         }
 
         ImGuiIO& io = ImGui::GetIO();
 
-        if (m_SelectedRow.has_value() && (*m_SelectedRow >= m_TableData.size()))
+        if (m_SelectedRow.has_value() && (*m_SelectedRow >= _TableData.size()))
         {
             m_SelectedRow = std::nullopt;
         }
-        if (m_SelectedCol.has_value() && ((m_TableData.size() == 0) || (*m_SelectedCol >= m_TableData[0].size())))
+        if (m_SelectedCol.has_value() && ((_TableData.size() == 0) || (*m_SelectedCol >= _TableData[0].size())))
         {
             m_SelectedCol = std::nullopt;
         }
@@ -1395,9 +1380,8 @@ namespace LM
              std::array<std::reference_wrapper<std::optional<glm::u64vec2>>, 2> { m_SelectedCell, m_ExtraSelectedCell })
         {
             auto& selectedCell = selectedCellRef.get();
-            if (selectedCell.has_value() &&
-                (((m_TableData.size() == 0) || (selectedCell->x >= m_TableData[0].size())) ||
-                 (selectedCell->y >= m_TableData.size())))
+            if (selectedCell.has_value() && (((_TableData.size() == 0) || (selectedCell->x >= _TableData[0].size())) ||
+                                             (selectedCell->y >= _TableData.size())))
             {
                 selectedCell = std::nullopt;
             }
@@ -1415,11 +1399,11 @@ namespace LM
 
         if (ImGui::IsKeyPressed(ImGuiKey_Z) && io.KeyCtrl && !m_IsAnyCellActive)
         {
-            Undo();
+            _XlsxViewData.GetCurrentPageData().Undo();
         }
         if (ImGui::IsKeyPressed(ImGuiKey_Y) && io.KeyCtrl && !m_IsAnyCellActive)
         {
-            Redo();
+            _XlsxViewData.GetCurrentPageData().Redo();
         }
 
         if (ImGui::IsKeyPressed(ImGuiKey_J) && io.KeyCtrl)
@@ -1436,28 +1420,28 @@ namespace LM
 
         if (ImGui::IsKeyPressed(ImGuiKey_X) && io.KeyCtrl)
         {
-            SelectionRegion selectedRegion = GetSelectionRegion(io.KeyShift);
-            CopySelectedToClipboard(selectedRegion);
-            ClearSelected(selectedRegion);
+            SelectionRegion selectedRegion = GetSelectionRegion(_TableData, io.KeyShift);
+            CopySelectedToClipboard(_TableData, selectedRegion);
+            ClearSelected(_XlsxViewData, _TableData, selectedRegion);
         }
 
         if (ImGui::IsKeyPressed(ImGuiKey_C) && io.KeyCtrl)
         {
-            SelectionRegion selectedRegion = GetSelectionRegion(io.KeyShift);
-            CopySelectedToClipboard(selectedRegion);
+            SelectionRegion selectedRegion = GetSelectionRegion(_TableData, io.KeyShift);
+            CopySelectedToClipboard(_TableData, selectedRegion);
         }
 
         if (ImGui::IsKeyPressed(ImGuiKey_V) && io.KeyCtrl)
         {
             // TODO: Insert with column or row selectd (with shift and without)
-            InsertFromClipboard();
+            InsertFromClipboard(_XlsxViewData, _TableData);
         }
 
         // TODO: Move to separate function
         if (ImGui::IsKeyPressed(ImGuiKey_Equal) && io.KeyCtrl)
         {
-            size_t selectedRow = io.KeyAlt ? 0 : m_TableData.size();
-            size_t selectedCol = io.KeyAlt ? 0 : m_TableData[0].size();
+            size_t selectedRow = io.KeyAlt ? 0 : _TableData.size();
+            size_t selectedCol = io.KeyAlt ? 0 : _TableData[0].size();
             if (m_SelectedCell.has_value())
             {
                 selectedCol = m_SelectedCell->x + 1;
@@ -1481,11 +1465,11 @@ namespace LM
 
             if (isAddToCol)
             {
-                InsertCol(selectedItem);
+                _XlsxViewData.GetCurrentPageData().InsertCol(selectedItem);
             }
             else
             {
-                InsertRow(selectedItem);
+                _XlsxViewData.GetCurrentPageData().InsertRow(selectedItem);
             }
             return;
         }
@@ -1494,15 +1478,15 @@ namespace LM
         {
             if (m_SelectedRow.has_value())
             {
-                DeleteRow(*m_SelectedRow);
+                _XlsxViewData.GetCurrentPageData().DeleteRow(*m_SelectedRow);
             }
             if (m_SelectedCol.has_value())
             {
-                DeleteCol(*m_SelectedCol);
+                _XlsxViewData.GetCurrentPageData().DeleteCol(*m_SelectedCol);
             }
-            if ((m_SelectedRow.has_value() || m_SelectedCol.has_value()) && (m_TableData.size() == 0))
+            if ((m_SelectedRow.has_value() || m_SelectedCol.has_value()) && (_TableData.size() == 0))
             {
-                m_TableData.resize(1, std::vector<TableCell>(1, { .Value = "" }));
+                _TableData.resize(1, std::vector<XlsxPageViewDataTypes::TableCell>(1, { .Value = "" }));
             }
             return;
         }
@@ -1511,13 +1495,14 @@ namespace LM
         if (ImGui::IsKeyPressed(ImGuiKey_Delete))
         {
 
-            SelectionRegion selectedRegion = GetSelectionRegion(io.KeyShift);
-            ClearSelected(selectedRegion);
+            SelectionRegion selectedRegion = GetSelectionRegion(_TableData, io.KeyShift);
+            ClearSelected(_XlsxViewData, _TableData, selectedRegion);
             return;
         }
     }
 
-    void XlsxPageView::PushCellFrameBgColor(bool _IsRowHovered, bool _IsColHovered, size_t _RowId, size_t _ColId)
+    void XlsxPageView::PushCellFrameBgColor(XlsxPageViewDataTypes::TableData& _TableData, bool _IsRowHovered,
+                                            bool _IsColHovered, size_t _RowId, size_t _ColId)
     {
         float frameBgAlpha = 0.0;
         float frameBgBlue = 0.0f;
@@ -1525,7 +1510,7 @@ namespace LM
         bool isHovered = _IsRowHovered || _IsColHovered;
 
         // TODO: move GetSelectionRegion upper for optimization
-        bool isSelected = IsInSelectionRegion(GetSelectionRegion(false), _RowId, _ColId);
+        bool isSelected = IsInSelectionRegion(GetSelectionRegion(_TableData, false), _RowId, _ColId);
 
         // Check if the cell is selected
         if (isSelected && isHovered)
@@ -1544,27 +1529,29 @@ namespace LM
             frameBgBlue = 0.75f;
         }
 
-        if (frameBgAlpha == 0.0f && m_TableData[_RowId][_ColId].Check != CheckStatus::kNone)
+        if (frameBgAlpha == 0.0f && _TableData[_RowId][_ColId].Check != XlsxPageViewDataTypes::CheckStatus::kNone)
         {
             frameBgAlpha = 0.125f;
         }
 
-        switch (m_TableData[_RowId][_ColId].Check)
+        switch (_TableData[_RowId][_ColId].Check)
         {
-            case CheckStatus::kOk:
+            case XlsxPageViewDataTypes::CheckStatus::kOk:
                 ImGui::PushStyleColor(ImGuiCol_FrameBg, GetFrameBgColorOk(frameBgAlpha, frameBgBlue));
                 break;
-            case CheckStatus::kWarning:
+            case XlsxPageViewDataTypes::CheckStatus::kWarning:
                 ImGui::PushStyleColor(ImGuiCol_FrameBg, GetFrameBgColorWarn(frameBgAlpha, frameBgBlue));
                 break;
-            case CheckStatus::kError:
+            case XlsxPageViewDataTypes::CheckStatus::kError:
                 ImGui::PushStyleColor(ImGuiCol_FrameBg, GetFrameBgColorError(frameBgAlpha, frameBgBlue));
                 break;
             default: ImGui::PushStyleColor(ImGuiCol_FrameBg, GetFrameBgColorNone(frameBgAlpha, frameBgBlue)); break;
         }
     }
 
-    XlsxPageView::DrawTableHeaderReturn XlsxPageView::DrawTableHeader(size_t _ColsCount)
+    XlsxPageView::DrawTableHeaderReturn XlsxPageView::DrawTableHeader(size_t _ColsCount,
+                                                                      XlsxPageViewData& _XlsxViewData,
+                                                                      XlsxPageViewDataTypes::TableData& _TableData)
     {
         DrawTableHeaderReturn result;
 
@@ -1583,7 +1570,7 @@ namespace LM
         }
         if (ImGui::BeginPopupContextItem("Header_0"))
         {
-            DrawTableHeaderRowContextMenu();
+            DrawTableHeaderRowContextMenu(_XlsxViewData, _TableData);
 
             ImGui::Separator();
 
@@ -1599,11 +1586,11 @@ namespace LM
             ImGui::PushID(static_cast<int>(colId));
             ImGui::TableSetColumnIndex(static_cast<int>(colId + 1));
 
-            auto& t = m_TableData[0][colId].Value;
+            auto& t = _TableData[0][colId].Value;
             // std::string headerText = std::format("{}##_Header_{}", t, colId + 1);
             ImU32 headerColor = 0xFF000000;
-            if (m_GlobalAddList.contains(t) || IsItemInSimpleListForCurrentPage(m_SimpleAddList, t) ||
-                IsItemInSimpleListForCurrentPage(m_SimpleCalcList, t))
+            if (_XlsxViewData.IsItemInGlobalAddList(t) || _XlsxViewData.IsItemInSimpleAddListForCurrentPage(t) ||
+                _XlsxViewData.IsItemInSimpleCalcListForCurrentPage(t))
             {
                 headerColor = 0xFF008000;
             }
@@ -1664,7 +1651,7 @@ namespace LM
                 ImGui::InputText("Имя заголовка##HeaderInput", &t);
                 if (ImGui::IsItemDeactivatedAfterEdit())
                 {
-                    PushHistory();
+                    _XlsxViewData.PushHistory();
                     ImGui::CloseCurrentPopup();
                 }
                 if (ImGui::IsItemActive())
@@ -1699,9 +1686,9 @@ namespace LM
                         { 'q', '9' },
                     };
 
-                    for (size_t rowId = 1; rowId < m_TableData.size(); ++rowId)
+                    for (size_t rowId = 1; rowId < _TableData.size(); ++rowId)
                     {
-                        auto& cellText = m_TableData[rowId][colId].Value;
+                        auto& cellText = _TableData[rowId][colId].Value;
                         for (auto& ch : cellText)
                         {
                             if (replacements.find(ch) != replacements.end())
@@ -1718,7 +1705,7 @@ namespace LM
                         }
                     }
 
-                    PushHistory();
+                    _XlsxViewData.PushHistory();
                 }
 
                 ImGui::SeparatorText("Checks");
@@ -1726,34 +1713,34 @@ namespace LM
                 // TODO: Move to separate function
                 if (ImGui::Button("Clear Checks"))
                 {
-                    for (size_t rowId = 1; rowId < m_TableData.size(); ++rowId)
+                    for (size_t rowId = 1; rowId < _TableData.size(); ++rowId)
                     {
-                        m_TableData[rowId][colId].Check = CheckStatus::kNone;
+                        _TableData[rowId][colId].Check = XlsxPageViewDataTypes::CheckStatus::kNone;
                     }
 
-                    PushHistory();
+                    _XlsxViewData.PushHistory();
                 }
 
                 // TODO: Move to separate function
                 if (ImGui::Button("Check for float"))
                 {
-                    for (size_t rowId = 1; rowId < m_TableData.size(); ++rowId)
+                    for (size_t rowId = 1; rowId < _TableData.size(); ++rowId)
                     {
-                        auto& cellText = m_TableData[rowId][colId].Value;
+                        auto& cellText = _TableData[rowId][colId].Value;
                         float _;
                         auto [ptr, ec] = std::from_chars(cellText.data(), cellText.data() + cellText.size(), _);
                         bool result = ec == std::errc() && ptr == cellText.data() + cellText.size();
                         if (result)
                         {
-                            m_TableData[rowId][colId].Check = CheckStatus::kOk;
+                            _TableData[rowId][colId].Check = XlsxPageViewDataTypes::CheckStatus::kOk;
                         }
                         else
                         {
-                            m_TableData[rowId][colId].Check = CheckStatus::kError;
+                            _TableData[rowId][colId].Check = XlsxPageViewDataTypes::CheckStatus::kError;
                         }
                     }
 
-                    PushHistory();
+                    _XlsxViewData.PushHistory();
                 }
 
                 ImGui::SeparatorText("Actions");
@@ -1779,7 +1766,8 @@ namespace LM
         return result;
     }
 
-    void XlsxPageView::DrawTableHeaderRowContextMenu()
+    void XlsxPageView::DrawTableHeaderRowContextMenu(XlsxPageViewData& _XlsxViewData,
+                                                     XlsxPageViewDataTypes::TableData& _TableData)
     {
         if (ImGui::Button("Удалить заголовок"))
         {
@@ -1791,68 +1779,37 @@ namespace LM
 
         ImGui::Text("Вторая строка станет заголовком");
 
-        DrawTableActions();
+        DrawTableActions(_XlsxViewData, _TableData);
     }
 
-    template <DerivedFromSimpleListItemBase T>
-    bool XlsxPageView::IsItemInSimpleListForCurrentPage(std::unordered_map<std::string, std::vector<T>>& _SimpleList,
-                                                        std::string_view _FieldName)
+    std::optional<const std::reference_wrapper<std::string>>
+    XlsxPageView::GetExtraListValue(XlsxPageViewData& _XlsxViewData, std::string_view _Header)
     {
-        return _SimpleList.contains(_FieldName.data()) &&
-               std::ranges::any_of(_SimpleList[_FieldName.data()], [this](const T& item) {
-                   return std::ranges::find(item.SharedPages, m_LoadedPageId) != item.SharedPages.end();
-               });
-    }
-
-    template <DerivedFromSimpleListItemBase T>
-    std::optional<const std::reference_wrapper<T>>
-    XlsxPageView::GetItemInSimpleListForCurrentPage(std::unordered_map<std::string, std::vector<T>>& _SimpleList,
-                                                    std::string_view _FieldName)
-    {
-        if (_SimpleList.contains(_FieldName.data()))
-        {
-            std::vector<T>& items = _SimpleList[_FieldName.data()];
-            if (auto it = std::ranges::find_if(items,
-                                               [this](T& item) {
-                                                   return std::ranges::find(item.SharedPages, m_LoadedPageId) !=
-                                                          item.SharedPages.end();
-                                               });
-                it != items.end())
-            {
-                return *it;
-            }
-        }
-
-        return std::nullopt;
-    }
-
-    std::optional<const std::reference_wrapper<std::string>> XlsxPageView::GetExtraListValue(std::string_view _Header)
-    {
-        if (std::optional<std::reference_wrapper<SimpleAddListItem>> cell =
-                GetItemInSimpleListForCurrentPage(m_SimpleCalcList, _Header);
+        if (std::optional<std::reference_wrapper<XlsxPageViewDataTypes::SimpleAddListItem>> cell =
+                _XlsxViewData.GetItemInSimpleCalcListForCurrentPage(_Header);
             cell.has_value())
         {
             return cell->get().Value;
         }
 
-        if (std::optional<std::reference_wrapper<SimpleAddListItem>> cell =
-                GetItemInSimpleListForCurrentPage(m_SimpleAddList, _Header);
+        if (std::optional<std::reference_wrapper<XlsxPageViewDataTypes::SimpleAddListItem>> cell =
+                _XlsxViewData.GetItemInSimpleAddListForCurrentPage(_Header);
             cell.has_value())
         {
             return cell->get().Value;
         }
 
-        if (m_GlobalAddList.contains(_Header.data()))
+        if (_XlsxViewData.GetGlobalAddList().contains(_Header.data()))
         {
-            return m_GlobalAddList[_Header.data()];
+            return _XlsxViewData.GetGlobalAddList()[_Header.data()];
         }
 
         return std::nullopt;
     }
 
-    std::string XlsxPageView::GetRawImgFilename(std::string_view _Filetype)
+    std::string XlsxPageView::GetRawImgFilename(XlsxPageViewData& _XlsxViewData, std::string_view _Filetype)
     {
-        std::filesystem::path filename = m_LoadedPageFilename;
+        std::filesystem::path filename = _XlsxViewData.GetCurrentPageData().GetPageFilename().filename();
         filename.replace_extension();
         filename = std::format("{}_{}.png", filename.string(), _Filetype);
 
@@ -1864,460 +1821,41 @@ namespace LM
         return (std::filesystem::path(m_Project->GetExcelTablesTypeSimpleRuleImgsPath()) / _Filename).string();
     }
 
-    void XlsxPageView::LoadXLSX()
-    {
-        m_LoadedPageId = -1;
-        UnSelectAll();
-        m_TableData.clear();
-        ClearHistory();
-
-        auto pathIterator = std::filesystem::directory_iterator(m_BasePath);
-        for (int i = 0; i < m_PageId; ++i)
-        {
-            ++pathIterator;
-        }
-        if (pathIterator == std::filesystem::end(pathIterator))
-        {
-            LOG_CORE_ERROR("No file found for page ID: {}", m_PageId);
-            return;
-        }
-
-        std::filesystem::path path = std::filesystem::path(m_BasePath) / pathIterator->path().filename();
-
-        LOG_CORE_INFO("Loading file: {}", path.string());
-
-        if (!std::filesystem::exists(path))
-        {
-            return;
-        }
-
-        xlnt::workbook wb;
-
-        try
-        {
-            wb.load(path);
-        }
-        catch (const std::exception& e)
-        {
-            LOG_CORE_ERROR("Failed to load workbook: {}", e.what());
-            return;
-        }
-
-        xlnt::worksheet ws = wb.active_sheet();
-
-        for (auto row : ws.rows(false))
-        {
-            std::vector<TableCell> rowData;
-            for (auto cell : row)
-            {
-                rowData.push_back({ .Value = cell.has_value() ? cell.to_string() : "" });
-            }
-            m_TableData.push_back(rowData);
-        }
-
-        size_t maxCols = 0;
-        for (const auto& row : m_TableData)
-        {
-            if (row.size() > maxCols)
-            {
-                maxCols = row.size();
-            }
-        }
-
-        for (auto& row : m_TableData)
-        {
-            while (row.size() < maxCols)
-            {
-                row.push_back({ .Value = "" });
-            }
-        }
-
-        m_LoadedPageId = m_PageId;
-        m_LoadedPageFilename = pathIterator->path().filename();
-
-        PushHistory();
-    }
-
-    void XlsxPageView::SaveXLSX()
-    {
-        if ((m_PageId < 0) || (m_LoadedPageId < 0) || m_BasePath.empty())
-        {
-            return;
-        }
-
-        auto pathIterator = std::filesystem::directory_iterator(m_BasePath);
-        for (int i = 0; i < m_PageId; ++i)
-        {
-            ++pathIterator;
-        }
-        if (pathIterator == std::filesystem::end(pathIterator))
-        {
-            LOG_CORE_ERROR("No file found for page ID: {}", m_PageId);
-            return;
-        }
-
-        std::filesystem::path path = std::filesystem::path(m_BasePath) / pathIterator->path().filename().string();
-
-        LOG_CORE_INFO("Saving file: {}", path.string());
-
-        // if (!std::filesystem::exists(path))
-        // {
-        //     return;
-        // }
-
-        xlnt::workbook wb;
-        LOG_CORE_INFO("Created WB");
-
-        xlnt::worksheet ws = wb.active_sheet();
-        LOG_CORE_INFO("Created WS");
-
-        for (size_t rowId = 0; rowId < m_TableData.size(); ++rowId)
-        {
-            for (size_t colId = 0; colId < m_TableData[rowId].size(); ++colId)
-            {
-                ws.cell(static_cast<xlnt::column_t>(colId + 1), static_cast<xlnt::row_t>(rowId + 1))
-                    .value(StrTrim(m_TableData[rowId][colId].Value));
-            }
-        }
-
-        wb.save(path);
-
-        SaveExtraInfoJson();
-    }
-
-    void XlsxPageView::LoadExtraInfoJson()
-    {
-        std::string filename = kExtraInfoFile.data();
-        std::filesystem::path inFilePath =
-            (std::filesystem::path(m_Project->GetExcelTablesTypePath()) / std::filesystem::path(filename));
-        m_ExtraInfoJsonPath = inFilePath.string();
-        if (!std::filesystem::exists(inFilePath))
-        {
-            // Overlay::Get()->Start(Format("Файл не найден: \n{}", inFilePath.string()));
-            return;
-        }
-
-        std::ifstream infile(inFilePath);
-        if (!infile.is_open())
-        {
-            Overlay::Get()->Start(Format("Не удалось открыть стандартный файл ExtraInfo: \n{}", inFilePath.string()));
-        }
-
-        try
-        {
-            nlohmann::json json;
-            infile >> json;
-
-            if (json.contains("global_add_list"))
-            {
-                for (const auto& item : json["global_add_list"])
-                {
-                    m_GlobalAddList[item["name"]] = item["value"];
-                }
-            }
-
-            if (json.contains("simple_add_list"))
-            {
-                for (const auto& item : json["simple_add_list"])
-                {
-                    m_SimpleAddList.try_emplace(item["name"]);
-                    for (const auto& values : item["values"])
-                    {
-                        std::vector<int> index;
-                        values["index"].get_to(index);
-                        m_SimpleAddList[item["name"]].push_back({ { index }, values["value"] });
-                    }
-                }
-            }
-
-            if (json.contains("per_page_calc_list"))
-            {
-                for (const auto& item : json["per_page_calc_list"])
-                {
-                    m_SimpleCalcList.try_emplace(item["name"]);
-                    for (const auto& values : item["values"])
-                    {
-                        std::vector<int> index;
-                        values["index"].get_to(index);
-                        m_SimpleCalcList[item["name"]].push_back({ { index }, values["exec"] });
-                    }
-                }
-            }
-
-            if (json.contains("per_page_simple_rule_img_list"))
-            {
-                for (const auto& item : json["per_page_simple_rule_img_list"])
-                {
-                    m_SimpleRuleImgList.try_emplace(item["name"]);
-                    for (const auto& values : item["values"])
-                    {
-                        std::vector<int> index;
-                        values["index"].get_to(index);
-
-                        std::vector<PageImgListItemValue> list;
-
-                        for (const auto& listItem : values["list"])
-                        {
-                            list.push_back({
-                                .Cmp = listItem["cmp"],
-                                .CmpValue = listItem["cmp_value"],
-                                .ImgFilenameHash = listItem["img_filename_hash"],
-                            });
-                        }
-
-                        m_SimpleRuleImgList[item["name"]].push_back({ { index }, list });
-                    }
-                }
-            }
-        }
-        catch (...)
-        {
-            Overlay::Get()->Start(Format("Ошибка во время чтения формата json: \n{}", inFilePath.string()));
-        }
-    }
-
-    void XlsxPageView::SaveExtraInfoJson()
-    {
-
-        std::ofstream fout(m_ExtraInfoJsonPath);
-        if (!fout.is_open())
-        {
-            Overlay::Get()->Start(Format("Не удалось сохранить ExtraInfo: \n{}", m_ExtraInfoJsonPath));
-            return;
-        }
-
-        nlohmann::json result;
-
-        // result["global_add_list"] = nlohmann::json::array();
-        for (const auto& [name, value] : m_GlobalAddList)
-        {
-            result["global_add_list"].push_back(nlohmann::json {
-                {  "name",  name },
-                { "value", value }
-            });
-        }
-
-        for (const auto& [name, items] : m_SimpleAddList)
-        {
-            if (items.size() == 0)
-            {
-                continue;
-            }
-
-            nlohmann::json jsonItems = {
-                {   "name",                    name },
-                { "values", nlohmann::json::array() }
-            };
-            for (const SimpleAddListItem& item : items)
-            {
-                jsonItems["values"].push_back(nlohmann::json {
-                    { "index", item.SharedPages },
-                    { "value",       item.Value }
-                });
-            }
-
-            result["simple_add_list"].push_back(jsonItems);
-        }
-
-        for (const auto& [name, items] : m_SimpleCalcList)
-        {
-            if (items.size() == 0)
-            {
-                continue;
-            }
-
-            nlohmann::json jsonItems = {
-                {   "name",                    name },
-                { "values", nlohmann::json::array() }
-            };
-            for (const SimpleAddListItem& item : items)
-            {
-                jsonItems["values"].push_back(nlohmann::json {
-                    { "index", item.SharedPages },
-                    {  "exec",       item.Value }
-                });
-            }
-
-            result["per_page_calc_list"].push_back(jsonItems);
-        }
-
-        for (const auto& [name, items] : m_SimpleRuleImgList)
-        {
-            if (items.size() == 0)
-            {
-                continue;
-            }
-
-            nlohmann::json jsonItems = {
-                {   "name",                    name },
-                { "values", nlohmann::json::array() }
-            };
-            for (const PageImgListItem& item : items)
-            {
-                nlohmann::json jsonList = nlohmann::json::array();
-                for (const PageImgListItemValue& listItem : item.Value)
-                {
-                    jsonList.push_back(nlohmann::json {
-                        {               "cmp",             listItem.Cmp },
-                        {         "cmp_value",        listItem.CmpValue },
-                        { "img_filename_hash", listItem.ImgFilenameHash }
-                    });
-                }
-                jsonItems["values"].push_back(nlohmann::json {
-                    { "index", item.SharedPages },
-                    {  "list",         jsonList }
-                });
-            }
-
-            result["per_page_simple_rule_img_list"].push_back(jsonItems);
-        }
-
-        fout << std::setw(4) << result;
-    }
-
-    void XlsxPageView::Undo()
-    {
-        if (m_HistoryPointer <= 1)
-        {
-            return;
-        }
-
-        --m_HistoryPointer;
-        RestoreFromHistory(m_HistoryState[m_HistoryPointer - 1]);
-    }
-
-    void XlsxPageView::Redo()
-    {
-        if (m_HistoryPointer >= m_HistoryState.size())
-        {
-            return;
-        }
-
-        ++m_HistoryPointer;
-        RestoreFromHistory(m_HistoryState[m_HistoryPointer - 1]);
-    }
-
-    void XlsxPageView::RestoreFromHistory(const HistoryState& _HistoryState)
-    {
-        m_TableData = _HistoryState.DataTable;
-        // TODO: fix restore of m_SelectedCell and m_ExtraSelectedCell
-        m_SelectedCell = _HistoryState.SelectedCell;
-        m_ExtraSelectedCell = std::nullopt;
-        m_SelectedCol = _HistoryState.SelectedRow;
-        m_SelectedRow = _HistoryState.SelectedRow;
-    }
-
-    void XlsxPageView::PushHistory()
-    {
-        m_HistoryState.erase(m_HistoryState.begin() + m_HistoryPointer, m_HistoryState.end());
-        m_HistoryState.push_back({
-            .DataTable = m_TableData,
-            .SelectedCell = m_SelectedCell,
-            .SelectedCol = m_SelectedCol,
-            .SelectedRow = m_SelectedRow,
-        });
-        ++m_HistoryPointer;
-    }
-
-    void XlsxPageView::ClearHistory()
-    {
-        m_HistoryPointer = 0;
-        m_HistoryState.clear();
-    }
-
-    void XlsxPageView::DeleteCol(size_t _ColId)
-    {
-        for (auto& row : m_TableData)
-        {
-            if (_ColId >= row.size())
-            {
-                continue;
-            }
-            row.erase(row.begin() + _ColId);
-        }
-        if ((m_TableData.size() > 0) && (m_TableData[0].size() == 0))
-        {
-            m_TableData.clear();
-        }
-
-        PushHistory();
-    }
-
-    void XlsxPageView::DeleteRow(size_t _RowId)
-    {
-        if (_RowId >= m_TableData.size())
-        {
-            return;
-        }
-        m_TableData.erase(m_TableData.begin() + _RowId);
-
-        PushHistory();
-    }
-
-    void XlsxPageView::InsertCol(size_t _ColId)
-    {
-        bool isChanged = false;
-        for (auto& row : m_TableData)
-        {
-            if (_ColId > row.size())
-            {
-                continue;
-            }
-            isChanged = true;
-            row.insert(row.begin() + _ColId, { .Value = "" });
-        }
-
-        if (isChanged)
-        {
-            PushHistory();
-        }
-    }
-
-    void XlsxPageView::InsertRow(size_t _RowId)
-    {
-        if (_RowId > m_TableData.size())
-        {
-            return;
-        }
-        size_t colsCount = m_TableData.size() > 0 ? m_TableData[0].size() : 1;
-        m_TableData.insert(m_TableData.begin() + _RowId, std::vector<TableCell>(colsCount, { .Value = "" }));
-
-        PushHistory();
-    }
-
-    void XlsxPageView::ReplaceFromClipboard(bool _IsNeedEmptyHeaderRow)
+    void XlsxPageView::ReplaceFromClipboard(XlsxPageViewData& _XlsxViewData,
+                                            XlsxPageViewDataTypes::TableData& _TableData, bool _IsNeedEmptyHeaderRow)
     {
         if (const char* clipboard = ImGui::GetClipboardText())
         {
-            m_TableData.clear();
+            _TableData.clear();
 
             std::istringstream iss(clipboard);
             std::string line;
             while (std::getline(iss, line))
             {
-                std::vector<TableCell> row;
+                std::vector<XlsxPageViewDataTypes::TableCell> row;
                 std::istringstream lineStream(line);
                 std::string cell;
                 while (std::getline(lineStream, cell, '\t'))
                 {
                     row.push_back({ .Value = cell });
                 }
-                m_TableData.push_back(std::move(row));
+                _TableData.push_back(std::move(row));
             }
 
             if (_IsNeedEmptyHeaderRow)
             {
-                m_TableData.insert(m_TableData.begin(), std::vector<TableCell>());
+                _TableData.insert(_TableData.begin(), std::vector<XlsxPageViewDataTypes::TableCell>());
             }
-            FixDimensions();
-            PushHistory();
+            FixDimensions(_TableData);
+            _XlsxViewData.PushHistory();
         }
     }
 
-    XlsxPageView::SelectionRegion XlsxPageView::GetSelectionRegion(bool _IncludeHeader)
+    XlsxPageView::SelectionRegion XlsxPageView::GetSelectionRegion(XlsxPageViewDataTypes::TableData& _TableData,
+                                                                   bool _IncludeHeader)
     {
         if ((!m_SelectedCell.has_value() && !m_SelectedRow.has_value() && !m_SelectedCol.has_value()) ||
-            (m_SelectedCell.has_value() && m_IsAnyCellActive) || (m_TableData.empty() || m_TableData[0].empty()))
+            (m_SelectedCell.has_value() && m_IsAnyCellActive) || (_TableData.empty() || _TableData[0].empty()))
         {
             return { .StartRow = 0, .StartCol = 0, .RowsCount = 0, .ColsCount = 0 };
         }
@@ -2342,13 +1880,13 @@ namespace LM
         }
         if (m_SelectedRow.has_value())
         {
-            return { .StartRow = *m_SelectedRow, .StartCol = 0, .RowsCount = 1, .ColsCount = m_TableData[0].size() };
+            return { .StartRow = *m_SelectedRow, .StartCol = 0, .RowsCount = 1, .ColsCount = _TableData[0].size() };
         }
         if (m_SelectedCol.has_value())
         {
             size_t offset = _IncludeHeader ? 0 : 1;
             return {
-                .StartRow = offset, .StartCol = *m_SelectedCol, .RowsCount = m_TableData.size() - offset, .ColsCount = 1
+                .StartRow = offset, .StartCol = *m_SelectedCol, .RowsCount = _TableData.size() - offset, .ColsCount = 1
             };
         }
 
@@ -2369,25 +1907,38 @@ namespace LM
         return _RowId >= minCell.x && _RowId <= maxCell.x && _ColId >= minCell.y && _ColId <= maxCell.y;
     }
 
-    void XlsxPageView::CopySelectedToClipboard(const SelectionRegion& _SelectionRegion)
+    void XlsxPageView::CopySelectedToClipboard(XlsxPageViewDataTypes::TableData& _TableData,
+                                               const SelectionRegion& _SelectionRegion)
     {
         std::string result;
         for (const auto& row :
-             std::ranges::subrange(m_TableData.begin() + _SelectionRegion.StartRow,
-                                   m_TableData.begin() + _SelectionRegion.StartRow + _SelectionRegion.RowsCount))
+             std::ranges::subrange(_TableData.begin() + _SelectionRegion.StartRow,
+                                   _TableData.begin() + _SelectionRegion.StartRow + _SelectionRegion.RowsCount))
         {
+            std::vector<std::string> cellArr;
             for (const auto& cell :
                  std::ranges::subrange(row.begin() + _SelectionRegion.StartCol,
                                        row.begin() + _SelectionRegion.StartCol + _SelectionRegion.ColsCount))
             {
-                result += cell.Value + "\t";
+                result += cell.Value;
+                if (&cell != &row[_SelectionRegion.StartCol + _SelectionRegion.ColsCount - 1])
+                {
+                    result += "\t";
+                }
             }
-            result += "\n";
+
+            if (&row != &_TableData[_SelectionRegion.StartRow + _SelectionRegion.RowsCount - 1])
+            {
+                result += "\n";
+            }
         }
         ImGui::SetClipboardText(result.c_str());
+
+        LOG_CORE_WARN("{}", result.c_str());
     }
 
-    void XlsxPageView::InsertFromClipboard()
+    void XlsxPageView::InsertFromClipboard(XlsxPageViewData& _XlsxViewData,
+                                           XlsxPageViewDataTypes::TableData& _TableData)
     {
         const char* clipboard = ImGui::GetClipboardText();
         if (!clipboard)
@@ -2402,11 +1953,12 @@ namespace LM
             std::string line;
             for (size_t insertRow = m_SelectedCell->y; std::getline(iss, line); ++insertRow)
             {
-                if (m_TableData.size() == insertRow)
+                if (_TableData.size() == insertRow)
                 {
-                    m_TableData.push_back(std::vector<TableCell>(m_TableData[0].size(), TableCell {}));
+                    _TableData.push_back(std::vector<XlsxPageViewDataTypes::TableCell>(
+                        _TableData[0].size(), XlsxPageViewDataTypes::TableCell {}));
                 }
-                std::vector<TableCell>& row = m_TableData[insertRow];
+                std::vector<XlsxPageViewDataTypes::TableCell>& row = _TableData[insertRow];
 
                 std::istringstream lineStream(line);
                 std::string cell;
@@ -2419,16 +1971,17 @@ namespace LM
                     row[insertCol].Value = cell;
                 }
             }
-            FixDimensions();
-            PushHistory();
+            FixDimensions(_TableData);
+            _XlsxViewData.PushHistory();
         }
     }
 
-    void XlsxPageView::ClearSelected(const SelectionRegion& _SelectionRegion)
+    void XlsxPageView::ClearSelected(XlsxPageViewData& _XlsxViewData, XlsxPageViewDataTypes::TableData& _TableData,
+                                     const SelectionRegion& _SelectionRegion)
     {
         for (auto& row :
-             std::ranges::subrange(m_TableData.begin() + _SelectionRegion.StartRow,
-                                   m_TableData.begin() + _SelectionRegion.StartRow + _SelectionRegion.RowsCount))
+             std::ranges::subrange(_TableData.begin() + _SelectionRegion.StartRow,
+                                   _TableData.begin() + _SelectionRegion.StartRow + _SelectionRegion.RowsCount))
         {
             for (auto& cell :
                  std::ranges::subrange(row.begin() + _SelectionRegion.StartCol,
@@ -2438,7 +1991,7 @@ namespace LM
             }
         }
 
-        PushHistory();
+        _XlsxViewData.PushHistory();
     }
 
     void XlsxPageView::UnSelectAll(bool _UnSelectExtraCell)
@@ -2452,30 +2005,31 @@ namespace LM
         m_SelectedRow = std::nullopt;
     }
 
-    void XlsxPageView::SplitAndExpandTable()
+    void XlsxPageView::SplitAndExpandTable(XlsxPageViewData& _XlsxViewData,
+                                           XlsxPageViewDataTypes::TableData& _TableData)
     {
-        if (m_TableData.empty())
+        if (_TableData.empty())
         {
             return;
         }
 
-        size_t rows = m_TableData.size();
-        size_t cols = m_TableData[0].size();
+        size_t rows = _TableData.size();
+        size_t cols = _TableData[0].size();
 
         LOG_CORE_WARN("Splitting table with columns: {}", cols);
 
         std::vector<std::vector<std::vector<std::string>>> colsSplitData(cols);
         for (auto& col : colsSplitData)
         {
-            col.resize(m_TableData.size());
+            col.resize(_TableData.size());
         }
         std::vector<size_t> colsAfterSplitCount(cols, 1);
 
         for (size_t col = 0; col < cols; ++col)
         {
-            for (size_t row = 0; row < m_TableData.size(); ++row)
+            for (size_t row = 0; row < _TableData.size(); ++row)
             {
-                std::istringstream iss(m_TableData[row][col].Value);
+                std::istringstream iss(_TableData[row][col].Value);
                 std::string word;
 
                 while (iss >> word)
@@ -2493,8 +2047,8 @@ namespace LM
 
         size_t totalSplitCount = std::accumulate(colsAfterSplitCount.begin(), colsAfterSplitCount.end(), 0);
 
-        m_TableData.clear();
-        m_TableData.resize(rows, std::vector<TableCell>(totalSplitCount, { .Value = "" }));
+        _TableData.clear();
+        _TableData.resize(rows, std::vector<XlsxPageViewDataTypes::TableCell>(totalSplitCount, { .Value = "" }));
 
         for (size_t oldCol = 0; oldCol < cols; ++oldCol)
         {
@@ -2504,45 +2058,47 @@ namespace LM
                 newCol += colsAfterSplitCount[i];
             }
 
-            for (size_t row = 0; row < m_TableData.size(); ++row)
+            for (size_t row = 0; row < _TableData.size(); ++row)
             {
                 for (size_t col = 0; col < colsAfterSplitCount[oldCol]; ++col)
                 {
-                    m_TableData[row][newCol + col] = {
+                    _TableData[row][newCol + col] = {
                         .Value = col < colsSplitData[oldCol][row].size() ? colsSplitData[oldCol][row][col] : "",
                     };
                 }
             }
         }
 
-        PushHistory();
+        _XlsxViewData.PushHistory();
     }
 
-    void XlsxPageView::FixDimensions()
+    void XlsxPageView::FixDimensions(XlsxPageViewDataTypes::TableData& _TableData)
     {
         size_t maxCols = 0;
-        for (const auto& row : m_TableData)
+        for (const auto& row : _TableData)
         {
             maxCols = std::max(maxCols, row.size());
         }
-        for (auto& row : m_TableData)
+        for (auto& row : _TableData)
         {
             row.resize(maxCols, { .Value = "" });
         }
     }
 
-    void XlsxPageView::ChangeHeadersByConstruction(std::string_view _ConstrKey)
+    void XlsxPageView::ChangeHeadersByConstruction(XlsxPageViewData& _XlsxViewData,
+                                                   XlsxPageViewDataTypes::TableData& _TableData,
+                                                   std::string_view _ConstrKey)
     {
         if (!m_ConstructionsFields.contains(_ConstrKey.data()))
         {
             Overlay::Get()->Start(Format("Не найдены поля для конструкции: \n{}", _ConstrKey));
         }
-        if (m_TableData.size() == 0)
+        if (_TableData.size() == 0)
         {
-            m_TableData.push_back(std::vector<TableCell>());
+            _TableData.push_back(std::vector<XlsxPageViewDataTypes::TableCell>());
         }
 
-        std::vector<TableCell>& headerRow = m_TableData[0];
+        std::vector<XlsxPageViewDataTypes::TableCell>& headerRow = _TableData[0];
         headerRow.clear();
         for (const std::string& field : kProductBaseFields)
         {
@@ -2553,8 +2109,8 @@ namespace LM
             headerRow.push_back({ .Value = field });
         }
 
-        FixDimensions();
-        PushHistory();
+        FixDimensions(_TableData);
+        _XlsxViewData.PushHistory();
     }
 
     void XlsxPageView::LoadConstructionsTree()
@@ -2779,19 +2335,20 @@ namespace LM
         }
     }
 
-    void XlsxPageView::FindAndInsertAmatiCodems()
+    void XlsxPageView::FindAndInsertAmatiCodems(XlsxPageViewData& _XlsxViewData,
+                                                XlsxPageViewDataTypes::TableData& _TableData)
     {
         std::optional<size_t> modelColId;
         std::optional<size_t> codemColId;
 
-        if (m_TableData.empty())
+        if (_TableData.empty())
         {
             return;
         }
 
-        for (size_t i = 0; i < m_TableData[0].size(); ++i)
+        for (size_t i = 0; i < _TableData[0].size(); ++i)
         {
-            const auto& cell = m_TableData[0][i];
+            const auto& cell = _TableData[0][i];
             if (cell.Value == "model")
             {
                 modelColId = i;
@@ -2807,7 +2364,7 @@ namespace LM
             return;
         }
 
-        for (auto& row : m_TableData)
+        for (auto& row : _TableData)
         {
             std::string iterpmodel = InterpolateModel(row[*modelColId].Value);
             if (m_AmatiCodems.contains(iterpmodel))
@@ -2816,7 +2373,7 @@ namespace LM
             }
         }
 
-        PushHistory();
+        _XlsxViewData.PushHistory();
     }
 
     bool XlsxPageView::IsExtraInfoAutoFocusField(std::string_view _WindowName, std::string_view _FieldName)

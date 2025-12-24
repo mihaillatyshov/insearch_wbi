@@ -2,8 +2,8 @@
 
 #include "IPageView.h"
 #include "ImGui/Constructions/SelectConstructionFromTree.hpp"
+#include "Project/Processing/XlsxPageViewData.h"
 
-#include <filesystem>
 #include <functional>
 #include <optional>
 #include <string>
@@ -16,57 +16,9 @@ struct ImVec4;
 namespace LM
 {
 
-    struct SimpleListItemBase
-    {
-        std::vector<int> SharedPages;
-    };
-
-    template <typename T>
-    concept DerivedFromSimpleListItemBase = std::is_base_of_v<SimpleListItemBase, T>;
-
-    struct SimpleAddListItem : public SimpleListItemBase
-    {
-        std::string Value;
-    };
-
-    struct PageImgListItemValue
-    {
-        std::string Cmp = "EQ";
-        std::string CmpValue;
-        std::string ImgFilenameHash;
-    };
-
-    struct PageImgListItem : public SimpleListItemBase
-    {
-        std::vector<PageImgListItemValue> Value;
-    };
-
     class XlsxPageView : public IPageView
     {
     protected:
-        enum class CheckStatus
-        {
-            kNone,
-            kOk,
-            kWarning,
-            kError,
-        };
-
-        struct TableCell
-        {
-            std::string Value = "";
-            CheckStatus Check = CheckStatus::kNone;
-        };
-
-        struct HistoryState
-        {
-            std::vector<std::vector<TableCell>> DataTable;
-
-            std::optional<glm::u64vec2> SelectedCell = std::nullopt;
-            std::optional<size_t> SelectedCol = std::nullopt;
-            std::optional<size_t> SelectedRow = std::nullopt;
-        };
-
         struct DrawTableHeaderReturn
         {
             std::optional<size_t> HoveredCol = std::nullopt;
@@ -122,87 +74,63 @@ namespace LM
         void DrawWindowContent() override;
 
     protected:
-        void DrawTableActions();
-        void DrawGlobalAddListWindow();
+        void DrawTableActions(XlsxPageViewData& _XlsxViewData, XlsxPageViewDataTypes::TableData& _TableData);
+        void DrawGlobalAddListWindow(XlsxPageViewData& _XlsxViewData);
 
-        template <DerivedFromSimpleListItemBase T>
-        void DeleteFromSimpleList(std::unordered_map<std::string, std::vector<T>>& _SimpleList,
-                                  std::string_view _DeleteName);
-
-        template <DerivedFromSimpleListItemBase T>
-        void DrawSimpleListTemplateWindow(std::string_view _WindowName,
+        template <XlsxPageViewDataTypes::DerivedFromSimpleListItemBase T>
+        void DrawSimpleListTemplateWindow(std::string_view _WindowName, XlsxPageViewData& _XlsxViewData,
                                           std::unordered_map<std::string, std::vector<T>>& _SimpleList,
                                           std::function<void(std::string_view, T&)> _ItemInputHandle,
                                           std::function<std::string(const T&)> _ItemPreviewTextFn);
 
-        void DrawSimpleAddListWindow();
-        void DrawSimpleCalcListWindow();
-        bool PageImgListItemValueFilenameExists(std::string_view _Hash);
-        void DrawSimpleRuleImgListWindow();
-        void DrawImgsPerListWindow();
+        void DrawSimpleAddListWindow(XlsxPageViewData& _XlsxViewData);
+        void DrawSimpleCalcListWindow(XlsxPageViewData& _XlsxViewData);
+        bool PageImgListItemValueFilenameExists(XlsxPageViewData& _XlsxViewData, std::string_view _Hash);
+        void DrawSimpleRuleImgListWindow(XlsxPageViewData& _XlsxViewData);
+        void DrawImgsPerListWindow(XlsxPageViewData& _XlsxViewData);
 
         void DrawImgPreview(std::string_view _ImgFilename);
         bool DrawImgMakeScreenshot(std::string_view _ImgFilename);
 
-        void DrawJoinModal();
-        void DrawFindAndReplaceModal();
+        void DrawJoinModal(XlsxPageViewData& _XlsxViewData, XlsxPageViewDataTypes::TableData& _TableData);
+        void DrawFindAndReplaceModal(XlsxPageViewData& _XlsxViewData, XlsxPageViewDataTypes::TableData& _TableData);
 
-        void HandleImGuiEvents();
+        void HandleImGuiEvents(XlsxPageViewData& _XlsxViewData, XlsxPageViewDataTypes::TableData& _TableData);
 
-        void PushCellFrameBgColor(bool _IsRowHovered, bool _IsColHovered, size_t _RowId, size_t _ColId);
+        void PushCellFrameBgColor(XlsxPageViewDataTypes::TableData& _TableData, bool _IsRowHovered, bool _IsColHovered,
+                                  size_t _RowId, size_t _ColId);
 
-        DrawTableHeaderReturn DrawTableHeader(size_t _ColsCount);
-        void DrawTableHeaderRowContextMenu();
+        DrawTableHeaderReturn DrawTableHeader(size_t _ColsCount, XlsxPageViewData& _XlsxViewData,
+                                              XlsxPageViewDataTypes::TableData& _TableData);
+        void DrawTableHeaderRowContextMenu(XlsxPageViewData& _XlsxViewData,
+                                           XlsxPageViewDataTypes::TableData& _TableData);
 
-        template <DerivedFromSimpleListItemBase T>
-        bool IsItemInSimpleListForCurrentPage(std::unordered_map<std::string, std::vector<T>>& _SimpleList,
-                                              std::string_view _FieldName);
+        std::optional<const std::reference_wrapper<std::string>> GetExtraListValue(XlsxPageViewData& _XlsxViewData,
+                                                                                   std::string_view _Header);
 
-        template <DerivedFromSimpleListItemBase T>
-        std::optional<const std::reference_wrapper<T>>
-        GetItemInSimpleListForCurrentPage(std::unordered_map<std::string, std::vector<T>>& _SimpleList,
-                                          std::string_view _FieldName);
-
-        std::optional<const std::reference_wrapper<std::string>> GetExtraListValue(std::string_view _Header);
-
-        std::string GetRawImgFilename(std::string_view _Filetype);
+        std::string GetRawImgFilename(XlsxPageViewData& _XlsxViewData, std::string_view _Filetype);
         std::string GetSimpleRuleImgFilename(std::string_view _Filename);
 
-        void LoadXLSX();
-        void SaveXLSX();
+        void ReplaceFromClipboard(XlsxPageViewData& _XlsxViewData, XlsxPageViewDataTypes::TableData& _TableData,
+                                  bool _IsNeedEmptyHeaderRow);
 
-        void LoadExtraInfoJson();
-        void SaveExtraInfoJson();
-
-        void Undo();
-        void Redo();
-
-        void RestoreFromHistory(const HistoryState& _HistoryState);
-        void PushHistory();
-        void ClearHistory();
-
-        void DeleteCol(size_t _ColId);
-        void DeleteRow(size_t _RowId);
-
-        void InsertCol(size_t _ColId);
-        void InsertRow(size_t _RowId);
-
-        void ReplaceFromClipboard(bool _IsNeedEmptyHeaderRow);
-
-        SelectionRegion GetSelectionRegion(bool _IncludeHeader);
+        SelectionRegion GetSelectionRegion(XlsxPageViewDataTypes::TableData& _TableData, bool _IncludeHeader);
         bool IsInSelectionRegion(const SelectionRegion& _SelectionRegion, size_t _RowId, size_t _ColId);
 
-        void CopySelectedToClipboard(const SelectionRegion& _SelectionRegion);
-        void InsertFromClipboard();
-        void ClearSelected(const SelectionRegion& _SelectionRegion);
+        void CopySelectedToClipboard(XlsxPageViewDataTypes::TableData& _TableData,
+                                     const SelectionRegion& _SelectionRegion);
+        void InsertFromClipboard(XlsxPageViewData& _XlsxViewData, XlsxPageViewDataTypes::TableData& _TableData);
+        void ClearSelected(XlsxPageViewData& _XlsxViewData, XlsxPageViewDataTypes::TableData& _TableData,
+                           const SelectionRegion& _SelectionRegion);
 
         void UnSelectAll(bool _UnSelectExtraCell = true);
 
-        void SplitAndExpandTable();
+        void SplitAndExpandTable(XlsxPageViewData& _XlsxViewData, XlsxPageViewDataTypes::TableData& _TableData);
 
-        void FixDimensions();
+        void FixDimensions(XlsxPageViewDataTypes::TableData& _TableData);
 
-        void ChangeHeadersByConstruction(std::string_view _ConstrKey);
+        void ChangeHeadersByConstruction(XlsxPageViewData& _XlsxViewData, XlsxPageViewDataTypes::TableData& _TableData,
+                                         std::string_view _ConstrKey);
 
         void LoadConstructionsTree();
         void LoadConstructionsFields();
@@ -212,16 +140,11 @@ namespace LM
 
         void LoadAmatiCodems();
 
-        void FindAndInsertAmatiCodems();
+        void FindAndInsertAmatiCodems(XlsxPageViewData& _XlsxViewData, XlsxPageViewDataTypes::TableData& _TableData);
 
         bool IsExtraInfoAutoFocusField(std::string_view _WindowName, std::string_view _FieldName);
 
     protected:
-        std::vector<std::vector<TableCell>> m_TableData;
-
-        int m_LoadedPageId = -1;
-        std::filesystem::path m_LoadedPageFilename;
-
         bool m_IsMainWindowFocused = false;
         bool m_IsAnyCellActive = false;
         bool m_IsAnyHeaderActive = false;
@@ -237,19 +160,10 @@ namespace LM
         std::unordered_map<std::string, FieldDescription> m_FieldsDescription;
         std::unordered_map<std::string, std::vector<FieldRepresentationItem>> m_FieldsRepresentation;
 
-        bool m_IsExtraInfoJsonLoaded = false;
-        std::string m_ExtraInfoJsonPath;
         std::optional<ExtraInfoAutoFocusField> m_ExtraInfoAutoFocusField = std::nullopt;
-        std::unordered_map<std::string, std::string> m_GlobalAddList;
-        std::unordered_map<std::string, std::vector<SimpleAddListItem>> m_SimpleAddList;
-        std::unordered_map<std::string, std::vector<SimpleAddListItem>> m_SimpleCalcList;
-        std::unordered_map<std::string, std::vector<PageImgListItem>> m_SimpleRuleImgList;
         std::unordered_map<std::string, std::unordered_map<std::string, std::vector<std::string>>> m_ConstrExamples;
 
         std::unordered_map<std::string, std::string> m_AmatiCodems;
-
-        size_t m_HistoryPointer = 0;
-        std::vector<HistoryState> m_HistoryState;
 
         bool m_IsJoinModalOpen = false;
         bool m_IsFindAndReplaceModalOpen = false;

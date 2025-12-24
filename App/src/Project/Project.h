@@ -1,9 +1,11 @@
 #pragma once
 
 #include <filesystem>
+#include <optional>
 #include <string>
 #include <vector>
 
+#include "Processing/XlsxPageViewData.h"
 #include "glm/glm.hpp"
 
 #include "Engine/Core/Base.h"
@@ -155,6 +157,8 @@ namespace LM
         void OnGenImgsByCutPattern();
         void OnGenRawExcel();
 
+        XlsxPageViewData& GetXlsxPageViewData();
+
     public:
         friend SerializerGetPropertiesAll;
 
@@ -176,6 +180,8 @@ namespace LM
         GenImgsByCutPattern m_GenImgsByCutPattern;
 
         std::vector<uint32_t> m_GeneratedCatalogExcludePages;
+
+        std::optional<XlsxPageViewData> m_XlsxPageViewData;
     };
 
 }    // namespace LM

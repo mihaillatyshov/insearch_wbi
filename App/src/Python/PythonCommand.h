@@ -1,5 +1,6 @@
 #pragma once
 
+#include <filesystem>
 #include <functional>
 #include <string>
 #include <vector>
@@ -21,6 +22,7 @@ namespace LM
         PythonCommand(std::string_view _Script);
 
         void AddArg(std::string_view _Arg, std::string_view _ArgName = "");
+        void AddPathArg(const std::filesystem::path& _Arg, std::string_view _ArgName);
         void AddArg(bool _Arg, std::string_view _ArgName = "");
         void AddArg(float _Arg, std::string_view _ArgName = "");
         void AddArg(int _Arg, std::string_view _ArgName = "");

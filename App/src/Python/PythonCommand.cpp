@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstdio>
+#include <filesystem>
 #include <iostream>
 #include <memory>
 #include <stdexcept>
@@ -21,6 +22,11 @@ namespace LM
     void PythonCommand::AddArg(std::string_view _Arg, std::string_view _ArgName)
     {
         m_Args.emplace_back(ArgType { .Arg = _Arg.data(), .ArgName = _ArgName.data() });
+    }
+
+    void PythonCommand::AddPathArg(const std::filesystem::path& _Arg, std::string_view _ArgName)
+    {
+        m_Args.emplace_back(ArgType { .Arg = _Arg.string().c_str(), .ArgName = _ArgName.data() });
     }
 
     void PythonCommand::AddArg(bool _Arg, std::string_view _ArgName)

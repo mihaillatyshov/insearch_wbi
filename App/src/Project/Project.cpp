@@ -227,4 +227,13 @@ namespace LM
         m_GenRawExcel.Version = 0;
     }
 
+    XlsxPageViewData& Project::GetXlsxPageViewData()
+    {
+        if (!m_XlsxPageViewData.has_value())
+        {
+            m_XlsxPageViewData = XlsxPageViewData(GetExcelTablesTypePath(), GetExcelTablesTypeStartupPath());
+        }
+        return m_XlsxPageViewData.value();
+    }
+
 }    // namespace LM
