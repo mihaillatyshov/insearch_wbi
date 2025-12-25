@@ -49,9 +49,9 @@ namespace LM
     std::string PythonCommand::GetCommand()
     {
 #ifdef _WIN32
-        return "python";
+        return ".\\.venv\\scripts\\python";
 #else
-        return "python3";
+        return ".venv/scripts/python";
 #endif
     }
 
@@ -65,11 +65,11 @@ namespace LM
         return result;
     }
 
-    void PythonCommand::Execute(std::function<void(const char*)> _LinePrintCallback)
+    int PythonCommand::Execute(std::function<void(const char*)> _LinePrintCallback)
     {
         std::array<char, 1024> buffer;
 
-        std::string command = GetFullCommand();
+        std::string command = GetFullCommand() + " 2>&1";  // Перенаправляем stderr в stdout
         LOG_CORE_INFO("Start python command: {}", command);
 
         std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(command.c_str(), "r"), pclose);
@@ -85,6 +85,32 @@ namespace LM
                 _LinePrintCallback(buffer.data());
             }
         }
+
+        int exitCode = pclose(pipe.release());
+        
+#ifdef _WIN32
+        // В Windows pclose возвращает код возврата напрямую
+        LOG_CORE_INFO("Python command finished with exit code: {}", exitCode);
+#else
+        // В Unix-системах нужно использовать WEXITSTATUS
+        if (WIFEXITED(exitCode))
+        {
+            exitCode = WEXITSTATUS(exitCode);
+            LOG_CORE_INFO("Python command finished with exit code: {}", exitCode);
+        }
+        else
+        {
+            LOG_CORE_ERROR("Python command terminated abnormally");
+            exitCode = -1;
+        }
+#endif
+        
+        if (exitCode != 0)
+        {
+            LOG_CORE_ERROR("Python command failed with exit code: {}", exitCode);
+        }
+        
+        return exitCode;
     }
 
 }    // namespace LM

@@ -115,6 +115,10 @@ namespace LM
     const std::array kInterpModelSuffixesToRemove = { "_AMATI"sv, "_ASKUP"sv, "_DEREK"sv, "_HT"sv,
                                                       "_PL"sv,    "_LIK"sv,   "_ТИЗ"sv };
 
+    constexpr std::string_view kImgsSuffixNoBG = "_no_bg";
+    constexpr std::string_view kImgsSuffixWebp = "_webp";
+    constexpr std::string_view kImgsSuffixCrop = "_crop";
+
     static const std::array kInterpModelLettersToRemove = {
         std::pair {  " "sv,  ""sv },
          std::pair { " "sv,  ""sv },
@@ -557,6 +561,8 @@ namespace LM
 
     void XlsxPageView::DrawTableActions(XlsxPageViewData& _XlsxViewData, XlsxPageViewDataTypes::TableData& _TableData)
     {
+        ImGui::SeparatorText("Действия с таблицей");
+
         if (ImGui::Button("Копировать без заголовка"))
         {
             std::string copyText;
@@ -656,17 +662,18 @@ namespace LM
             SplitAndExpandTable(_XlsxViewData, _TableData);
         }
 
-        ImGui::Separator();
+        ImGui::SeparatorText("Вставка данных из внешних источников");
 
         if (ImGui::Button("Вставить артикул AMATI"))
         {
             FindAndInsertAmatiCodems(_XlsxViewData, _TableData);
         }
 
-        ImGui::Separator();
+        ImGui::SeparatorText("Заполнение данных по правилам");
 
         if (ImGui::Button("Обработать файлы (парсер yg1-shop)"))
         {
+            Save();
 
             PythonCommand pythonCommand("./assets/scripts/excel_add_extra_info.py");
             pythonCommand.AddArg(m_Project->GetExcelTablesTypeStartupPath(), "--xlsx_path");
@@ -685,9 +692,12 @@ namespace LM
                                             },
                                             []() {} });
         }
+
         ImGui::SameLine();
+
         if (ImGui::Button("Обработать файлы (парсер WBI Tools)"))
         {
+            Save();
 
             PythonCommand pythonCommand("./assets/scripts/excel_add_extra_info.py");
             pythonCommand.AddArg(m_Project->GetExcelTablesTypeStartupPath(), "--xlsx_path");
@@ -707,10 +717,50 @@ namespace LM
                                             []() {} });
         }
 
-        ImGui::Separator();
+        ImGui::SeparatorText("WBI Tools Specific");
+
+        if (ImGui::Button("Удалить фон картинок"))
+        {
+            ImgsHandlerRemoveBg();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Конвертировать картинки в webp"))
+        {
+            ImgsHandlerToWebp();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Обрезать картинки по центру"))
+        {
+            ImgsHandlerCrop();
+        }
+
+        if (ImGui::Button("Подготовить и загрузить картинки в WBI Tools"))
+        {
+            Save();
+
+            PythonCommand pythonCommand("./assets/scripts/imgs_to_server_format_and_upload.py");
+            pythonCommand.AddArg(m_Project->GetExcelTablesTypeAddExtraInfoPath(), "--xlsx_path");
+            pythonCommand.AddArg(m_Project->GetExcelTablesTypeForServerImportPath(), "--xlsx_save_path");
+            // pythonCommand.AddArg("None", "--ssh_host");
+            pythonCommand.AddArg("None"sv, "--ssh_user");
+            pythonCommand.AddArg("None"sv, "--ssh_password");
+            pythonCommand.AddArg("W:/Work/WBI/wbi_workpiece_static/pic_tools"sv, "--server_img_path");
+
+            ScriptPopup::Get()->OpenPopup(pythonCommand,
+                                          { "Подготовка данных для WBI Tools",
+                                            []() {
+                                                ImGui::Text("Работает скрипт подготовки данных для WBI Tools");
+                                                ImGui::Text("Это может занять несколько минут");
+                                                ImGui::Text("После его завершения можно закрыть это окно");
+                                            },
+                                            []() {} });
+        }
+
+        ImGui::SeparatorText("YG1-Shop Specific");
 
         if (ImGui::Button("Собрать файлы в один и добавить доп. поля для yg1-shop"))
         {
+            Save();
             PythonCommand pythonCommand("./assets/scripts/excel_add_extra_info-yg1-shop.py");
             pythonCommand.AddArg(m_Project->GetExcelTablesTypeAddExtraInfoPath(), "--xlsx_path");
             pythonCommand.AddArg(m_Project->GetExcelTablesTypeAddExtraInfoYg1Path(), "--save_path");
@@ -725,7 +775,7 @@ namespace LM
                                             []() {} });
         }
 
-        ImGui::Separator();
+        ImGui::SeparatorText("Конструкции");
 
         if (ImGui::Button("Изменить конструкцию"))
         {
@@ -2385,6 +2435,76 @@ namespace LM
             m_ExtraInfoAutoFocusField = std::nullopt;
         }
         return result;
+    }
+
+    void XlsxPageView::ImgsHandlerRemoveBg()
+    {
+        Save();
+
+        std::string inRawImgsPath = m_Project->GetExcelTablesTypeRawImgsPath();
+        std::string inSimpleRuleImgsPath = m_Project->GetExcelTablesTypeSimpleRuleImgsPath();
+        std::string outRawImgsPath = m_Project->GetExcelTablesTypeRawImgsPath(kImgsSuffixNoBG);
+        std::string outSimpleRuleImgsPath = m_Project->GetExcelTablesTypeSimpleRuleImgsPath(kImgsSuffixNoBG);
+
+        PythonCommand pythonCommand("./assets/scripts/imgs_remove_bg.py");
+        pythonCommand.AddArg(StrJoin({ inRawImgsPath, inSimpleRuleImgsPath }, ";"), "--img_dirs");
+        pythonCommand.AddArg(StrJoin({ outRawImgsPath, outSimpleRuleImgsPath }, ";"), "--save_paths");
+
+        ScriptPopup::Get()->OpenPopup(pythonCommand, { "Удаление фона с изображений",
+                                                       []() {
+                                                           ImGui::Text("Работает скрипт удаления фона с изображений");
+                                                           ImGui::Text("Это может занять несколько минут");
+                                                           ImGui::Text("После его завершения можно закрыть это окно");
+                                                       },
+                                                       []() {} });
+    }
+
+    void XlsxPageView::ImgsHandlerToWebp()
+    {
+        Save();
+
+        std::string inRawImgsPath = m_Project->GetExcelTablesTypeRawImgsPath(kImgsSuffixNoBG);
+        std::string inSimpleRuleImgsPath = m_Project->GetExcelTablesTypeSimpleRuleImgsPath(kImgsSuffixNoBG);
+        std::string outRawImgsPath = m_Project->GetExcelTablesTypeRawImgsPath(kImgsSuffixWebp);
+        std::string outSimpleRuleImgsPath = m_Project->GetExcelTablesTypeSimpleRuleImgsPath(kImgsSuffixWebp);
+
+        PythonCommand pythonCommand("./assets/scripts/imgs_to_webp.py");
+        pythonCommand.AddArg(StrJoin({ inRawImgsPath, inSimpleRuleImgsPath }, ";"), "--img_dirs");
+        pythonCommand.AddArg(StrJoin({ outRawImgsPath, outSimpleRuleImgsPath }, ";"), "--save_paths");
+
+        ScriptPopup::Get()->OpenPopup(pythonCommand,
+                                      { "Конвертация изображений в WebP",
+                                        []() {
+                                            ImGui::Text("Работает скрипт конвертации изображений в WebP");
+                                            ImGui::Text("Это может занять несколько минут");
+                                            ImGui::Text("После его завершения можно закрыть это окно");
+                                        },
+                                        []() {} });
+    }
+
+    void XlsxPageView::ImgsHandlerCrop()
+    {
+        Save();
+
+        std::string refRawImgsPath = m_Project->GetExcelTablesTypeRawImgsPath();
+        std::string refSimpleRuleImgsPath = m_Project->GetExcelTablesTypeSimpleRuleImgsPath();
+        std::string inRawImgsPath = m_Project->GetExcelTablesTypeRawImgsPath(kImgsSuffixNoBG);
+        std::string inSimpleRuleImgsPath = m_Project->GetExcelTablesTypeSimpleRuleImgsPath(kImgsSuffixNoBG);
+        std::string outRawImgsPath = m_Project->GetExcelTablesTypeRawImgsPath(kImgsSuffixCrop);
+        std::string outSimpleRuleImgsPath = m_Project->GetExcelTablesTypeSimpleRuleImgsPath(kImgsSuffixCrop);
+
+        PythonCommand pythonCommand("./assets/scripts/imgs_crop.py");
+        pythonCommand.AddArg(StrJoin({ refRawImgsPath, refSimpleRuleImgsPath }, ";"), "--img_crop_ref_dirs");
+        pythonCommand.AddArg(StrJoin({ inRawImgsPath, inSimpleRuleImgsPath }, ";"), "--img_dirs");
+        pythonCommand.AddArg(StrJoin({ outRawImgsPath, outSimpleRuleImgsPath }, ";"), "--save_paths");
+
+        ScriptPopup::Get()->OpenPopup(pythonCommand, { "Обрезка изображений",
+                                                       []() {
+                                                           ImGui::Text("Работает скрипт обрезки изображений");
+                                                           ImGui::Text("Это может занять несколько минут");
+                                                           ImGui::Text("После его завершения можно закрыть это окно");
+                                                       },
+                                                       []() {} });
     }
 
 }    // namespace LM

@@ -9,5 +9,6 @@ build/
 **/__pycache__
 
 **/venv
+**/.venv
 
 assets/tessdata/

@@ -7,6 +7,8 @@ import cv2
 import numpy as np
 from pydantic import BaseModel as ArgsBase
 
+utf8stdout = open(1, 'w', encoding='utf-8', closefd=False)
+
 
 def print_to_cpp(string: str):
     print(string, file=utf8stdout, flush=True)
@@ -18,7 +20,7 @@ TArgs = TypeVar("TArgs", bound=ArgsBase)
 def parse_args(args_type: type[TArgs]) -> TArgs:
     if (len(sys.argv) - 1) < len(args_type.model_fields.keys()):
         print_to_cpp("Скрипт не выполнен (не хватает агрументов)")
-        exit(-1)
+        sys.exit(-1)
 
     try:
         args_input = {}
@@ -57,9 +59,6 @@ def parse_args_new(args_type: type[TArgs]) -> TArgs:
         sys.exit(-1)
 
 
-utf8stdout = open(1, 'w', encoding='utf-8', closefd=False)
-
-
 def file_format_id(index: int) -> str:
     return f"{index:0>4}"
 
@@ -87,3 +86,16 @@ def remove_model_suffix(val) -> str:
         result = remove_suffix(result, suf)
 
     return result
+
+
+def interp_model(val) -> str:
+    return (str(val).replace(" ", "").replace(" ", "").replace("-", "").replace(".", ",").replace("*", "").replace(
+        "^",
+        "").replace("\\", "").replace("/", "").upper().replace("К", "K").replace("Е", "E").replace("Н", "H").replace(
+            "Х", "X").replace("В",
+                              "B").replace("А",
+                                           "A").replace("Р",
+                                                        "P").replace("О",
+                                                                     "O").replace("С",
+                                                                                  "C").replace("М",
+                                                                                               "M").replace("Т", "T"))

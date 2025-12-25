@@ -1,0 +1,227 @@
+import json
+import os
+import traceback
+
+import pandas as pd
+import pydantic
+from base import ArgsBase, interp_model, parse_args_new, print_to_cpp
+from pg_shared import create_sqlalchemy_engine
+from sqlalchemy import text
+from sqlalchemy.engine import Engine
+
+
+class Args(ArgsBase):
+    xlsx_path: str = pydantic.Field(description="Папка исходных файлов")
+    skip_files: str = pydantic.Field(description="Файлы для пропуска; Можно использовать ';' для нескольких файлов",
+                                     default="")
+
+
+def get_boolean_columns(sqlalchemy_engine: Engine, table_name: str) -> set[str]:
+    """Получает список boolean столбцов из таблицы"""
+    with sqlalchemy_engine.begin() as connection:
+        query = text("""
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_schema = 'tools'
+            AND table_name = :table_name
+            AND data_type = 'boolean'
+        """)
+        result = connection.execute(query, {'table_name': table_name})
+        return {row[0] for row in result}
+
+
+def convert_to_boolean(value):
+    """Преобразует значение в boolean для PostgreSQL"""
+    if pd.isna(value):
+        return None
+    if isinstance(value, (bool, type(None))):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(int(value))
+    if isinstance(value, str):
+        return value.lower() in ('true', '1', 'yes', 't', 'y')
+    return bool(value)
+
+
+def update_displayfields_map(constr_set: set[str], sqlalchemy_engine: Engine, displayfields_map: dict[str, list[str]]):
+    for constr in constr_set:
+        if displayfields_map.get(constr) is None:
+            print_to_cpp(f"Загружаются отображаемые поля для конструкции: {constr}")
+            displayfields_map[constr] = []
+            with sqlalchemy_engine.begin() as connection:
+                query = text("SELECT displayfields FROM tools.gen_constructions WHERE constr = :constr")
+                displayfields_db = connection.execute(query, {'constr': constr}).first()
+
+                if displayfields_db is None:
+                    raise ValueError(f"Не найдены отображаемые поля для конструкции: {constr}")
+                print_to_cpp(f"Полученные отображаемые поля: {displayfields_db[0]}")
+                displayfields_map[constr] = list(displayfields_db[0])
+
+
+def insert_into_gen_tools(sqlalchemy_engine: Engine, row: pd.Series) -> int:
+    with sqlalchemy_engine.begin() as connection:
+        query = text("""
+            INSERT INTO tools.gen_tools (model, codem, manuf, fulldescription, lcs, moq, interpmodel)
+            VALUES (:model, :codem, :manuf, :fulldescription, :lcs, :moq, :interpmodel)
+            ON CONFLICT (model, manuf) DO UPDATE SET
+                codem = EXCLUDED.codem,
+                fulldescription = EXCLUDED.fulldescription,
+                lcs = EXCLUDED.lcs,
+                moq = EXCLUDED.moq,
+                interpmodel = EXCLUDED.interpmodel
+            RETURNING id;
+        """)
+        raw_tool_id = connection.execute(
+            query, {
+                'model': row["model"],
+                'codem': row["codem"],
+                'manuf': row["manuf"],
+                'fulldescription': row["fulldescription"],
+                'lcs': row["lcs"],
+                'moq': row["moq"],
+                'interpmodel': row["interpmodel"],
+            }).first()
+        if raw_tool_id is None:
+            raise ValueError(
+                f"Не удалось вставить или обновить запись для модели: {row['model']}, производитель: {row['manuf']}")
+
+        return raw_tool_id[0]
+
+
+def insert_into_ctd_table(sqlalchemy_engine: Engine, constr: str, row: pd.Series, tool_id: int, item_id: int,
+                          boolean_columns: set[str]):
+    with sqlalchemy_engine.begin() as connection:
+        columns = ', '.join(row.index)
+        values_placeholders = ', '.join(f":{col}" for col in row.index)
+        query = text(f"""
+            INSERT INTO tools.{constr} (tool_id, item_id, {columns})
+            VALUES (:tool_id, :item_id, {values_placeholders})
+            ON CONFLICT (tool_id) DO UPDATE SET
+                {', '.join(f"{col} = EXCLUDED.{col}" for col in row.index)};
+        """)
+        params = {}
+        for col in row.index:
+            if col in boolean_columns:
+                params[col] = convert_to_boolean(row[col])
+            else:
+                params[col] = row[col]
+        params['tool_id'] = tool_id
+        params['item_id'] = item_id
+        params = {k: (None if pd.isna(v) else v) for k, v in params.items()}
+        connection.execute(query, params)
+
+
+def insert_into_gen_items(sqlalchemy_engine: Engine, row: pd.Series, tool_id: int, json_attributes: dict) -> int:
+    with sqlalchemy_engine.begin() as connection:
+        query = text("""
+            INSERT INTO tools.gen_items (manuf, model, constr, json_attributes, tool_id)
+            VALUES (:manuf, :model, :constr, :json_attributes, :tool_id)
+            ON CONFLICT (manuf, model) DO UPDATE SET
+                constr = EXCLUDED.constr,
+                json_attributes = EXCLUDED.json_attributes,
+                tool_id = EXCLUDED.tool_id
+            RETURNING id;
+        """)
+        raw_item_id = connection.execute(
+            query, {
+                'manuf': row["manuf"],
+                'model': row["model"],
+                'constr': row["constr"],
+                'json_attributes': json.dumps(json_attributes),
+                'tool_id': tool_id,
+            }).first()
+        if raw_item_id is None:
+            raise ValueError(
+                f"Не удалось вставить или обновить запись для модели: {row['model']}, производитель: {row['manuf']}")
+        return raw_item_id[0]
+
+
+def process_files(args: Args):
+    print_to_cpp("Начало импорта на сервер")
+
+    print_to_cpp("Подключение к базе данных")
+    sqlalchemy_engine = create_sqlalchemy_engine()
+
+    skip_files = args.skip_files.split(';') if args.skip_files else []
+    print_to_cpp(f"Файлы для пропуска: {skip_files}")
+
+    displayfields_map: dict[str, list[str]] = {}
+    boolean_columns_map: dict[str, set[str]] = {}
+
+    dtype_dict = {
+        "model": str,
+        "codem": str,
+        "manuf": str,
+        "constr": str,
+        "fulldescription": str,
+        "lcs": int,
+        "moq": float,
+        "img_pic": str,
+        "img_drw": str,
+        "serie": str,
+        "cle": str,
+        "sc1": str,
+    }
+
+    for filename in os.scandir(args.xlsx_path):
+        if filename.is_file() and not filename.name.startswith("~$") and filename.name not in skip_files:
+            print_to_cpp(f"Импортируется файл: {filename.name}")
+
+            df = pd.read_excel(filename.path, dtype=dtype_dict)
+            df["interpmodel"] = df["model"].map(interp_model).fillna(df["model"])
+
+            constr_set = set(df["constr"].replace('', pd.NA).dropna().astype(str))
+            constr_set = set(df["constr"].replace('', pd.NA).dropna().astype(str))
+            print_to_cpp(f"Найденные конструкции в файле {filename.name}: {constr_set}")
+
+            update_displayfields_map(constr_set, sqlalchemy_engine, displayfields_map)
+
+            for constr in constr_set:
+                if constr not in boolean_columns_map:
+                    boolean_columns_map[constr] = get_boolean_columns(sqlalchemy_engine, constr)
+
+            for _, row in df.iterrows():
+                print_to_cpp(f"Обрабатывается строка: {row['manuf']} - {row['model']}")
+                constr = str(row["constr"])
+                displayfields = displayfields_map.get(constr)
+                if displayfields is None or len(displayfields) == 0:
+                    raise ValueError(f"Отсутствуют отображаемые поля для конструкции {constr}, файл {filename.name}")
+
+                json_attributes = {
+                    field: row[field]
+                    for field in displayfields
+                    if field in row and pd.notna(row[field])
+                }
+                # print_to_cpp(f"Вставка записи: {json_attributes}")
+
+                print_to_cpp("Вставка/обновление в gen_tools")
+                tool_id = insert_into_gen_tools(sqlalchemy_engine, row)
+
+                print_to_cpp("Вставка/обновление в gen_items")
+
+                item_id = insert_into_gen_items(sqlalchemy_engine,
+                                                row,
+                                                tool_id=tool_id,
+                                                json_attributes=json_attributes)
+
+                print_to_cpp(f"Вставка/обновление в {constr} таблицу")
+                ctd_row = row.drop(["codem", "moq", "fulldescription", "interpmodel", "img_pic", "img_drw", "constr"])
+                boolean_columns = boolean_columns_map.get(constr, set())
+                insert_into_ctd_table(sqlalchemy_engine, constr, ctd_row, tool_id, item_id, boolean_columns)
+
+                # print_to_cpp("Вставка/обновление ссылок на изображения")
+                # imgs_pic = row["img_pic"].strip().split(";") if pd.notna(row["img_pic"]) else None
+                # imgs_drw = row["img_drw"].strip().split(";") if pd.notna(row["img_drw"]) else None
+
+                # for img_list, img_type in [(imgs_pic, "pic"), (imgs_drw, "drw")]:
+
+                print_to_cpp(f"Импорт на сервер завершен успешно tool_id: {tool_id}, item_id: {item_id }")
+
+
+try:
+    process_files(parse_args_new(Args))
+except KeyboardInterrupt:
+    pass
+except Exception as e:                                                                                                  # pylint: disable=broad-exception-caught
+    formatted_traceback = traceback.format_exc()                                                                        # pylint: disable=invalid-name
+    print_to_cpp(f"An error occurred:\n{formatted_traceback}")

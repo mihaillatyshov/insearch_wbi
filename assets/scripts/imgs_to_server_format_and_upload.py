@@ -2,6 +2,7 @@ import hashlib
 import os
 import shutil
 import traceback
+from typing import Callable
 
 import paramiko
 import pydantic
@@ -14,15 +15,15 @@ class Args(ArgsBase):
     xlsx_path: str = pydantic.Field(description="Папка исходных файлов")
     xlsx_save_path: str = pydantic.Field(description="Папка для сохранения")
     # img_tmp_path: str = pydantic.Field(description="Папка для сохранения; Можно использовать ';' для нескольких папок")
-    ssh_host: str = pydantic.Field(description="SSH хост")
+    ssh_host: str = pydantic.Field(default="", description="SSH хост")
     ssh_user: str = pydantic.Field(description="SSH пользователь")
     ssh_password: str = pydantic.Field(description="SSH пароль")
     ssh_port: int = pydantic.Field(default=22, description="SSH порт")
     server_img_path: str = pydantic.Field(description="Путь на сервере для сохранения изображений")
 
 
-class SSHConnection:
-    def __init__(self, host: str, user: str, password: str, port: int = 22):
+class SshOrLocalConnection:
+    def __init__(self, host: str | None, user: str, password: str, port: int = 22):
         self.host = host
         self.user = user
         self.password = password
@@ -31,6 +32,8 @@ class SSHConnection:
         self.sftp = None
 
     def __enter__(self):
+        if self.host == "" or self.host is None:
+            return None, None
         self.ssh = paramiko.SSHClient()
         self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         self.ssh.connect(hostname=self.host, username=self.user, password=self.password, port=self.port)
@@ -52,7 +55,7 @@ def file_exists_on_server(remote_base_path: str, pathname: str, sftp_client: par
         return False
 
 
-def files_content_equal(local_path: str, remote_path: str, sftp_client: paramiko.SFTPClient) -> bool:
+def sftp_files_content_equal(local_path: str, remote_path: str, sftp_client: paramiko.SFTPClient) -> bool:
     try:
         local_size = os.path.getsize(local_path)
         remote_size = sftp_client.stat(remote_path).st_size
@@ -77,9 +80,73 @@ def files_content_equal(local_path: str, remote_path: str, sftp_client: paramiko
         return False
 
 
+def local_files_content_equal(local_path: str, destination_path: str) -> bool:
+    """Сравнивает содержимое двух локальных файлов"""
+    try:
+        local_size = os.path.getsize(local_path)
+        destination_size = os.path.getsize(destination_path)
+
+        if local_size != destination_size:
+            return False
+
+        with open(local_path, "rb") as local_f:
+            with open(destination_path, "rb") as destination_f:
+                while True:
+                    local_chunk = local_f.read(4096)
+                    destination_chunk = destination_f.read(4096)
+
+                    if local_chunk != destination_chunk:
+                        return False
+
+                    if not local_chunk:
+                        break
+
+        return True
+    except Exception:                                                                                                   # pylint: disable=broad-exception-caught
+        return False
+
+
+def sftp_mkdir_p(remote_directory: str, sftp_client: paramiko.SFTPClient):
+    """Создает директорию на сервере, включая все промежуточные директории (аналог mkdir -p)"""
+    if remote_directory == '/':
+        return
+    if remote_directory == '':
+        return
+
+    try:
+        sftp_client.stat(remote_directory)
+    except IOError:
+        # Директория не существует, создаем её
+        dirname, basename = os.path.split(remote_directory.rstrip('/'))
+        if dirname:
+            sftp_mkdir_p(dirname, sftp_client)
+        if basename:
+            try:
+                sftp_client.mkdir(remote_directory)
+            except IOError:
+                # Директория уже существует (race condition)
+                pass
+
+
 def sftp_upload_file(local_file, remote_file, sftp_client: paramiko.SFTPClient):
+    # Создаем все необходимые директории перед загрузкой
+    remote_dir = os.path.dirname(remote_file)
+    if remote_dir:
+        sftp_mkdir_p(remote_dir, sftp_client)
+
     print_to_cpp(f"[sftp] {local_file} -> {remote_file}")
     sftp_client.put(local_file, remote_file)
+
+
+def local_copy_file(local_file, destination_file):
+    """Копирует файл локально, создавая все необходимые директории"""
+    # Создаем все необходимые директории перед копированием
+    destination_dir = os.path.dirname(destination_file)
+    if destination_dir:
+        os.makedirs(destination_dir, exist_ok=True)
+
+    print_to_cpp(f"[local] {local_file} -> {destination_file}")
+    shutil.copyfile(local_file, destination_file)
 
 
 def sha256_org(fname: str, iteration: int = 0):
@@ -96,15 +163,20 @@ def sha256_org(fname: str, iteration: int = 0):
     return path, pathname, file_extension
 
 
-def sha256_org_not_exists(fname: str, server_img_path: str, sftp_client: paramiko.SFTPClient):
+def sha256_org_not_exists(
+    fname: str,
+    server_img_path: str,
+    is_file_exists_cb: Callable[[str, str], bool],
+    is_files_equal_cb: Callable[[str, str], bool],
+):
     iteration = 0
     while True:
         path, pathname, ext = sha256_org(fname, iteration)
 
-        is_file_exists = file_exists_on_server(server_img_path, pathname, sftp_client)
+        is_file_exists = is_file_exists_cb(server_img_path, pathname)
         print_to_cpp(
             f"Проверка существования файла на сервере: {pathname} - {'найден' if is_file_exists else 'не найден'}")
-        is_files_equal = files_content_equal(fname, os.path.join(server_img_path, pathname), sftp_client)
+        is_files_equal = is_files_equal_cb(fname, os.path.join(server_img_path, pathname))
         if is_file_exists and not is_files_equal:
             print_to_cpp("Файл с таким именем существует, но содержимое отличается. Повторное хеширование...")
             iteration += 1
@@ -123,6 +195,10 @@ def sha256_org_not_exists(fname: str, server_img_path: str, sftp_client: paramik
 
 
 def process_files(args: Args):
+    os.makedirs(args.xlsx_save_path, exist_ok=True)
+
+    is_local = args.ssh_host == "" or args.ssh_host is None
+
     print_to_cpp("Начало обработки изображений")
     imgs_set: set[str] = set()
     imgs_replace_map: dict[str, str] = {}
@@ -139,14 +215,44 @@ def process_files(args: Args):
     print_to_cpp(f"Всего уникальных изображений для обработки: {len(imgs_set)}")
 
     print_to_cpp("Подключение к SSH серверу для загрузки изображений")
-    with SSHConnection(args.ssh_host, args.ssh_user, args.ssh_password, args.ssh_port) as (ssh_client, sftp_client):
+    with SshOrLocalConnection(args.ssh_host, args.ssh_user, args.ssh_password,
+                              args.ssh_port) as (ssh_client, sftp_client):
         print_to_cpp("Создание карты замены изображений и загрузка на сервер")
+
+        is_file_exists_cb = (lambda remote_base_path, pathname: file_exists_on_server(
+            remote_base_path, pathname, sftp_client)) if not is_local else (
+                lambda remote_base_path, pathname: os.path.isfile(os.path.join(remote_base_path, pathname)))
+        is_files_equal_cb = (lambda local_path, remote_path: sftp_files_content_equal(
+            local_path, remote_path, sftp_client)) if not is_local else local_files_content_equal
+
         for img_name in imgs_set:
             if not os.path.isfile(img_name):
                 raise RuntimeError(f"Файл изображения не найден: {img_name}")
-            server_pathname = sha256_org_not_exists(img_name, args.server_img_path, sftp_client)
+            server_pathname = sha256_org_not_exists(img_name, args.server_img_path, is_file_exists_cb,
+                                                    is_files_equal_cb)
             imgs_replace_map[img_name] = server_pathname
-            sftp_upload_file(img_name, os.path.join(args.server_img_path, server_pathname), sftp_client)
+            if is_local:
+                local_copy_file(img_name, os.path.join(args.server_img_path, server_pathname))
+            else:
+                sftp_upload_file(img_name, os.path.join(args.server_img_path, server_pathname), sftp_client)
+
+    print_to_cpp("Создание новых xlsx файлов с обновленными ссылками на изображения")
+    for filename in os.scandir(args.xlsx_path):
+        if filename.is_file() and not filename.name.startswith("~$"):
+            print_to_cpp(f"Прочитан файл: {filename.name}")
+            df = pd.read_excel(filename.path)
+            for col in ['img_pic', 'img_drw']:
+                if col in df.columns:
+                    df[col] = df[col].map(lambda x: imgs_replace_map.get(x, x) if pd.notna(x) else x)
+            save_path = os.path.join(args.xlsx_save_path, filename.name)
+
+            writer = pd.ExcelWriter(save_path, engine="xlsxwriter")                                                     # pylint: disable=abstract-class-instantiated
+            df.to_excel(writer, sheet_name="sm", freeze_panes=(1, 0), index=False)
+            worksheet = writer.sheets["sm"]
+            worksheet.autofit()
+            writer.close()
+
+            print_to_cpp(f"Сохранен файл: {save_path}")
 
 
 try:
@@ -156,22 +262,13 @@ except KeyboardInterrupt:
 except Exception as e:                                                                                                  # pylint: disable=broad-exception-caught
     formatted_traceback = traceback.format_exc()                                                                        # pylint: disable=invalid-name
     print_to_cpp(f"An error occurred:\n{formatted_traceback}")
+
+# pylint: disable=pointless-string-statement
 r"""
 python ./assets/scripts/imgs_to_server_format_and_upload.py `
-    --xlsx_path "W:\Work\WBI\ToolinformProjects\WBI_Stock_2\data\excel\xlsx_add_info"
+    --xlsx_path      "W:\Work\WBI\ToolinformProjects\WBI_Stock_2\data\excel\xlsx_add_info" `
     --xlsx_save_path "W:\Work\WBI\ToolinformProjects\WBI_Stock_2\data\excel\for_server_import" `
-    --ssh_host "192.168.111.115" `
-    --ssh_user "tollboss" `
-    --ssh_password "Big-ZAVOD-root5" `
-    --ssh_port
-    --server_img_path
-    
-    W:\Work\WBI\insearch_wbi\assets\scripts\test_imgs_to_server_format_and_upload\xlsx_input `
-    
-    
-    W:\Work\WBI\insearch_wbi\assets\scripts\test_imgs_to_server_format_and_upload\xlsx_output `
-    
-    
-    W:\Work\WBI\insearch_wbi\assets\scripts\test_imgs_to_server_format_and_upload\tmp_imgs `
-    
+    --ssh_user "latyshov" `
+    --ssh_password "Rfcf,kfyrf1515" `
+    --server_img_path "W:\Work\WBI\wbi_workpiece_static\pic_tools"
 """

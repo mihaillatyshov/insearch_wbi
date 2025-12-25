@@ -1,4 +1,5 @@
 import os
+import sys
 import traceback
 
 import cv2
@@ -13,6 +14,8 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 # print(torch.version.cuda)
 # print(torch.cuda.is_available())
 print_to_cpp(f"Используется устройство: {device}, {torch.cuda.is_available()}")
+
+# sys.exit(0)
 
 # pip install -e "git+https://github.com/PramaLLC/BEN2.git#egg=ben2"
 model = BEN_Base.from_pretrained("PramaLLC/BEN2")

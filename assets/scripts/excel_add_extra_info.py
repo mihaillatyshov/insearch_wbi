@@ -5,9 +5,12 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import pydantic
 from base import ArgsBase, parse_args_new, print_to_cpp
 from pydantic import BaseModel
-import pydantic
+
+IMGS_FOLDER_SUFFIX_PRIORITY = ["_no_bg_webp_crop", "_webp_crop", "_no_bg_webp", "_no_bg", ""]
+IMG_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.webp', '.gif', '.bmp']
 
 
 class Args(ArgsBase):
@@ -212,12 +215,20 @@ def handle_per_page_calc_list(df: pd.DataFrame, page_id: int, per_page_calc_list
                     df.at[i, per_page_calc_list_obj.name] = calc_to_add_value[i]
 
 
-def handle_per_page_img_folder(df: pd.DataFrame, xlsx_path_name: str, per_page_img_folder: str, extra_parser_type: str):
-    img_pic = os.path.join(per_page_img_folder, f"{Path(xlsx_path_name).stem}_pic.png")
-    img_drw = os.path.join(per_page_img_folder, f"{Path(xlsx_path_name).stem}_drw.png")
+def find_img_file_with_any_extension(base_path: str, base_name: str) -> str | None:
+    for ext in IMG_EXTENSIONS:
+        candidate = os.path.join(base_path, f"{base_name}{ext}")
+        if os.path.exists(candidate):
+            return candidate
+    return None
 
-    df["img_pic"] = get_img_with_prefix(img_pic, extra_parser_type) if os.path.exists(img_pic) else None
-    df["img_drw"] = get_img_with_prefix(img_drw, extra_parser_type) if os.path.exists(img_drw) else None
+
+def handle_per_page_img_folder(df: pd.DataFrame, xlsx_path_name: str, per_page_img_folder: str, extra_parser_type: str):
+    img_pic = find_img_file_with_any_extension(per_page_img_folder, f"{Path(xlsx_path_name).stem}_pic")
+    img_drw = find_img_file_with_any_extension(per_page_img_folder, f"{Path(xlsx_path_name).stem}_drw")
+
+    df["img_pic"] = get_img_with_prefix(img_pic, extra_parser_type) if img_pic is not None else None
+    df["img_drw"] = get_img_with_prefix(img_drw, extra_parser_type) if img_drw is not None else None
 
 
 def handle_per_page_simple_rule_img_list(df: pd.DataFrame, page_id: int, per_page_rule_img_folder: str,
@@ -232,12 +243,21 @@ def handle_per_page_simple_rule_img_list(df: pd.DataFrame, page_id: int, per_pag
         if calc_to_add_value is not None:
             for i in df.index:
                 if calc_to_add_value[i] is not None:
-                    img_pic = os.path.join(per_page_rule_img_folder, f"{calc_to_add_value[i]}_pic.png")
-                    img_drw = os.path.join(per_page_rule_img_folder, f"{calc_to_add_value[i]}_drw.png")
-                    if os.path.exists(img_pic):
+                    img_pic = find_img_file_with_any_extension(per_page_rule_img_folder, f"{calc_to_add_value[i]}_pic")
+                    img_drw = find_img_file_with_any_extension(per_page_rule_img_folder, f"{calc_to_add_value[i]}_drw")
+                    if img_pic is not None:
                         df.at[i, "img_pic"] = get_img_with_prefix(img_pic, extra_parser_type)
-                    if os.path.exists(img_drw):
+                    if img_drw is not None:
                         df.at[i, "img_drw"] = get_img_with_prefix(img_drw, extra_parser_type)
+
+
+def select_img_folder_with_suffix(base_folder: str) -> str:
+    for suffix in IMGS_FOLDER_SUFFIX_PRIORITY:
+        candidate_folder = (base_folder.removesuffix("/") if base_folder.endswith("/") else base_folder) + suffix
+        if os.path.exists(candidate_folder) and os.path.isdir(candidate_folder):
+            return candidate_folder
+
+    return base_folder
 
 
 # NOTE: rows_count = len(df.index)
@@ -282,13 +302,16 @@ def add_extra_info(args: Args):
         print_to_cpp(f"[ERROR] Не удалось открыть файл с правилами: '{args.rules_path}'")
         return
 
+    per_page_img_folder = select_img_folder_with_suffix(args.per_page_img_folder)
+    per_page_rule_img_folder = select_img_folder_with_suffix(args.per_page_rule_img_folder)
+
     os.makedirs(args.save_path, exist_ok=True)
     for filename in os.scandir(args.xlsx_path):
         if filename.is_file():
             # print_to_cpp(f"{filename.path} {filename.name}")
             if (filename.name.startswith("~$")): continue
-            add_extra_info_single(filename, args.save_path, extra_info_rules, args.per_page_img_folder,
-                                  args.per_page_rule_img_folder, args.extra_parser_type)
+            add_extra_info_single(filename, args.save_path, extra_info_rules, per_page_img_folder,
+                                  per_page_rule_img_folder, args.extra_parser_type)
 
     print_to_cpp("Все файлы обработаны успешно!")
 

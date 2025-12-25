@@ -36,8 +36,10 @@ namespace LM
         }
 
         ImVec2 center = ImGui::GetMainViewport()->GetCenter();
-        ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+        ImVec2 viewportSize = ImGui::GetMainViewport()->Size;
+        ImGui::SetNextWindowPos(center, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
         ImGuiWindowFlags popupFlags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove;
+        ImGui::SetNextWindowSize(ImVec2(viewportSize.x * 0.8f, 0), ImGuiCond_Always);
 
         if (ImGui::BeginPopupModal(m_Props.WindowName.c_str(), NULL, popupFlags))
         {
@@ -48,7 +50,7 @@ namespace LM
 
             ImGui::Separator();
 
-            if (ImGui::BeginChild("ChildL", ImVec2(0, 260),
+            if (ImGui::BeginChild("ChildL", ImVec2(0, viewportSize.y * 0.6f),
                                   ImGuiChildFlags_AlwaysAutoResize | ImGuiChildFlags_AutoResizeY,
                                   ImGuiWindowFlags_HorizontalScrollbar))
             {

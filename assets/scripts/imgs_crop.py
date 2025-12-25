@@ -16,6 +16,12 @@ class Args(ArgsBase):
 def trim(im_raw, im):
     bg = Image.new(im_raw.mode, im_raw.size, (255, 255, 255))
     diff = ImageChops.difference(im_raw, bg)
+
+    # Применяем пороговое значение (эпсилон = 5)
+    def threshold(pixel):
+        return 0 if pixel < 15 else pixel
+
+    diff = diff.point(threshold)
     bbox = diff.getbbox()
     if bbox:
         return im.crop(bbox)

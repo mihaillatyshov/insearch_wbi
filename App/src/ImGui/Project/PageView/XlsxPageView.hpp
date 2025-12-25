@@ -144,6 +144,10 @@ namespace LM
 
         bool IsExtraInfoAutoFocusField(std::string_view _WindowName, std::string_view _FieldName);
 
+        void ImgsHandlerRemoveBg();
+        void ImgsHandlerToWebp();
+        void ImgsHandlerCrop();
+
     protected:
         bool m_IsMainWindowFocused = false;
         bool m_IsAnyCellActive = false;

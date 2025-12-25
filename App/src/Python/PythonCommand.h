@@ -27,7 +27,7 @@ namespace LM
         void AddArg(float _Arg, std::string_view _ArgName = "");
         void AddArg(int _Arg, std::string_view _ArgName = "");
 
-        void Execute(std::function<void(const char*)> _LinePrintCallback = nullptr);
+        int Execute(std::function<void(const char*)> _LinePrintCallback = nullptr);
 
     protected:
         std::string GetFullCommand();

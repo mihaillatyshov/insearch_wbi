@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <format>
 #include <optional>
 #include <string>
 #include <vector>
@@ -77,17 +78,21 @@ namespace LM
         {
             return GetPathInFolderAndCreateDirs("data/excel/xlsx_add_info/");
         }
+        std::string GetExcelTablesTypeForServerImportPath() const
+        {
+            return GetPathInFolderAndCreateDirs("data/excel/xlsx_for_server_import/");
+        }
         std::string GetExcelTablesTypeAddExtraInfoYg1Path() const
         {
             return GetPathInFolderAndCreateDirs("data/excel/xlsx_add_info_yg1-shop/");
         }
-        std::string GetExcelTablesTypeRawImgsPath() const
+        std::string GetExcelTablesTypeRawImgsPath(std::string_view _Suffix = "") const
         {
-            return GetPathInFolderAndCreateDirs("data/excel/img_raw/");
+            return GetPathInFolderAndCreateDirs(std::format("data/excel/img_raw{}/", _Suffix));
         }
-        std::string GetExcelTablesTypeSimpleRuleImgsPath() const
+        std::string GetExcelTablesTypeSimpleRuleImgsPath(std::string_view _Suffix = "") const
         {
-            return GetPathInFolderAndCreateDirs("data/excel/img_simple/");
+            return GetPathInFolderAndCreateDirs(std::format("data/excel/img_simple{}/", _Suffix));
         }
 
         void MakeBackup();
