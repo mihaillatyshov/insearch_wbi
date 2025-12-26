@@ -1,8 +1,6 @@
 #include "SetupProject.h"
 
 #include <filesystem>
-#include <fstream>
-#include <thread>
 
 #include <imgui.h>
 #include <nfd.hpp>
@@ -178,6 +176,33 @@ namespace LM
 
             isNeedRebuild = true;
         }
+        ImGui::SameLine();
+        if (ImGui::Button("Добавить существующие Excel файлы"))
+        {
+            if (std::vector<std::string> filenames = FileDialogs::OpenMultipleFiles(kFileDialogsXlsxFilter);
+                !filenames.empty())
+            {
+                size_t filesCount = FileSystemUtils::FilesCountInDirectory(excelFolderPath);
+                for (const auto& filename : filenames)
+                {
+                    try
+                    {
+                        const std::filesystem::path destPath =
+                            std::filesystem::path(excelFolderPath) /
+                            std::format("{}_{}", FileFormat::FormatId(filesCount++),
+                                        std::filesystem::path(filename).filename().string());
+                        std::filesystem::copy_file(filename, destPath, std::filesystem::copy_options::skip_existing);
+                    }
+                    catch (const std::filesystem::filesystem_error& err)
+                    {
+                        Overlay::Get()->Start(
+                            Format("Не удалось скопировать файл: \n{} \nПричина: {}", filename, err.what()));
+                        LOG_CORE_ERROR("File copy error ({}), filesystem error: {}", filename, err.what());
+                    }
+                }
+                isNeedRebuild = true;
+            }
+        }
 
         static size_t filesCount = FileSystemUtils::FilesCountInDirectory(excelFolderPath);
         static std::vector<std::filesystem::path> paths;
@@ -193,11 +218,16 @@ namespace LM
             isNeedRebuild = false;
         }
 
-        ImGui::Text("Файлов в каталоге: %d", filesCount);
+        ImGui::Text("Файлов в каталоге: %zu", filesCount);
 
         for (const auto& path : paths)
         {
             ImGui::Text("%s", path.filename().string().c_str());
+            // TODO: Add delete file button:
+            // move xlsx to delete folder in project and rename file with _deleted,
+            // move imgs for this xlsx (from img_raw) to delete folder in project and rename imgs with _deleted,
+            // rename images for this xlsx img_raw folder (change numbering),
+            // rename files in excelFolderPath (change numbering), rename imgs)
         }
     }
 
