@@ -231,7 +231,8 @@ namespace LM
     {
         if (!m_XlsxPageViewData.has_value())
         {
-            m_XlsxPageViewData = XlsxPageViewData(GetExcelTablesTypePath(), GetExcelTablesTypeStartupPath());
+            m_XlsxPageViewData =
+                XlsxPageViewData(m_VariantExcelTables.GetBasePath(), m_VariantExcelTables.GetXlsxStartupPath());
         }
         return m_XlsxPageViewData.value();
     }

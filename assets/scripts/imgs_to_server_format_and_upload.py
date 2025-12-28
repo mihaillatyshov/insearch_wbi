@@ -4,22 +4,19 @@ import shutil
 import traceback
 from typing import Callable
 
+import pandas as pd
 import paramiko
 import pydantic
-from base import ArgsBase, parse_args_new, print_to_cpp
-from PIL import Image, ImageChops
-import pandas as pd
+from base import (DEFAULT_CONNECTION_CONFIG_PATH, ArgsBase, import_connection_config, parse_args_new, print_to_cpp)
 
 
 class Args(ArgsBase):
     xlsx_path: str = pydantic.Field(description="Папка исходных файлов")
     xlsx_save_path: str = pydantic.Field(description="Папка для сохранения")
     # img_tmp_path: str = pydantic.Field(description="Папка для сохранения; Можно использовать ';' для нескольких папок")
-    ssh_host: str = pydantic.Field(default="", description="SSH хост")
-    ssh_user: str = pydantic.Field(description="SSH пользователь")
-    ssh_password: str = pydantic.Field(description="SSH пароль")
-    ssh_port: int = pydantic.Field(default=22, description="SSH порт")
-    server_img_path: str = pydantic.Field(description="Путь на сервере для сохранения изображений")
+
+    connection_config_path: str = pydantic.Field(description="Путь к файлу конфигурации подключения к БД",
+                                                 default=DEFAULT_CONNECTION_CONFIG_PATH)
 
 
 class SshOrLocalConnection:
@@ -197,12 +194,14 @@ def sha256_org_not_exists(
 def process_files(args: Args):
     os.makedirs(args.xlsx_save_path, exist_ok=True)
 
-    is_local = args.ssh_host == "" or args.ssh_host is None
+    connection_config = import_connection_config(args.connection_config_path)
+
+    is_local = connection_config.ssh_host == "" or connection_config.ssh_host is None
 
     print_to_cpp("Начало обработки изображений")
     imgs_set: set[str] = set()
     imgs_replace_map: dict[str, str] = {}
-    print_to_cpp(f"Создание списка изображений из папок: {args.xlsx_path}")
+    print_to_cpp(f"Создание списка изображений из файлов в папке: {args.xlsx_path}")
     for filename in os.scandir(args.xlsx_path):
         if filename.is_file() and not filename.name.startswith("~$"):
             print_to_cpp(f"Прочитан файл: {filename.name}")
@@ -215,8 +214,8 @@ def process_files(args: Args):
     print_to_cpp(f"Всего уникальных изображений для обработки: {len(imgs_set)}")
 
     print_to_cpp("Подключение к SSH серверу для загрузки изображений")
-    with SshOrLocalConnection(args.ssh_host, args.ssh_user, args.ssh_password,
-                              args.ssh_port) as (ssh_client, sftp_client):
+    with SshOrLocalConnection(connection_config.ssh_host, connection_config.ssh_user, connection_config.ssh_password,
+                              connection_config.ssh_port) as (ssh_client, sftp_client):
         print_to_cpp("Создание карты замены изображений и загрузка на сервер")
 
         is_file_exists_cb = (lambda remote_base_path, pathname: file_exists_on_server(
@@ -228,13 +227,14 @@ def process_files(args: Args):
         for img_name in imgs_set:
             if not os.path.isfile(img_name):
                 raise RuntimeError(f"Файл изображения не найден: {img_name}")
-            server_pathname = sha256_org_not_exists(img_name, args.server_img_path, is_file_exists_cb,
+            server_pathname = sha256_org_not_exists(img_name, connection_config.server_imgs_path, is_file_exists_cb,
                                                     is_files_equal_cb)
             imgs_replace_map[img_name] = server_pathname
             if is_local:
-                local_copy_file(img_name, os.path.join(args.server_img_path, server_pathname))
+                local_copy_file(img_name, os.path.join(connection_config.server_imgs_path, server_pathname))
             else:
-                sftp_upload_file(img_name, os.path.join(args.server_img_path, server_pathname), sftp_client)
+                sftp_upload_file(img_name, os.path.join(connection_config.server_imgs_path, server_pathname),
+                                 sftp_client)
 
     print_to_cpp("Создание новых xlsx файлов с обновленными ссылками на изображения")
     for filename in os.scandir(args.xlsx_path):

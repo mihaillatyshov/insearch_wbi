@@ -18,10 +18,10 @@ namespace LM
     // ################ XlsxPageViewData ####################################################################
     // ######################################################################################################
 
-    XlsxPageViewData::XlsxPageViewData(const std::filesystem::path& _ExcelTablesTypePath,
-                                       const std::filesystem::path& _ExcelTablesTypeStartupPath)
-        : m_ExcelTablesTypePath(_ExcelTablesTypePath),
-          m_ExcelTablesTypeStartupPath(_ExcelTablesTypeStartupPath)
+    XlsxPageViewData::XlsxPageViewData(const std::filesystem::path& _VariantExcelTablesBasePath,
+                                       const std::filesystem::path& _VariantExcelTablesXlsxStartupPath)
+        : m_VariantExcelTablesBasePath(_VariantExcelTablesBasePath),
+          m_VariantExcelTablesXlsxStartupPath(_VariantExcelTablesXlsxStartupPath)
     {
         LoadExtraInfoJson();
     }
@@ -147,7 +147,7 @@ namespace LM
     {
         if (!IsPageLoaded(_PageId))
         {
-            auto pathIterator = std::filesystem::directory_iterator(m_ExcelTablesTypeStartupPath);
+            auto pathIterator = std::filesystem::directory_iterator(m_VariantExcelTablesXlsxStartupPath);
             for (int i = 0; i < _PageId; ++i)
             {
                 ++pathIterator;
@@ -159,7 +159,7 @@ namespace LM
             }
 
             std::filesystem::path path =
-                std::filesystem::path(m_ExcelTablesTypeStartupPath) / pathIterator->path().filename();
+                std::filesystem::path(m_VariantExcelTablesXlsxStartupPath) / pathIterator->path().filename();
 
             if (m_CurrentPageData.has_value() && m_CurrentPageData->IsLoaded())
             {
@@ -187,7 +187,7 @@ namespace LM
     void XlsxPageViewData::LoadExtraInfoJson()
     {
         std::filesystem::path inFilePath =
-            (std::filesystem::path(m_ExcelTablesTypePath) / std::filesystem::path(kExtraInfoFile));
+            (std::filesystem::path(m_VariantExcelTablesBasePath) / std::filesystem::path(kExtraInfoFile));
         m_ExtraInfoJsonPath = inFilePath.string();
         if (!std::filesystem::exists(inFilePath))
         {

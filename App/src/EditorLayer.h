@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Engine/Textures/Texture2D.h"
+#include "ImGui/Configs/SharedConnectionConfigSetup.hpp"
 #include "ImGui/Project/CreateNewProject.h"
 #include "ImGui/Project/SetupProject.h"
 #include "Project/Project.h"
@@ -33,6 +34,7 @@ namespace LM
 
         SetupProject m_SetupProjectWindow;
         CreateNewProject m_CreateNewProject;
+        SharedConnectionConfigSetup m_SharedConnectionConfigSetup;
 
         Ref<Texture2D> m_AppLogoLight;
 

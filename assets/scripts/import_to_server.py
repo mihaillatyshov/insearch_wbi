@@ -4,16 +4,24 @@ import traceback
 
 import pandas as pd
 import pydantic
-from base import ArgsBase, interp_model, parse_args_new, print_to_cpp
+from base import (DEFAULT_CONNECTION_CONFIG_PATH, ArgsBase, import_connection_config, interp_model, parse_args_new,
+                  print_to_cpp)
 from pg_shared import create_sqlalchemy_engine
 from sqlalchemy import text
-from sqlalchemy.engine import Engine, Connection
+from sqlalchemy.engine import Connection, Engine
+
+GEN_TOOLS_INSERT_FIELDS = ["model", "codem", "manuf", "fulldescription", "lcs", "moq", "interpmodel"]
 
 
 class Args(ArgsBase):
     xlsx_path: str = pydantic.Field(description="Папка исходных файлов")
+    # TODO: Add options to fail on existing records
+    # TODO: Add options to remove previous images
+    remove_previous_images: bool = pydantic.Field(description="Удалять предыдущие изображения", default=False)
     skip_files: str = pydantic.Field(description="Файлы для пропуска; Можно использовать ';' для нескольких файлов",
                                      default="")
+    connection_config_path: str = pydantic.Field(description="Путь к файлу конфигурации подключения к БД",
+                                                 default=DEFAULT_CONNECTION_CONFIG_PATH)
 
 
 def get_boolean_columns(sqlalchemy_engine: Engine, table_name: str) -> set[str]:
@@ -60,27 +68,20 @@ def update_displayfields_map(constr_set: set[str], sqlalchemy_engine: Engine, di
 
 def insert_into_gen_tools(sqlalchemy_engine: Engine, row: pd.Series) -> int:
     with sqlalchemy_engine.begin() as connection:
-        query = text("""
-            INSERT INTO tools.gen_tools (model, codem, manuf, fulldescription, lcs, moq, interpmodel)
-            VALUES (:model, :codem, :manuf, :fulldescription, :lcs, :moq, :interpmodel)
+        columns = ', '.join(i for i in row.index if i in GEN_TOOLS_INSERT_FIELDS)
+        values_placeholders = ', '.join(f":{i}" for i in row.index if i in GEN_TOOLS_INSERT_FIELDS)
+
+        query = text(f"""
+            INSERT INTO tools.gen_tools ({columns})
+            VALUES ({values_placeholders})
             ON CONFLICT (model, manuf) DO UPDATE SET
-                codem = EXCLUDED.codem,
-                fulldescription = EXCLUDED.fulldescription,
-                lcs = EXCLUDED.lcs,
-                moq = EXCLUDED.moq,
-                interpmodel = EXCLUDED.interpmodel
+                {', '.join(f"{col} = EXCLUDED.{col}" for col in row.index if col in GEN_TOOLS_INSERT_FIELDS)}
             RETURNING id;
         """)
-        raw_tool_id = connection.execute(
-            query, {
-                'model': row["model"],
-                'codem': row["codem"],
-                'manuf': row["manuf"],
-                'fulldescription': row["fulldescription"],
-                'lcs': row["lcs"],
-                'moq': row["moq"],
-                'interpmodel': row["interpmodel"],
-            }).first()
+        params = {col: row[col] for col in row.index if col in GEN_TOOLS_INSERT_FIELDS}
+        params = {k: (None if pd.isna(v) else v) for k, v in params.items()}
+
+        raw_tool_id = connection.execute(query, params).first()
         if raw_tool_id is None:
             raise ValueError(
                 f"Не удалось вставить или обновить запись для модели: {row['model']}, производитель: {row['manuf']}")
@@ -187,7 +188,9 @@ def process_files(args: Args):
     print_to_cpp("Начало импорта на сервер")
 
     print_to_cpp("Подключение к базе данных")
-    sqlalchemy_engine = create_sqlalchemy_engine()
+    connection_config = import_connection_config(args.connection_config_path)
+    sqlalchemy_engine = create_sqlalchemy_engine(connection_config.db_user, connection_config.db_password,
+                                                 connection_config.db_host, connection_config.db_port)
 
     skip_files = args.skip_files.split(';') if args.skip_files else []
     print_to_cpp(f"Файлы для пропуска: {skip_files}")
@@ -244,6 +247,14 @@ def process_files(args: Args):
 
                 print_to_cpp("Вставка/обновление в gen_tools")
                 tool_id = insert_into_gen_tools(sqlalchemy_engine, row)
+
+                if args.remove_previous_images:
+                    print_to_cpp("Удаление предыдущих изображений для инструмента")
+                    with sqlalchemy_engine.begin() as connection:
+                        query_delete_imgs = text("""
+                            DELETE FROM tools.pic_tools WHERE tool_id = :tool_id;
+                        """)
+                        connection.execute(query_delete_imgs, {'tool_id': tool_id})
 
                 print_to_cpp("Вставка/обновление ссылок на изображения")
                 insert_into_pic_tools(sqlalchemy_engine, row, tool_id)

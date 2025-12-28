@@ -32,7 +32,7 @@ endif()
 # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-char8_t /Zc:char8_t-")
 
 if(MSVC)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP /utf-8")
     set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Editor)
 
     # TODO: add to release: /O2 /Oi /Ot /Ob2 /GL 

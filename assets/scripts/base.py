@@ -1,4 +1,5 @@
 import argparse
+import json
 import sys
 import traceback
 from typing import TypeVar
@@ -6,6 +7,8 @@ from typing import TypeVar
 import cv2
 import numpy as np
 from pydantic import BaseModel as ArgsBase
+
+DEFAULT_CONNECTION_CONFIG_PATH = "./assets/configs/shared_connection_config.json"
 
 utf8stdout = open(1, 'w', encoding='utf-8', closefd=False)
 
@@ -99,3 +102,35 @@ def interp_model(val) -> str:
                                                                      "O").replace("С",
                                                                                   "C").replace("М",
                                                                                                "M").replace("Т", "T"))
+
+
+class ConnectionConfigItem(ArgsBase):
+    name: str
+
+    ssh_host: str
+    ssh_port: int = 22
+    ssh_user: str
+    ssh_password: str
+
+    db_host: str
+    db_port: int = 5432
+    db_user: str
+    db_password: str
+
+    server_imgs_path: str
+
+
+class ConnectionConfig(ArgsBase):
+    configs: list[ConnectionConfigItem]
+    current_config_name: str
+
+
+def import_connection_config(config_path: str) -> ConnectionConfigItem:
+    with open(config_path, "r", encoding="utf-8") as f:
+        json_data = json.load(f)
+        configs = ConnectionConfig(**json_data)
+        for config in configs.configs:
+            if config.name == configs.current_config_name:
+                return config
+
+    raise RuntimeError("Не найдена конфигурация подключения с именем " + configs.current_config_name)

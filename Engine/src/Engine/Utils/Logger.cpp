@@ -1,4 +1,6 @@
 #include "Logger.hpp"
+
+#include <clocale>
 #include <iostream>
 
 #ifdef _WIN32
@@ -9,6 +11,20 @@
 
 namespace LM
 {
+
+    Logger::Logger()
+    {
+#ifdef _WIN32
+        std::setlocale(LC_ALL, ".UTF-8");
+        SetConsoleOutputCP(CP_UTF8);
+        SetConsoleCP(CP_UTF8);
+#endif
+
+        // #ifdef _WIN32
+        //             std::unique_lock Lock(m_Mtx);
+        //             std::system("cls");
+        // #endif
+    }
 
     static std::ostream& getConsoleStreamHandle(Logger::ConsoleStreamHandle _StreamHandle)
     {

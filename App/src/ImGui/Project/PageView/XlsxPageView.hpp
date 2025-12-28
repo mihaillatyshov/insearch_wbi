@@ -67,7 +67,10 @@ namespace LM
         virtual void Save() override;
 
     protected:
-        virtual std::string GetBasePath() const override { return m_Project->GetExcelTablesTypeStartupPath(); }
+        virtual std::string GetBasePath() const override
+        {
+            return m_Project->GetVariantExcelTables().GetXlsxStartupPath().string();
+        }
         virtual const char* GetWindowName() const override { return "Первый Excel"; }
         std::string GetFileName() const override;
 
@@ -144,9 +147,7 @@ namespace LM
 
         bool IsExtraInfoAutoFocusField(std::string_view _WindowName, std::string_view _FieldName);
 
-        void ImgsHandlerRemoveBg();
-        void ImgsHandlerToWebp();
-        void ImgsHandlerCrop();
+        void ProcessImagesAndPrepareXlsxForWbiTools();
 
     protected:
         bool m_IsMainWindowFocused = false;

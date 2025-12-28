@@ -38,6 +38,8 @@ src/Project/Processing/XlsxPageViewData.cpp                     src/Project/Proc
     src/ImGui/Constructions/SelectConstructionFromTree.cpp      src/ImGui/Constructions/SelectConstructionFromTree.hpp
 
     src/ImGui/Img/ScalableImg.cpp                               src/ImGui/Img/ScalableImg.h
+
+    src/ImGui/Configs/SharedConnectionConfigSetup.cpp           src/ImGui/Configs/SharedConnectionConfigSetup.hpp
     
     src/Serializer/Serializer.cpp                               src/Serializer/Serializer.h
 

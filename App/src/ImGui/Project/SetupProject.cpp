@@ -48,7 +48,7 @@ namespace LM
 
             switch (_Project->GetType())
             {
-                case ProjectType::kPdfTablesWithOcr: {
+                case ProjectVariant::kPdfTablesWithOcr: {
                     if (ImGui::TreeNodeEx("Настройки PDF OCR",
                                           ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed))
                     {
@@ -57,7 +57,7 @@ namespace LM
                     }
                     break;
                 }
-                case ProjectType::kPdfTablesWithoutOcr: {
+                case ProjectVariant::kPdfTablesWithoutOcr: {
                     if (ImGui::TreeNodeEx("Настройки PDF", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed))
                     {
                         DrawPdfSettings(_Project);
@@ -65,7 +65,7 @@ namespace LM
                     }
                     break;
                 }
-                case ProjectType::kExcelTables: {
+                case ProjectVariant::kExcelTables: {
                     if (ImGui::TreeNodeEx("Настройки Excel каталога",
                                           ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed))
                     {
@@ -84,19 +84,19 @@ namespace LM
 
         ImGui::Text("Тип проекта: %s", ProjectTypeToString(_Project->GetType()).c_str());
 
-        if (ImGui::RadioButton(ProjectTypeToString(ProjectType::kPdfTablesWithOcr).c_str(), &projectType, 0))
+        if (ImGui::RadioButton(ProjectTypeToString(ProjectVariant::kPdfTablesWithOcr).c_str(), &projectType, 0))
         {
-            _Project->SetType(ProjectType::kPdfTablesWithOcr);
+            _Project->SetType(ProjectVariant::kPdfTablesWithOcr);
         }
         ImGui::SameLine();
-        if (ImGui::RadioButton(ProjectTypeToString(ProjectType::kPdfTablesWithoutOcr).c_str(), &projectType, 1))
+        if (ImGui::RadioButton(ProjectTypeToString(ProjectVariant::kPdfTablesWithoutOcr).c_str(), &projectType, 1))
         {
-            _Project->SetType(ProjectType::kPdfTablesWithoutOcr);
+            _Project->SetType(ProjectVariant::kPdfTablesWithoutOcr);
         }
         ImGui::SameLine();
-        if (ImGui::RadioButton(ProjectTypeToString(ProjectType::kExcelTables).c_str(), &projectType, 2))
+        if (ImGui::RadioButton(ProjectTypeToString(ProjectVariant::kExcelTables).c_str(), &projectType, 2))
         {
-            _Project->SetType(ProjectType::kExcelTables);
+            _Project->SetType(ProjectVariant::kExcelTables);
         }
 
         ImGui::Spacing();
@@ -129,9 +129,9 @@ namespace LM
 
     void SetupProject::DrawRawExcelFolderSettings(Ref<Project> _Project)
     {
-        std::string excelFolderPath = _Project->GetExcelTablesTypeStartupPath();
+        std::filesystem::path xlsxStartupPath = _Project->GetVariantExcelTables().GetXlsxStartupPath();
 
-        ImGui::Text("Папка с Excel: %s", excelFolderPath.c_str());
+        ImGui::Text("Папка с Excel: %s", xlsxStartupPath.string().c_str());
 
         ImGui::Spacing();
 
@@ -147,7 +147,7 @@ namespace LM
         //             try
         //             {
         //                 std::filesystem::copy_file(filename,
-        //                                            std::filesystem::path(excelFolderPath) /
+        //                                            std::filesystem::path(xlsxStartupPath) /
         //                                                std::filesystem::path(filename).filename(),
         //                                            std::filesystem::copy_options::overwrite_existing);
         //             }
@@ -166,9 +166,9 @@ namespace LM
         ImGui::InputText("Имя файла", &excelFilename);
         if (ImGui::Button("Создать Excel файл"))
         {
-            size_t filesCount = FileSystemUtils::FilesCountInDirectory(excelFolderPath);
+            size_t filesCount = FileSystemUtils::FilesCountInDirectory(xlsxStartupPath);
             std::filesystem::path newFilepath =
-                std::filesystem::path(_Project->GetExcelTablesTypeStartupPath()) /
+                xlsxStartupPath /
                 std::filesystem::path(std::format("{}_{}.xlsx", FileFormat::FormatId(filesCount), excelFilename));
 
             xlnt::workbook wb;
@@ -182,15 +182,14 @@ namespace LM
             if (std::vector<std::string> filenames = FileDialogs::OpenMultipleFiles(kFileDialogsXlsxFilter);
                 !filenames.empty())
             {
-                size_t filesCount = FileSystemUtils::FilesCountInDirectory(excelFolderPath);
+                size_t filesCount = FileSystemUtils::FilesCountInDirectory(xlsxStartupPath);
                 for (const auto& filename : filenames)
                 {
                     try
                     {
                         const std::filesystem::path destPath =
-                            std::filesystem::path(excelFolderPath) /
-                            std::format("{}_{}", FileFormat::FormatId(filesCount++),
-                                        std::filesystem::path(filename).filename().string());
+                            xlsxStartupPath / std::format("{}_{}", FileFormat::FormatId(filesCount++),
+                                                          std::filesystem::path(filename).filename().string());
                         std::filesystem::copy_file(filename, destPath, std::filesystem::copy_options::skip_existing);
                     }
                     catch (const std::filesystem::filesystem_error& err)
@@ -204,13 +203,13 @@ namespace LM
             }
         }
 
-        static size_t filesCount = FileSystemUtils::FilesCountInDirectory(excelFolderPath);
+        static size_t filesCount = FileSystemUtils::FilesCountInDirectory(xlsxStartupPath);
         static std::vector<std::filesystem::path> paths;
         if (ImGui::Button("Обновить отображаемые файлы") || isNeedRebuild)
         {
-            filesCount = FileSystemUtils::FilesCountInDirectory(excelFolderPath);
+            filesCount = FileSystemUtils::FilesCountInDirectory(xlsxStartupPath);
             paths.clear();
-            for (const auto& entry : std::filesystem::directory_iterator(excelFolderPath))
+            for (const auto& entry : std::filesystem::directory_iterator(xlsxStartupPath))
             {
                 paths.push_back(entry.path());
             }
@@ -227,7 +226,7 @@ namespace LM
             // move xlsx to delete folder in project and rename file with _deleted,
             // move imgs for this xlsx (from img_raw) to delete folder in project and rename imgs with _deleted,
             // rename images for this xlsx img_raw folder (change numbering),
-            // rename files in excelFolderPath (change numbering), rename imgs)
+            // rename files in xlsxStartupPath (change numbering), rename imgs)
         }
     }
 

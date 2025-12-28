@@ -3,7 +3,7 @@ import traceback
 
 import pandas as pd
 import pydantic
-from base import ArgsBase, parse_args_new, print_to_cpp
+from base import (DEFAULT_CONNECTION_CONFIG_PATH, ArgsBase, import_connection_config, parse_args_new, print_to_cpp)
 from pg_shared import create_sqlalchemy_engine
 from sqlalchemy import text
 
@@ -11,13 +11,17 @@ from sqlalchemy import text
 class Args(ArgsBase):
     xlsx_path: str = pydantic.Field(description="Папка исходных файлов")
     save_path: str = pydantic.Field(description="Путь для сохранения результата")
+    connection_config_path: str = pydantic.Field(description="Путь к файлу конфигурации подключения к БД",
+                                                 default=DEFAULT_CONNECTION_CONFIG_PATH)
 
 
 def process_files(args: Args):
     print_to_cpp("Начало импорта несуществующих ADINT моделей")
 
     print_to_cpp("Подключение к базе данных")
-    sqlalchemy_engine = create_sqlalchemy_engine()
+    connection_config = import_connection_config(args.connection_config_path)
+    sqlalchemy_engine = create_sqlalchemy_engine(connection_config.db_user, connection_config.db_password,
+                                                 connection_config.db_host, connection_config.db_port)
 
     all_adint_set = set()
 

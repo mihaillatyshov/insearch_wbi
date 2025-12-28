@@ -676,11 +676,12 @@ namespace LM
             Save();
 
             PythonCommand pythonCommand("./assets/scripts/excel_add_extra_info.py");
-            pythonCommand.AddArg(m_Project->GetExcelTablesTypeStartupPath(), "--xlsx_path");
-            pythonCommand.AddArg(m_Project->GetExcelTablesTypeAddExtraInfoPath(), "--save_path");
+            pythonCommand.AddPathArg(m_Project->GetVariantExcelTables().GetXlsxStartupPath(), "--xlsx_path");
+            pythonCommand.AddPathArg(m_Project->GetVariantExcelTables().GetXlsxAddExtraInfoPath(), "--save_path");
             pythonCommand.AddPathArg(_XlsxViewData.GetExtraInfoJsonPath(), "--rules_path");
-            pythonCommand.AddArg(m_Project->GetExcelTablesTypeRawImgsPath(), "--per_page_img_folder");
-            pythonCommand.AddArg(m_Project->GetExcelTablesTypeSimpleRuleImgsPath(), "--per_page_rule_img_folder");
+            pythonCommand.AddPathArg(m_Project->GetVariantExcelTables().GetImgsPerPagePath(), "--per_page_img_folder");
+            pythonCommand.AddPathArg(m_Project->GetVariantExcelTables().GetImgsSimpleRulePath(),
+                                     "--per_page_rule_img_folder");
             pythonCommand.AddArg(std::string_view("yg1-shop"), "--extra_parser_type");
 
             ScriptPopup::Get()->OpenPopup(pythonCommand,
@@ -700,11 +701,12 @@ namespace LM
             Save();
 
             PythonCommand pythonCommand("./assets/scripts/excel_add_extra_info.py");
-            pythonCommand.AddArg(m_Project->GetExcelTablesTypeStartupPath(), "--xlsx_path");
-            pythonCommand.AddArg(m_Project->GetExcelTablesTypeAddExtraInfoPath(), "--save_path");
+            pythonCommand.AddPathArg(m_Project->GetVariantExcelTables().GetXlsxStartupPath(), "--xlsx_path");
+            pythonCommand.AddPathArg(m_Project->GetVariantExcelTables().GetXlsxAddExtraInfoPath(), "--save_path");
             pythonCommand.AddPathArg(_XlsxViewData.GetExtraInfoJsonPath(), "--rules_path");
-            pythonCommand.AddArg(m_Project->GetExcelTablesTypeRawImgsPath(), "--per_page_img_folder");
-            pythonCommand.AddArg(m_Project->GetExcelTablesTypeSimpleRuleImgsPath(), "--per_page_rule_img_folder");
+            pythonCommand.AddPathArg(m_Project->GetVariantExcelTables().GetImgsPerPagePath(), "--per_page_img_folder");
+            pythonCommand.AddPathArg(m_Project->GetVariantExcelTables().GetImgsSimpleRulePath(),
+                                     "--per_page_rule_img_folder");
             pythonCommand.AddArg(std::string_view("wbi-tools"), "--extra_parser_type");
 
             ScriptPopup::Get()->OpenPopup(pythonCommand,
@@ -719,32 +721,21 @@ namespace LM
 
         ImGui::SeparatorText("WBI Tools Specific");
 
-        if (ImGui::Button("Удалить фон картинок"))
+        if (ImGui::Button("Обработать картинки"))
         {
-            ImgsHandlerRemoveBg();
-        }
-        ImGui::SameLine();
-        if (ImGui::Button("Конвертировать картинки в webp"))
-        {
-            ImgsHandlerToWebp();
-        }
-        ImGui::SameLine();
-        if (ImGui::Button("Обрезать картинки по центру"))
-        {
-            ImgsHandlerCrop();
+            ProcessImagesAndPrepareXlsxForWbiTools();
         }
 
-        if (ImGui::Button("Подготовить и загрузить картинки в WBI Tools"))
+        if (ImGui::Button("Загрузить картинки и подготовить Xlsx для WBI Tools"))
         {
             Save();
 
+            // TODO: add variant for use add extra info xlsx without processed images
             PythonCommand pythonCommand("./assets/scripts/imgs_to_server_format_and_upload.py");
-            pythonCommand.AddArg(m_Project->GetExcelTablesTypeAddExtraInfoPath(), "--xlsx_path");
-            pythonCommand.AddArg(m_Project->GetExcelTablesTypeForServerImportPath(), "--xlsx_save_path");
-            // pythonCommand.AddArg("None", "--ssh_host");
-            pythonCommand.AddArg("None"sv, "--ssh_user");
-            pythonCommand.AddArg("None"sv, "--ssh_password");
-            pythonCommand.AddArg("W:/Work/WBI/wbi_workpiece_static/pic_tools"sv, "--server_img_path");
+            pythonCommand.AddPathArg(m_Project->GetVariantExcelTables().GetXlsxAddExtraInfoWithProcessedImagesPath(),
+                                     "--xlsx_path");
+            pythonCommand.AddPathArg(m_Project->GetVariantExcelTables().GetXlsxForServerImportPath(),
+                                     "--xlsx_save_path");
 
             ScriptPopup::Get()->OpenPopup(pythonCommand,
                                           { "Подготовка данных для WBI Tools",
@@ -762,8 +753,8 @@ namespace LM
         {
             Save();
             PythonCommand pythonCommand("./assets/scripts/excel_add_extra_info-yg1-shop.py");
-            pythonCommand.AddArg(m_Project->GetExcelTablesTypeAddExtraInfoPath(), "--xlsx_path");
-            pythonCommand.AddArg(m_Project->GetExcelTablesTypeAddExtraInfoYg1Path(), "--save_path");
+            pythonCommand.AddPathArg(m_Project->GetVariantExcelTables().GetXlsxAddExtraInfoPath(), "--xlsx_path");
+            pythonCommand.AddPathArg(m_Project->GetVariantExcelTables().GetXlsxAddExtraInfoYg1Path(), "--save_path");
 
             ScriptPopup::Get()->OpenPopup(pythonCommand,
                                           { "Заполнение данных для yg1-shop",
@@ -1863,12 +1854,12 @@ namespace LM
         filename.replace_extension();
         filename = std::format("{}_{}.png", filename.string(), _Filetype);
 
-        return (std::filesystem::path(m_Project->GetExcelTablesTypeRawImgsPath()) / filename).string();
+        return (m_Project->GetVariantExcelTables().GetImgsPerPagePath() / filename).string();
     }
 
     std::string XlsxPageView::GetSimpleRuleImgFilename(std::string_view _Filename)
     {
-        return (std::filesystem::path(m_Project->GetExcelTablesTypeSimpleRuleImgsPath()) / _Filename).string();
+        return (m_Project->GetVariantExcelTables().GetImgsSimpleRulePath() / _Filename).string();
     }
 
     void XlsxPageView::ReplaceFromClipboard(XlsxPageViewData& _XlsxViewData,
@@ -2437,70 +2428,19 @@ namespace LM
         return result;
     }
 
-    void XlsxPageView::ImgsHandlerRemoveBg()
+    void XlsxPageView::ProcessImagesAndPrepareXlsxForWbiTools()
     {
         Save();
 
-        std::string inRawImgsPath = m_Project->GetExcelTablesTypeRawImgsPath();
-        std::string inSimpleRuleImgsPath = m_Project->GetExcelTablesTypeSimpleRuleImgsPath();
-        std::string outRawImgsPath = m_Project->GetExcelTablesTypeRawImgsPath(kImgsSuffixNoBG);
-        std::string outSimpleRuleImgsPath = m_Project->GetExcelTablesTypeSimpleRuleImgsPath(kImgsSuffixNoBG);
+        PythonCommand pythonCommand("./assets/scripts/imgs_process.py");
+        pythonCommand.AddPathArg(m_Project->GetVariantExcelTables().GetXlsxAddExtraInfoPath(), "--xlsx_path");
+        pythonCommand.AddPathArg(m_Project->GetVariantExcelTables().GetXlsxAddExtraInfoWithProcessedImagesPath(),
+                                 "--xlsx_save_path");
+        pythonCommand.AddPathArg(m_Project->GetVariantExcelTables().GetImgsProcessedPath(), "--imgs_save_path");
 
-        PythonCommand pythonCommand("./assets/scripts/imgs_remove_bg.py");
-        pythonCommand.AddArg(StrJoin({ inRawImgsPath, inSimpleRuleImgsPath }, ";"), "--img_dirs");
-        pythonCommand.AddArg(StrJoin({ outRawImgsPath, outSimpleRuleImgsPath }, ";"), "--save_paths");
-
-        ScriptPopup::Get()->OpenPopup(pythonCommand, { "Удаление фона с изображений",
+        ScriptPopup::Get()->OpenPopup(pythonCommand, { "Обработка изображений",
                                                        []() {
-                                                           ImGui::Text("Работает скрипт удаления фона с изображений");
-                                                           ImGui::Text("Это может занять несколько минут");
-                                                           ImGui::Text("После его завершения можно закрыть это окно");
-                                                       },
-                                                       []() {} });
-    }
-
-    void XlsxPageView::ImgsHandlerToWebp()
-    {
-        Save();
-
-        std::string inRawImgsPath = m_Project->GetExcelTablesTypeRawImgsPath(kImgsSuffixNoBG);
-        std::string inSimpleRuleImgsPath = m_Project->GetExcelTablesTypeSimpleRuleImgsPath(kImgsSuffixNoBG);
-        std::string outRawImgsPath = m_Project->GetExcelTablesTypeRawImgsPath(kImgsSuffixWebp);
-        std::string outSimpleRuleImgsPath = m_Project->GetExcelTablesTypeSimpleRuleImgsPath(kImgsSuffixWebp);
-
-        PythonCommand pythonCommand("./assets/scripts/imgs_to_webp.py");
-        pythonCommand.AddArg(StrJoin({ inRawImgsPath, inSimpleRuleImgsPath }, ";"), "--img_dirs");
-        pythonCommand.AddArg(StrJoin({ outRawImgsPath, outSimpleRuleImgsPath }, ";"), "--save_paths");
-
-        ScriptPopup::Get()->OpenPopup(pythonCommand,
-                                      { "Конвертация изображений в WebP",
-                                        []() {
-                                            ImGui::Text("Работает скрипт конвертации изображений в WebP");
-                                            ImGui::Text("Это может занять несколько минут");
-                                            ImGui::Text("После его завершения можно закрыть это окно");
-                                        },
-                                        []() {} });
-    }
-
-    void XlsxPageView::ImgsHandlerCrop()
-    {
-        Save();
-
-        std::string refRawImgsPath = m_Project->GetExcelTablesTypeRawImgsPath();
-        std::string refSimpleRuleImgsPath = m_Project->GetExcelTablesTypeSimpleRuleImgsPath();
-        std::string inRawImgsPath = m_Project->GetExcelTablesTypeRawImgsPath(kImgsSuffixNoBG);
-        std::string inSimpleRuleImgsPath = m_Project->GetExcelTablesTypeSimpleRuleImgsPath(kImgsSuffixNoBG);
-        std::string outRawImgsPath = m_Project->GetExcelTablesTypeRawImgsPath(kImgsSuffixCrop);
-        std::string outSimpleRuleImgsPath = m_Project->GetExcelTablesTypeSimpleRuleImgsPath(kImgsSuffixCrop);
-
-        PythonCommand pythonCommand("./assets/scripts/imgs_crop.py");
-        pythonCommand.AddArg(StrJoin({ refRawImgsPath, refSimpleRuleImgsPath }, ";"), "--img_crop_ref_dirs");
-        pythonCommand.AddArg(StrJoin({ inRawImgsPath, inSimpleRuleImgsPath }, ";"), "--img_dirs");
-        pythonCommand.AddArg(StrJoin({ outRawImgsPath, outSimpleRuleImgsPath }, ";"), "--save_paths");
-
-        ScriptPopup::Get()->OpenPopup(pythonCommand, { "Обрезка изображений",
-                                                       []() {
-                                                           ImGui::Text("Работает скрипт обрезки изображений");
+                                                           ImGui::Text("Работает скрипт обработки изображений");
                                                            ImGui::Text("Это может занять несколько минут");
                                                            ImGui::Text("После его завершения можно закрыть это окно");
                                                        },

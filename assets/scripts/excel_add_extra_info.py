@@ -9,7 +9,7 @@ import pydantic
 from base import ArgsBase, parse_args_new, print_to_cpp
 from pydantic import BaseModel
 
-IMGS_FOLDER_SUFFIX_PRIORITY = ["_no_bg_webp_crop", "_webp_crop", "_no_bg_webp", "_no_bg", ""]
+# IMGS_FOLDER_SUFFIX_PRIORITY = ["_no_bg_webp_crop", "_webp_crop", "_no_bg_webp", "_no_bg", ""]
 IMG_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.webp', '.gif', '.bmp']
 
 
@@ -251,13 +251,13 @@ def handle_per_page_simple_rule_img_list(df: pd.DataFrame, page_id: int, per_pag
                         df.at[i, "img_drw"] = get_img_with_prefix(img_drw, extra_parser_type)
 
 
-def select_img_folder_with_suffix(base_folder: str) -> str:
-    for suffix in IMGS_FOLDER_SUFFIX_PRIORITY:
-        candidate_folder = (base_folder.removesuffix("/") if base_folder.endswith("/") else base_folder) + suffix
-        if os.path.exists(candidate_folder) and os.path.isdir(candidate_folder):
-            return candidate_folder
+# def select_img_folder_with_suffix(base_folder: str) -> str:
+#     for suffix in IMGS_FOLDER_SUFFIX_PRIORITY:
+#         candidate_folder = (base_folder.removesuffix("/") if base_folder.endswith("/") else base_folder) + suffix
+#         if os.path.exists(candidate_folder) and os.path.isdir(candidate_folder):
+#             return candidate_folder
 
-    return base_folder
+#     return base_folder
 
 
 # NOTE: rows_count = len(df.index)
@@ -284,7 +284,7 @@ def add_extra_info_single(xlsx_path: os.DirEntry[str], save_path: str, extra_inf
     handle_per_page_simple_rule_img_list(df, page_id, per_page_rule_img_folder, extra_parser_type,
                                          extra_info_rules.per_page_simple_rule_img_list)
 
-    # !TODO: Add remove list
+    # ! TODO: Add remove list
 
     writer = pd.ExcelWriter(os.path.join(save_path, xlsx_path.name), engine="xlsxwriter")                               # pylint: disable=abstract-class-instantiated
     df.to_excel(writer, sheet_name="sm", freeze_panes=(1, 0), index=False)
@@ -302,16 +302,13 @@ def add_extra_info(args: Args):
         print_to_cpp(f"[ERROR] Не удалось открыть файл с правилами: '{args.rules_path}'")
         return
 
-    per_page_img_folder = select_img_folder_with_suffix(args.per_page_img_folder)
-    per_page_rule_img_folder = select_img_folder_with_suffix(args.per_page_rule_img_folder)
-
     os.makedirs(args.save_path, exist_ok=True)
     for filename in os.scandir(args.xlsx_path):
         if filename.is_file():
             # print_to_cpp(f"{filename.path} {filename.name}")
             if (filename.name.startswith("~$")): continue
-            add_extra_info_single(filename, args.save_path, extra_info_rules, per_page_img_folder,
-                                  per_page_rule_img_folder, args.extra_parser_type)
+            add_extra_info_single(filename, args.save_path, extra_info_rules, args.per_page_img_folder,
+                                  args.per_page_rule_img_folder, args.extra_parser_type)
 
     print_to_cpp("Все файлы обработаны успешно!")
 

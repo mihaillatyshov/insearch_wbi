@@ -112,8 +112,8 @@ namespace LM
     class XlsxPageViewData
     {
     public:
-        XlsxPageViewData(const std::filesystem::path& _ExcelTablesTypePath,
-                         const std::filesystem::path& _ExcelTablesTypeStartupPath);
+        XlsxPageViewData(const std::filesystem::path& _VariantExcelTablesBasePath,
+                         const std::filesystem::path& _VariantExcelTablesXlsxStartupPath);
         ~XlsxPageViewData();
 
         void SaveExtraInfoJson();
@@ -185,8 +185,8 @@ namespace LM
                                           std::string_view _FieldName);
 
     protected:
-        std::filesystem::path m_ExcelTablesTypePath;
-        std::filesystem::path m_ExcelTablesTypeStartupPath;
+        std::filesystem::path m_VariantExcelTablesBasePath;
+        std::filesystem::path m_VariantExcelTablesXlsxStartupPath;
         std::filesystem::path m_ExtraInfoJsonPath;
         std::optional<XlsxPageViewPageData> m_CurrentPageData;
 

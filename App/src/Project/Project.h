@@ -1,13 +1,11 @@
 #pragma once
 
 #include <filesystem>
-#include <format>
 #include <optional>
 #include <string>
 #include <vector>
 
 #include "Processing/XlsxPageViewData.h"
-#include "glm/glm.hpp"
 
 #include "Engine/Core/Base.h"
 
@@ -20,20 +18,20 @@ namespace LM
 
     struct SerializerGetPropertiesAll;
 
-    enum class ProjectType
+    enum class ProjectVariant
     {
         kPdfTablesWithOcr = 0,
         kPdfTablesWithoutOcr = 1,
         kExcelTables = 2,
     };
 
-    inline std::string ProjectTypeToString(ProjectType _Type)
+    inline std::string ConvertProjectVariantToString(ProjectVariant _Type)
     {
         switch (_Type)
         {
-            case ProjectType::kPdfTablesWithOcr: return "Из Pdf с использованием Ocr";
-            case ProjectType::kPdfTablesWithoutOcr: return "Из Pdf без Ocr";
-            case ProjectType::kExcelTables: return "Из папки Excel";
+            case ProjectVariant::kPdfTablesWithOcr: return "Из Pdf с использованием Ocr";
+            case ProjectVariant::kPdfTablesWithoutOcr: return "Из Pdf без Ocr";
+            case ProjectVariant::kExcelTables: return "Из папки Excel";
             default: return "Unknown";
         }
     }
@@ -42,13 +40,56 @@ namespace LM
     class Project
     {
     public:
+        struct VariantExcelTables
+        {
+            explicit VariantExcelTables(const Project* _Owner) : m_Owner(_Owner) { }
+
+            std::filesystem::path GetBasePath() const { return m_Owner->GetPathInFolderAndCreateDirs("data/excel/"); }
+            std::filesystem::path GetXlsxStartupPath() const
+            {
+                return m_Owner->GetPathInFolderAndCreateDirs("data/excel/xlsx_startup/");
+            }
+            std::filesystem::path GetXlsxAddExtraInfoPath() const
+            {
+                return m_Owner->GetPathInFolderAndCreateDirs("data/excel/xlsx_add_info/");
+            }
+            std::filesystem::path GetXlsxAddExtraInfoWithProcessedImagesPath() const
+            {
+                return m_Owner->GetPathInFolderAndCreateDirs("data/excel/xlsx_add_info_with_processed_images/");
+            }
+            std::filesystem::path GetXlsxForServerImportPath() const
+            {
+                return m_Owner->GetPathInFolderAndCreateDirs("data/excel/xlsx_for_server_import/");
+            }
+            std::filesystem::path GetXlsxAddExtraInfoYg1Path() const
+            {
+                return m_Owner->GetPathInFolderAndCreateDirs("data/excel/xlsx_add_info_yg1-shop/");
+            }
+            std::filesystem::path GetImgsPerPagePath() const
+            {
+                return m_Owner->GetPathInFolderAndCreateDirs("data/excel/img_per_page/");
+            }
+            std::filesystem::path GetImgsSimpleRulePath() const
+            {
+                return m_Owner->GetPathInFolderAndCreateDirs("data/excel/img_simple_rule/");
+            }
+            std::filesystem::path GetImgsProcessedPath() const
+            {
+                return m_Owner->GetPathInFolderAndCreateDirs("data/excel/img_processed/");
+            }
+
+        private:
+            const Project* m_Owner;
+        };
+
+    public:
         static Ref<Project> New(std::string_view _Folder, std::string_view _Name);
         static Ref<Project> Open();
         static Ref<Project> Open(std::string _FileName);
         static bool Save(Ref<Project> _Project);
 
-        inline ProjectType GetType() const { return m_Type; }
-        inline void SetType(ProjectType _Type) { m_Type = _Type; }
+        inline ProjectVariant GetType() const { return m_Type; }
+        inline void SetType(ProjectVariant _Type) { m_Type = _Type; }
 
         // =========== Paths ==================================================
         inline const std::string& GetFolder() const { return m_Folder; }
@@ -67,33 +108,6 @@ namespace LM
         std::string GetPdfTablesWithOcrTypeCutByPatternImgsPath() const;
         std::string GetPdfTablesWithOcrTypeCutByPatternImgsPrevPath() const;
         std::string GetPdfTablesWithOcrTypeRawExcelPath() const;
-
-        std::string GetExcelTablesTypePath() const { return GetPathInFolderAndCreateDirs("data/excel/"); }
-
-        std::string GetExcelTablesTypeStartupPath() const
-        {
-            return GetPathInFolderAndCreateDirs("data/excel/startup/");
-        }
-        std::string GetExcelTablesTypeAddExtraInfoPath() const
-        {
-            return GetPathInFolderAndCreateDirs("data/excel/xlsx_add_info/");
-        }
-        std::string GetExcelTablesTypeForServerImportPath() const
-        {
-            return GetPathInFolderAndCreateDirs("data/excel/xlsx_for_server_import/");
-        }
-        std::string GetExcelTablesTypeAddExtraInfoYg1Path() const
-        {
-            return GetPathInFolderAndCreateDirs("data/excel/xlsx_add_info_yg1-shop/");
-        }
-        std::string GetExcelTablesTypeRawImgsPath(std::string_view _Suffix = "") const
-        {
-            return GetPathInFolderAndCreateDirs(std::format("data/excel/img_raw{}/", _Suffix));
-        }
-        std::string GetExcelTablesTypeSimpleRuleImgsPath(std::string_view _Suffix = "") const
-        {
-            return GetPathInFolderAndCreateDirs(std::format("data/excel/img_simple{}/", _Suffix));
-        }
 
         void MakeBackup();
 
@@ -164,6 +178,8 @@ namespace LM
 
         XlsxPageViewData& GetXlsxPageViewData();
 
+        const VariantExcelTables& GetVariantExcelTables() const { return m_VariantExcelTables; }
+
     public:
         friend SerializerGetPropertiesAll;
 
@@ -174,7 +190,7 @@ namespace LM
         Project(std::string_view _Folder = std::string());
 
     protected:
-        ProjectType m_Type = ProjectType::kPdfTablesWithOcr;
+        ProjectVariant m_Type = ProjectVariant::kPdfTablesWithOcr;
 
         std::string m_Folder;
 
@@ -187,6 +203,8 @@ namespace LM
         std::vector<uint32_t> m_GeneratedCatalogExcludePages;
 
         std::optional<XlsxPageViewData> m_XlsxPageViewData;
+
+        VariantExcelTables m_VariantExcelTables { this };
     };
 
 }    // namespace LM

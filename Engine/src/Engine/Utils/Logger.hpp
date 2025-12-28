@@ -86,13 +86,7 @@ namespace LM
             kCerr,
         };
 
-        Logger()
-        {
-            // #ifdef _WIN32
-            //             std::unique_lock Lock(m_Mtx);
-            //             std::system("cls");
-            // #endif
-        }
+        Logger();
 
         void SetColor(ConsoleTxtColor _TXT = ConsoleTxtColor::White, ConsoleBgColor _BG = ConsoleBgColor::None,
                       ConsoleStreamHandle _StreamHandle = ConsoleStreamHandle::kCout);

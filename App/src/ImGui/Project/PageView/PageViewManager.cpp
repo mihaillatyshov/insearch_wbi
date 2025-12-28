@@ -99,8 +99,8 @@ namespace LM
         }
         else if (s_CurrentManagerHash == kHashExcelFolder)
         {
-            filesCount =
-                static_cast<int>(FileSystemUtils::FilesCountInDirectory(m_Project->GetExcelTablesTypeStartupPath()));
+            filesCount = static_cast<int>(
+                FileSystemUtils::FilesCountInDirectory(m_Project->GetVariantExcelTables().GetXlsxStartupPath()));
         }
 
         ImVec2 buttonSize = { ImGui::GetFontSize() * kBntSizeCoef, ImGui::GetFontSize() * kBntSizeCoef };

@@ -289,13 +289,15 @@ namespace LM
 
         m_SetupProjectWindow.Draw(m_Project);
 
+        m_SharedConnectionConfigSetup.OnImGuiRender();
+
         if (m_Project)
         {
             switch (m_Project->GetType())
             {
-                case ProjectType::kPdfTablesWithOcr: PageViewManager::GetPdfOcr()->DrawViews(m_Project); break;
-                case ProjectType::kPdfTablesWithoutOcr: PageViewManager::GetPdf()->DrawViews(m_Project); break;
-                case ProjectType::kExcelTables: PageViewManager::GetExcelFolder()->DrawViews(m_Project); break;
+                case ProjectVariant::kPdfTablesWithOcr: PageViewManager::GetPdfOcr()->DrawViews(m_Project); break;
+                case ProjectVariant::kPdfTablesWithoutOcr: PageViewManager::GetPdf()->DrawViews(m_Project); break;
+                case ProjectVariant::kExcelTables: PageViewManager::GetExcelFolder()->DrawViews(m_Project); break;
             }
         }
 

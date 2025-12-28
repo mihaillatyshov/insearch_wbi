@@ -36,7 +36,7 @@ namespace LM
         concept Array = std::is_array_v<T>;
 
         template <typename T>
-        concept ProjectTypeConcept = std::is_same_v<T, ProjectType>;
+        concept ProjectTypeConcept = std::is_same_v<T, ProjectVariant>;
 
         template <typename T>
         concept GenRawExcelConcept = std::is_same_v<T, GenRawExcel>;
@@ -246,7 +246,7 @@ namespace LM
         template <Concept::ProjectTypeConcept T>
         inline void FromJson(T& _Object, const nlohmann::json& _Json) const
         {
-            _Object = static_cast<ProjectType>(_Json);
+            _Object = static_cast<ProjectVariant>(_Json);
         }
 
         template <typename T>

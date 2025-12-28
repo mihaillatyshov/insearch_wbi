@@ -12,3 +12,4 @@ build/
 **/.venv
 
 assets/tessdata/
+assets/configs/
