@@ -82,19 +82,21 @@ namespace LM
     {
         int projectType = static_cast<int>(_Project->GetType());
 
-        ImGui::Text("Тип проекта: %s", ProjectTypeToString(_Project->GetType()).c_str());
+        ImGui::Text("Тип проекта: %s", ConvertProjectVariantToString(_Project->GetType()).c_str());
 
-        if (ImGui::RadioButton(ProjectTypeToString(ProjectVariant::kPdfTablesWithOcr).c_str(), &projectType, 0))
+        if (ImGui::RadioButton(ConvertProjectVariantToString(ProjectVariant::kPdfTablesWithOcr).c_str(), &projectType,
+                               0))
         {
             _Project->SetType(ProjectVariant::kPdfTablesWithOcr);
         }
         ImGui::SameLine();
-        if (ImGui::RadioButton(ProjectTypeToString(ProjectVariant::kPdfTablesWithoutOcr).c_str(), &projectType, 1))
+        if (ImGui::RadioButton(ConvertProjectVariantToString(ProjectVariant::kPdfTablesWithoutOcr).c_str(),
+                               &projectType, 1))
         {
             _Project->SetType(ProjectVariant::kPdfTablesWithoutOcr);
         }
         ImGui::SameLine();
-        if (ImGui::RadioButton(ProjectTypeToString(ProjectVariant::kExcelTables).c_str(), &projectType, 2))
+        if (ImGui::RadioButton(ConvertProjectVariantToString(ProjectVariant::kExcelTables).c_str(), &projectType, 2))
         {
             _Project->SetType(ProjectVariant::kExcelTables);
         }
@@ -129,13 +131,13 @@ namespace LM
 
     void SetupProject::DrawRawExcelFolderSettings(Ref<Project> _Project)
     {
-        std::filesystem::path xlsxStartupPath = _Project->GetVariantExcelTables().GetXlsxStartupPath();
+        std::filesystem::path xlsxStartupPath = _Project->GetVariantExcelTablesHelpers().GetXlsxStartupPath();
 
         ImGui::Text("Папка с Excel: %s", xlsxStartupPath.string().c_str());
 
         ImGui::Spacing();
 
-        static bool isNeedRebuild = false;
+        static bool isNeedRebuild = true;
         // TODO: Fix (add number in front of file)
         // if (ImGui::Button("Добавить Excel файлы"))
         // {
@@ -219,14 +221,39 @@ namespace LM
 
         ImGui::Text("Файлов в каталоге: %zu", filesCount);
 
-        for (const auto& path : paths)
+        static ImGuiTableFlags tableFlags = ImGuiTableFlags_SizingFixedFit;    // | ImGuiTableFlags_ScrollX
+        if (ImGui::BeginTable("XLSX Table", 2, tableFlags))
         {
-            ImGui::Text("%s", path.filename().string().c_str());
-            // TODO: Add delete file button:
-            // move xlsx to delete folder in project and rename file with _deleted,
-            // move imgs for this xlsx (from img_raw) to delete folder in project and rename imgs with _deleted,
-            // rename images for this xlsx img_raw folder (change numbering),
-            // rename files in xlsxStartupPath (change numbering), rename imgs)
+            ImGui::TableNextColumn();
+            ImGui::Text("Файлы в папке:");
+            ImGui::TableNextColumn();
+            ImGui::Text("Использовать в импорте на сервер");
+
+            const std::vector<std::string>& pageNamesToSkipOnServerImport =
+                _Project->GetVariantExcelTables().GetPageNamesToSkipOnServerImport();
+            for (const auto& path : paths)
+            {
+                ImGui::PushID(path.string().c_str());
+                ImGui::TableNextColumn();
+                ImGui::Text("%s", path.filename().string().c_str());
+                ImGui::TableNextColumn();
+                bool isInUse = std::find(pageNamesToSkipOnServerImport.begin(), pageNamesToSkipOnServerImport.end(),
+                                         path.filename().string()) == pageNamesToSkipOnServerImport.end();
+                if (ImGui::Checkbox("##ServerImport", &isInUse))
+                {
+                    _Project->GetVariantExcelTables().TogglePageNameToSkipOnServerImport(path.filename().string());
+                    Project::Save(_Project);
+                }
+
+                // TODO: Add delete file button:
+                // move xlsx to delete folder in project and rename file with _deleted,
+                // move imgs for this xlsx (from img_raw) to delete folder in project and rename imgs with _deleted,
+                // rename images for this xlsx img_raw folder (change numbering),
+                // rename files in xlsxStartupPath (change numbering), rename imgs)
+
+                ImGui::PopID();
+            }
+            ImGui::EndTable();
         }
     }
 

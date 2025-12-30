@@ -1,9 +1,9 @@
 import os
-import traceback
 
 import pandas as pd
 import pydantic
-from base import (DEFAULT_CONNECTION_CONFIG_PATH, ArgsBase, import_connection_config, parse_args_new, print_to_cpp)
+from base import (DEFAULT_CONNECTION_CONFIG_PATH, ArgsBase, import_connection_config, log_info_to_cpp, log_space_to_cpp,
+                  start_program)
 from pg_shared import create_sqlalchemy_engine
 from sqlalchemy import text
 
@@ -15,9 +15,9 @@ class Args(ArgsBase):
 
 
 def process_files(args: Args):
-    print_to_cpp("Начало импорта несуществующих ADINT моделей")
+    log_info_to_cpp("Начало импорта несуществующих ADINT моделей")
 
-    print_to_cpp("Подключение к базе данных")
+    log_info_to_cpp("Подключение к базе данных")
     connection_config = import_connection_config(args.connection_config_path)
     sqlalchemy_engine = create_sqlalchemy_engine(connection_config.db_user, connection_config.db_password,
                                                  connection_config.db_host, connection_config.db_port)
@@ -26,7 +26,7 @@ def process_files(args: Args):
 
     for filename in os.scandir(args.xlsx_path):
         if filename.is_file() and not filename.name.startswith("~$"):
-            print_to_cpp(f"Обработка файла {filename.name}")
+            log_info_to_cpp(f"Обработка файла {filename.name}")
             df = pd.read_excel(filename.path, dtype=str)
 
             for _, row in df.iterrows():
@@ -35,7 +35,7 @@ def process_files(args: Args):
                     if pd.notna(adint):
                         all_adint_set.add(adint)
 
-    print_to_cpp(f"Всего ADINT моделей в файлах: {len(all_adint_set)}")
+    log_info_to_cpp(f"Всего ADINT моделей в файлах: {len(all_adint_set)}")
 
     not_exist_adint_list = []
     with sqlalchemy_engine.connect() as connection:
@@ -46,11 +46,13 @@ def process_files(args: Args):
             result = connection.execute(query, {'adint': adint})
             if result.first() is None:
                 not_exist_adint_list.append(adint)
-    print_to_cpp(f"Не существующих ADINT моделей: {len(not_exist_adint_list)}")
+    log_info_to_cpp(f"Не существующих ADINT моделей: {len(not_exist_adint_list)}")
+    log_space_to_cpp()
     for adint in not_exist_adint_list:
-        print_to_cpp(f"  {adint}")
+        log_info_to_cpp(f"  {adint}")
+    log_space_to_cpp()
 
-    print_to_cpp("Импорт в базу")
+    log_info_to_cpp("Импорт в базу")
     for adint in not_exist_adint_list:
         with sqlalchemy_engine.begin() as connection:
             insert_query = text("""
@@ -58,13 +60,8 @@ def process_files(args: Args):
             """)
             connection.execute(insert_query, {'adint': adint})
 
-    print_to_cpp("Импорт в базу завершен")
+    log_info_to_cpp("Импорт в базу завершен")
 
 
-try:
-    process_files(parse_args_new(Args))
-except KeyboardInterrupt:
-    pass
-except Exception as e:                                                                                                  # pylint: disable=broad-exception-caught
-    formatted_traceback = traceback.format_exc()                                                                        # pylint: disable=invalid-name
-    print_to_cpp(f"An error occurred:\n{formatted_traceback}")
+if __name__ == "__main__":
+    start_program(process_files, Args)

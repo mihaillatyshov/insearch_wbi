@@ -2,7 +2,7 @@ import argparse
 import json
 import sys
 import traceback
-from typing import TypeVar
+from typing import Callable, TypeVar
 
 import cv2
 import numpy as np
@@ -11,6 +11,30 @@ from pydantic import BaseModel as ArgsBase
 DEFAULT_CONNECTION_CONFIG_PATH = "./assets/configs/shared_connection_config.json"
 
 utf8stdout = open(1, 'w', encoding='utf-8', closefd=False)
+
+
+def log_space_to_cpp():
+    print_to_cpp("")
+
+
+def log_trace_to_cpp(string: str):
+    print_to_cpp("[DEBUG]: " + str(string))
+
+
+def log_info_to_cpp(string: str):
+    print_to_cpp("[INFO]: " + str(string))
+
+
+def log_warning_to_cpp(string: str):
+    print_to_cpp("[WARN]: " + str(string))
+
+
+def log_error_to_cpp(string: str):
+    print_to_cpp("[ERROR]: " + str(string))
+
+
+def log_error_trace_to_cpp(string: str):
+    print_to_cpp("[ERROR TRACE]: " + str(string))
 
 
 def print_to_cpp(string: str):
@@ -22,7 +46,7 @@ TArgs = TypeVar("TArgs", bound=ArgsBase)
 
 def parse_args(args_type: type[TArgs]) -> TArgs:
     if (len(sys.argv) - 1) < len(args_type.model_fields.keys()):
-        print_to_cpp("Скрипт не выполнен (не хватает агрументов)")
+        log_error_to_cpp("Скрипт не выполнен (не хватает агрументов)")
         sys.exit(-1)
 
     try:
@@ -30,8 +54,8 @@ def parse_args(args_type: type[TArgs]) -> TArgs:
         for i, key in enumerate(args_type.model_fields):
             args_input[key] = str(sys.argv[i + 1])
         return args_type(**args_input)
-    except Exception:
-        print("Аргументы скрипта имеют ошибки!")
+    except (ValueError, TypeError) as e:
+        log_error_to_cpp(f"Аргументы скрипта имеют ошибки: {e}")
         sys.exit(-1)
 
 
@@ -55,11 +79,23 @@ def parse_args_new(args_type: type[TArgs]) -> TArgs:
         args = parser.parse_args()
         item = args_type(**vars(args))
         return item
-    except Exception:
+    except (ValueError, TypeError, AttributeError, SystemExit) as e:
         # exc_type, exc_value, exc_traceback = sys.exc_info()
         formatted_traceback = traceback.format_exc()
-        print_to_cpp(f"Аргументы скрипта имеют ошибки:\n{formatted_traceback}")
+        log_error_to_cpp(f"Аргументы скрипта имеют ошибки: {e}")
+        log_error_trace_to_cpp(f"{formatted_traceback}")
         sys.exit(-1)
+
+
+def start_program(program_function: Callable[[TArgs], None], args_type: type[TArgs]):
+    try:
+        program_function(parse_args_new(args_type))
+    except KeyboardInterrupt:
+        pass
+    except Exception as e:                                                                                              # pylint: disable=broad-exception-caught
+        formatted_traceback = traceback.format_exc()                                                                    # pylint: disable=invalid-name
+        log_error_to_cpp(f"Ошибка во время выполнения скрипта: {e}")
+        log_error_trace_to_cpp(f"{formatted_traceback}")
 
 
 def file_format_id(index: int) -> str:

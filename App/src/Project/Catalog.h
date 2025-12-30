@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Project/CatalogCutPattern.h"
+#include "Project/Processing/GenImgsByCutPattern.h"
+#include "Project/Processing/GenRawExcel.h"
 
 #include <string>
 
@@ -17,6 +19,10 @@ namespace LM
 
         CatalogCutPattern TopLeftCutPattern;
         CatalogCutPattern BotRightCutPattern;
+
+        GenImgsByCutPattern GenImgsByCutPattern;
+        GenRawExcel GenRawExcel;
+        std::vector<uint32_t> GeneratedCatalogExcludePages;
 
         bool IsNeedRebuild(const Catalog& _LastBuild) const
         {

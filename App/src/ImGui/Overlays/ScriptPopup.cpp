@@ -57,6 +57,10 @@ namespace LM
                 ImGui::Text("\n");
                 DrawScriptBuffer();
                 ImGui::Text("\n");
+                if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
+                {
+                    ImGui::SetScrollHereY(1.0f);
+                }
             }
             ImGui::EndChild();
 
@@ -81,9 +85,96 @@ namespace LM
         }
     }
 
+    enum class ErrorTracebackStatus
+    {
+        kStarted,
+        kInProgress,
+        kEnded,
+        kNone,
+    };
+
+    void GetColorSimple(std::string_view _Line, std::string_view _Prefix, const ImVec4& _PrefixColor, ImVec4& _Color,
+                        ErrorTracebackStatus& _ErrorTracebackStatus)
+    {
+        if (_Line.starts_with(_Prefix))
+        {
+            _Color = _PrefixColor;
+            if (_ErrorTracebackStatus == ErrorTracebackStatus::kInProgress)
+            {
+                _ErrorTracebackStatus = ErrorTracebackStatus::kEnded;
+            }
+        }
+    }
+
     void ScriptPopup::DrawScriptBuffer()
     {
         std::lock_guard lock(m_ScriptBufferMtx);
-        ImGui::TextUnformatted(m_ScriptBuffer.c_str());
+
+        ImVec4 debugColor = ImGui::GetStyleColorVec4(ImGuiCol_Text);
+        ImVec4 infoColor = ImVec4(0.0f, 1.0f, 0.0f, 1.0f);
+        ImVec4 warnColor = ImVec4(1.0f, 1.0f, 0.0f, 1.0f);
+        ImVec4 errorColor = ImVec4(1.0f, 0.0f, 0.0f, 1.0f);
+        ImVec4 errorTracebackColor = ImVec4(1.0f, 0.5f, 0.5f, 1.0f);
+
+        ErrorTracebackStatus errorTracebackStatus = ErrorTracebackStatus::kNone;
+        bool isErrorTracebackOpened = false;
+
+        ImVec4 currentColor = debugColor;
+
+        std::istringstream stream(m_ScriptBuffer);
+        std::string line;
+        while (std::getline(stream, line))
+        {
+            GetColorSimple(line, "[DEBUG]", debugColor, currentColor, errorTracebackStatus);
+            GetColorSimple(line, "[INFO]", infoColor, currentColor, errorTracebackStatus);
+            GetColorSimple(line, "[WARN]", warnColor, currentColor, errorTracebackStatus);
+            GetColorSimple(line, "[ERROR]", errorColor, currentColor, errorTracebackStatus);
+            if (line.starts_with("[ERROR TRACE]"))
+            {
+                currentColor = errorTracebackColor;
+                errorTracebackStatus = ErrorTracebackStatus::kStarted;
+            }
+
+            if (errorTracebackStatus == ErrorTracebackStatus::kStarted)
+            {
+                isErrorTracebackOpened = ImGui::TreeNodeEx("ERROR TRACEBACK", ImGuiTreeNodeFlags_Framed);
+                LOG_CORE_WARN("TTreeNodeEx Opening");
+                errorTracebackStatus = ErrorTracebackStatus::kInProgress;
+            }
+            if (errorTracebackStatus == ErrorTracebackStatus::kEnded)
+            {
+                if (isErrorTracebackOpened)
+                {
+                    LOG_CORE_WARN("TTreeNodeEx Closing");
+                    ImGui::TreePop();
+                    isErrorTracebackOpened = false;
+                }
+                errorTracebackStatus = ErrorTracebackStatus::kNone;
+            }
+
+            if ((errorTracebackStatus == ErrorTracebackStatus::kInProgress && isErrorTracebackOpened) ||
+                errorTracebackStatus == ErrorTracebackStatus::kNone)
+            {
+                // inside traceback or normal line
+            }
+            else
+            {
+                // outside traceback, skip line
+                continue;
+            }
+            ImGui::TextColored(currentColor, "%s", line.c_str());
+        }
+
+        if (errorTracebackStatus == ErrorTracebackStatus::kEnded ||
+            errorTracebackStatus == ErrorTracebackStatus::kInProgress)
+        {
+            if (isErrorTracebackOpened)
+            {
+                LOG_CORE_WARN("TTreeNodeEx Closing");
+                ImGui::TreePop();
+                isErrorTracebackOpened = false;
+            }
+            errorTracebackStatus = ErrorTracebackStatus::kNone;
+        }
     }
 }    // namespace LM

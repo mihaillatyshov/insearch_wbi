@@ -380,7 +380,8 @@ namespace LM
         {
             for (size_t colId = 0; colId < m_TableData[rowId].size(); ++colId)
             {
-                ws.cell(static_cast<xlnt::column_t>(colId + 1), static_cast<xlnt::row_t>(rowId + 1))
+                ws.cell(static_cast<xlnt::column_t>(static_cast<xlnt::column_t::index_t>(colId + 1)), 
+                        static_cast<xlnt::row_t>(rowId + 1))
                     .value(StrTrim(m_TableData[rowId][colId].Value));
             }
         }

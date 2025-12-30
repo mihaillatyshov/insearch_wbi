@@ -169,9 +169,9 @@ namespace LM
 
     bool Project::IsPageInGeneratedCatalogExcludePages(uint32_t _PageId) const
     {
-        const auto itPageId =
-            std::find(m_GeneratedCatalogExcludePages.begin(), m_GeneratedCatalogExcludePages.end(), _PageId);
-        return itPageId != m_GeneratedCatalogExcludePages.end();
+        const auto itPageId = std::find(m_Catalog.GeneratedCatalogExcludePages.begin(),
+                                        m_Catalog.GeneratedCatalogExcludePages.end(), _PageId);
+        return itPageId != m_Catalog.GeneratedCatalogExcludePages.end();
     }
 
     bool Project::AddGeneratedCatalogExcludePage(uint32_t _PageId)
@@ -181,8 +181,8 @@ namespace LM
             return false;
         }
 
-        m_GeneratedCatalogExcludePages.push_back(_PageId);
-        std::sort(m_GeneratedCatalogExcludePages.begin(), m_GeneratedCatalogExcludePages.end());
+        m_Catalog.GeneratedCatalogExcludePages.push_back(_PageId);
+        std::sort(m_Catalog.GeneratedCatalogExcludePages.begin(), m_Catalog.GeneratedCatalogExcludePages.end());
 
         return true;
     }
@@ -194,8 +194,8 @@ namespace LM
             return false;
         }
 
-        m_GeneratedCatalogExcludePages.erase(
-            std::find(m_GeneratedCatalogExcludePages.begin(), m_GeneratedCatalogExcludePages.end(), _PageId));
+        m_Catalog.GeneratedCatalogExcludePages.erase(std::find(m_Catalog.GeneratedCatalogExcludePages.begin(),
+                                                               m_Catalog.GeneratedCatalogExcludePages.end(), _PageId));
 
         return true;
     }
@@ -205,34 +205,34 @@ namespace LM
         m_LastBuildCatalog = m_Catalog;
         m_Catalog.IsGenerated = true;
         m_Catalog.NeedRebuild = false;
-        m_GenImgsByCutPattern.NeedRebuild = true;
+        m_Catalog.GenImgsByCutPattern.NeedRebuild = true;
     }
 
     void Project::OnGenImgsByCutPattern()
     {
-        m_GenImgsByCutPattern.IsGenerated = true;
-        m_GenImgsByCutPattern.NeedRebuild = false;
-        m_GenImgsByCutPattern.Version = 0;
+        m_Catalog.GenImgsByCutPattern.IsGenerated = true;
+        m_Catalog.GenImgsByCutPattern.NeedRebuild = false;
+        m_Catalog.GenImgsByCutPattern.Version = 0;
 
-        if (m_GenRawExcel.UseCutPattern)
+        if (m_Catalog.GenRawExcel.UseCutPattern)
         {
-            m_GenRawExcel.NeedRebuild = true;
+            m_Catalog.GenRawExcel.NeedRebuild = true;
         }
     }
 
     void Project::OnGenRawExcel()
     {
-        m_GenRawExcel.IsGenerated = true;
-        m_GenRawExcel.NeedRebuild = false;
-        m_GenRawExcel.Version = 0;
+        m_Catalog.GenRawExcel.IsGenerated = true;
+        m_Catalog.GenRawExcel.NeedRebuild = false;
+        m_Catalog.GenRawExcel.Version = 0;
     }
 
     XlsxPageViewData& Project::GetXlsxPageViewData()
     {
         if (!m_XlsxPageViewData.has_value())
         {
-            m_XlsxPageViewData =
-                XlsxPageViewData(m_VariantExcelTables.GetBasePath(), m_VariantExcelTables.GetXlsxStartupPath());
+            m_XlsxPageViewData = XlsxPageViewData(m_VariantExcelTablesHelpers.GetBasePath(),
+                                                  m_VariantExcelTablesHelpers.GetXlsxStartupPath());
         }
         return m_XlsxPageViewData.value();
     }

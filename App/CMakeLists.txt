@@ -16,9 +16,10 @@ set(SOURCES
     src/Project/Project.cpp                                     src/Project/Project.h
     src/Project/Catalog.cpp                                     src/Project/Catalog.h
     src/Project/CatalogCutPattern.cpp                           src/Project/CatalogCutPattern.h
+    src/Project/ProjectVariantExcelTables.cpp                   src/Project/ProjectVariantExcelTables.hpp
     src/Project/Processing/GenImgsByCutPattern.cpp              src/Project/Processing/GenImgsByCutPattern.h
     src/Project/Processing/GenRawExcel.cpp                      src/Project/Processing/GenRawExcel.h
-src/Project/Processing/XlsxPageViewData.cpp                     src/Project/Processing/XlsxPageViewData.h
+    src/Project/Processing/XlsxPageViewData.cpp                 src/Project/Processing/XlsxPageViewData.h
 
     src/ImGui/Tables/Table.cpp                                  src/ImGui/Tables/Table.h
     

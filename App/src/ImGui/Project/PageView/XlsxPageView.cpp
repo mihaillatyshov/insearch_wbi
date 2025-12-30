@@ -676,12 +676,16 @@ namespace LM
             Save();
 
             PythonCommand pythonCommand("./assets/scripts/excel_add_extra_info.py");
-            pythonCommand.AddPathArg(m_Project->GetVariantExcelTables().GetXlsxStartupPath(), "--xlsx_path");
-            pythonCommand.AddPathArg(m_Project->GetVariantExcelTables().GetXlsxAddExtraInfoPath(), "--save_path");
+            pythonCommand.AddPathArg(m_Project->GetVariantExcelTablesHelpers().GetXlsxStartupPath(), "--xlsx_path");
+            pythonCommand.AddPathArg(m_Project->GetVariantExcelTablesHelpers().GetXlsxAddExtraInfoPath(),
+                                     "--save_path");
             pythonCommand.AddPathArg(_XlsxViewData.GetExtraInfoJsonPath(), "--rules_path");
-            pythonCommand.AddPathArg(m_Project->GetVariantExcelTables().GetImgsPerPagePath(), "--per_page_img_folder");
-            pythonCommand.AddPathArg(m_Project->GetVariantExcelTables().GetImgsSimpleRulePath(),
+            pythonCommand.AddPathArg(m_Project->GetVariantExcelTablesHelpers().GetImgsPerPagePath(),
+                                     "--per_page_img_folder");
+            pythonCommand.AddPathArg(m_Project->GetVariantExcelTablesHelpers().GetImgsSimpleRulePath(),
                                      "--per_page_rule_img_folder");
+            pythonCommand.AddPathArg(m_Project->GetVariantExcelTablesHelpers().GetImgsNoConditionPath(),
+                                     "--no_condition_img_folder");
             pythonCommand.AddArg(std::string_view("yg1-shop"), "--extra_parser_type");
 
             ScriptPopup::Get()->OpenPopup(pythonCommand,
@@ -701,12 +705,16 @@ namespace LM
             Save();
 
             PythonCommand pythonCommand("./assets/scripts/excel_add_extra_info.py");
-            pythonCommand.AddPathArg(m_Project->GetVariantExcelTables().GetXlsxStartupPath(), "--xlsx_path");
-            pythonCommand.AddPathArg(m_Project->GetVariantExcelTables().GetXlsxAddExtraInfoPath(), "--save_path");
+            pythonCommand.AddPathArg(m_Project->GetVariantExcelTablesHelpers().GetXlsxStartupPath(), "--xlsx_path");
+            pythonCommand.AddPathArg(m_Project->GetVariantExcelTablesHelpers().GetXlsxAddExtraInfoPath(),
+                                     "--save_path");
             pythonCommand.AddPathArg(_XlsxViewData.GetExtraInfoJsonPath(), "--rules_path");
-            pythonCommand.AddPathArg(m_Project->GetVariantExcelTables().GetImgsPerPagePath(), "--per_page_img_folder");
-            pythonCommand.AddPathArg(m_Project->GetVariantExcelTables().GetImgsSimpleRulePath(),
+            pythonCommand.AddPathArg(m_Project->GetVariantExcelTablesHelpers().GetImgsPerPagePath(),
+                                     "--per_page_img_folder");
+            pythonCommand.AddPathArg(m_Project->GetVariantExcelTablesHelpers().GetImgsSimpleRulePath(),
                                      "--per_page_rule_img_folder");
+            pythonCommand.AddPathArg(m_Project->GetVariantExcelTablesHelpers().GetImgsNoConditionPath(),
+                                     "--no_condition_img_folder");
             pythonCommand.AddArg(std::string_view("wbi-tools"), "--extra_parser_type");
 
             ScriptPopup::Get()->OpenPopup(pythonCommand,
@@ -732,9 +740,9 @@ namespace LM
 
             // TODO: add variant for use add extra info xlsx without processed images
             PythonCommand pythonCommand("./assets/scripts/imgs_to_server_format_and_upload.py");
-            pythonCommand.AddPathArg(m_Project->GetVariantExcelTables().GetXlsxAddExtraInfoWithProcessedImagesPath(),
-                                     "--xlsx_path");
-            pythonCommand.AddPathArg(m_Project->GetVariantExcelTables().GetXlsxForServerImportPath(),
+            pythonCommand.AddPathArg(
+                m_Project->GetVariantExcelTablesHelpers().GetXlsxAddExtraInfoWithProcessedImagesPath(), "--xlsx_path");
+            pythonCommand.AddPathArg(m_Project->GetVariantExcelTablesHelpers().GetXlsxForServerImportPath(),
                                      "--xlsx_save_path");
 
             ScriptPopup::Get()->OpenPopup(pythonCommand,
@@ -747,14 +755,31 @@ namespace LM
                                             []() {} });
         }
 
+        if (ImGui::Button("Просмотреть отсутствующие ADINT"))
+        {
+            ViewNotInDbAdintFields();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Обновить базу недостающими ADINT"))
+        {
+            AddNotInDbAdintFieldsToServer();
+        }
+
+        if (ImGui::Button("Загрузить данные на сервер"))
+        {
+            ImportDataToWbiToolsServer();
+        }
+
         ImGui::SeparatorText("YG1-Shop Specific");
 
         if (ImGui::Button("Собрать файлы в один и добавить доп. поля для yg1-shop"))
         {
             Save();
             PythonCommand pythonCommand("./assets/scripts/excel_add_extra_info-yg1-shop.py");
-            pythonCommand.AddPathArg(m_Project->GetVariantExcelTables().GetXlsxAddExtraInfoPath(), "--xlsx_path");
-            pythonCommand.AddPathArg(m_Project->GetVariantExcelTables().GetXlsxAddExtraInfoYg1Path(), "--save_path");
+            pythonCommand.AddPathArg(m_Project->GetVariantExcelTablesHelpers().GetXlsxAddExtraInfoPath(),
+                                     "--xlsx_path");
+            pythonCommand.AddPathArg(m_Project->GetVariantExcelTablesHelpers().GetXlsxAddExtraInfoYg1Path(),
+                                     "--save_path");
 
             ScriptPopup::Get()->OpenPopup(pythonCommand,
                                           { "Заполнение данных для yg1-shop",
@@ -1854,12 +1879,12 @@ namespace LM
         filename.replace_extension();
         filename = std::format("{}_{}.png", filename.string(), _Filetype);
 
-        return (m_Project->GetVariantExcelTables().GetImgsPerPagePath() / filename).string();
+        return (m_Project->GetVariantExcelTablesHelpers().GetImgsPerPagePath() / filename).string();
     }
 
     std::string XlsxPageView::GetSimpleRuleImgFilename(std::string_view _Filename)
     {
-        return (m_Project->GetVariantExcelTables().GetImgsSimpleRulePath() / _Filename).string();
+        return (m_Project->GetVariantExcelTablesHelpers().GetImgsSimpleRulePath() / _Filename).string();
     }
 
     void XlsxPageView::ReplaceFromClipboard(XlsxPageViewData& _XlsxViewData,
@@ -2433,10 +2458,10 @@ namespace LM
         Save();
 
         PythonCommand pythonCommand("./assets/scripts/imgs_process.py");
-        pythonCommand.AddPathArg(m_Project->GetVariantExcelTables().GetXlsxAddExtraInfoPath(), "--xlsx_path");
-        pythonCommand.AddPathArg(m_Project->GetVariantExcelTables().GetXlsxAddExtraInfoWithProcessedImagesPath(),
+        pythonCommand.AddPathArg(m_Project->GetVariantExcelTablesHelpers().GetXlsxAddExtraInfoPath(), "--xlsx_path");
+        pythonCommand.AddPathArg(m_Project->GetVariantExcelTablesHelpers().GetXlsxAddExtraInfoWithProcessedImagesPath(),
                                  "--xlsx_save_path");
-        pythonCommand.AddPathArg(m_Project->GetVariantExcelTables().GetImgsProcessedPath(), "--imgs_save_path");
+        pythonCommand.AddPathArg(m_Project->GetVariantExcelTablesHelpers().GetImgsProcessedPath(), "--imgs_save_path");
 
         ScriptPopup::Get()->OpenPopup(pythonCommand, { "Обработка изображений",
                                                        []() {
@@ -2445,6 +2470,63 @@ namespace LM
                                                            ImGui::Text("После его завершения можно закрыть это окно");
                                                        },
                                                        []() {} });
+    }
+
+    void XlsxPageView::ViewNotInDbAdintFields()
+    {
+        Save();
+
+        PythonCommand pythonCommand("./assets/scripts/view_not_exist_adint.py");
+        pythonCommand.AddPathArg(m_Project->GetVariantExcelTablesHelpers().GetXlsxAddExtraInfoWithProcessedImagesPath(),
+                                 "--xlsx_path");
+
+        ScriptPopup::Get()->OpenPopup(pythonCommand,
+                                      { "Просмотр полей ADINT, отсутствующих в БД",
+                                        []() {
+                                            ImGui::Text("Работает скрипт просмотра полей ADINT, отсутствующих в БД");
+                                            ImGui::Text("Это может занять несколько минут");
+                                            ImGui::Text("После его завершения можно закрыть это окно");
+                                        },
+                                        []() {} });
+    }
+
+    void XlsxPageView::AddNotInDbAdintFieldsToServer()
+    {
+        Save();
+
+        PythonCommand pythonCommand("./assets/scripts/import_not_exist_adint.py");
+        pythonCommand.AddPathArg(m_Project->GetVariantExcelTablesHelpers().GetXlsxAddExtraInfoWithProcessedImagesPath(),
+                                 "--xlsx_path");
+
+        ScriptPopup::Get()->OpenPopup(
+            pythonCommand, { "Добавление полей ADINT, отсутствующих в БД, на сервер",
+                             []() {
+                                 ImGui::Text("Работает скрипт добавления полей ADINT, отсутствующих в БД, на сервер");
+                                 ImGui::Text("Это может занять несколько минут");
+                                 ImGui::Text("После его завершения можно закрыть это окно");
+                             },
+                             []() {} });
+    }
+
+    void XlsxPageView::ImportDataToWbiToolsServer()
+    {
+        Save();
+
+        PythonCommand pythonCommand("./assets/scripts/import_to_server.py");
+        pythonCommand.AddPathArg(m_Project->GetVariantExcelTablesHelpers().GetXlsxAddExtraInfoWithProcessedImagesPath(),
+                                 "--xlsx_path");
+        pythonCommand.AddArg(false, "--remove_previous_images");
+        pythonCommand.AddArg(StrJoin(m_Project->GetVariantExcelTables().GetPageNamesToSkipOnServerImport(), ";"),
+                             "--skip_files");
+
+        ScriptPopup::Get()->OpenPopup(pythonCommand,
+                                      { "Импорт данных в WBI Tools Server",
+                                        []() {
+                                            ImGui::Text("Работает скрипт импорта данных в WBI Tools Server");
+                                            ImGui::Text("Это может занять несколько минут");
+                                            ImGui::Text("После его завершения можно закрыть это окно");
+                                        },
+                                        []() {} });
     }
 
 }    // namespace LM

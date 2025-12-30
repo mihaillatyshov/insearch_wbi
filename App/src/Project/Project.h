@@ -12,6 +12,7 @@
 #include "Catalog.h"
 #include "Processing/GenImgsByCutPattern.h"
 #include "Processing/GenRawExcel.h"
+#include "ProjectVariantExcelTables.hpp"
 
 namespace LM
 {
@@ -39,49 +40,6 @@ namespace LM
     // TODO: Make folders as std::filesystem::path
     class Project
     {
-    public:
-        struct VariantExcelTables
-        {
-            explicit VariantExcelTables(const Project* _Owner) : m_Owner(_Owner) { }
-
-            std::filesystem::path GetBasePath() const { return m_Owner->GetPathInFolderAndCreateDirs("data/excel/"); }
-            std::filesystem::path GetXlsxStartupPath() const
-            {
-                return m_Owner->GetPathInFolderAndCreateDirs("data/excel/xlsx_startup/");
-            }
-            std::filesystem::path GetXlsxAddExtraInfoPath() const
-            {
-                return m_Owner->GetPathInFolderAndCreateDirs("data/excel/xlsx_add_info/");
-            }
-            std::filesystem::path GetXlsxAddExtraInfoWithProcessedImagesPath() const
-            {
-                return m_Owner->GetPathInFolderAndCreateDirs("data/excel/xlsx_add_info_with_processed_images/");
-            }
-            std::filesystem::path GetXlsxForServerImportPath() const
-            {
-                return m_Owner->GetPathInFolderAndCreateDirs("data/excel/xlsx_for_server_import/");
-            }
-            std::filesystem::path GetXlsxAddExtraInfoYg1Path() const
-            {
-                return m_Owner->GetPathInFolderAndCreateDirs("data/excel/xlsx_add_info_yg1-shop/");
-            }
-            std::filesystem::path GetImgsPerPagePath() const
-            {
-                return m_Owner->GetPathInFolderAndCreateDirs("data/excel/img_per_page/");
-            }
-            std::filesystem::path GetImgsSimpleRulePath() const
-            {
-                return m_Owner->GetPathInFolderAndCreateDirs("data/excel/img_simple_rule/");
-            }
-            std::filesystem::path GetImgsProcessedPath() const
-            {
-                return m_Owner->GetPathInFolderAndCreateDirs("data/excel/img_processed/");
-            }
-
-        private:
-            const Project* m_Owner;
-        };
-
     public:
         static Ref<Project> New(std::string_view _Folder, std::string_view _Name);
         static Ref<Project> Open();
@@ -142,31 +100,34 @@ namespace LM
         inline void SetCatalogTopLeftPattern(const CatalogCutPattern& _CutPattern)
         {
             m_Catalog.TopLeftCutPattern = _CutPattern;
-            m_GenImgsByCutPattern.NeedRebuild = true;
+            m_Catalog.GenImgsByCutPattern.NeedRebuild = true;
         }
         inline const CatalogCutPattern& GetCatalogBotRightPattern() const { return m_Catalog.BotRightCutPattern; }
         inline void SetCatalogBotRightPattern(const CatalogCutPattern& _CutPattern)
         {
             m_Catalog.BotRightCutPattern = _CutPattern;
-            m_GenImgsByCutPattern.NeedRebuild = true;
+            m_Catalog.GenImgsByCutPattern.NeedRebuild = true;
         }
 
-        inline bool GetIsImgsByCutPatternGenerated() const { return m_GenImgsByCutPattern.IsGenerated; }
-        inline bool GetImgsByCutPatternNeedRebuild() const { return m_GenImgsByCutPattern.NeedRebuild; }
+        inline bool GetIsImgsByCutPatternGenerated() const { return m_Catalog.GenImgsByCutPattern.IsGenerated; }
+        inline bool GetImgsByCutPatternNeedRebuild() const { return m_Catalog.GenImgsByCutPattern.NeedRebuild; }
 
         // =========== Raw Exclel ====================================
-        inline bool GetIsRawExcelGenerated() const { return m_GenRawExcel.IsGenerated; }
-        inline bool GetRawExcelNeedRebuild() const { return m_GenRawExcel.NeedRebuild; }
+        inline bool GetIsRawExcelGenerated() const { return m_Catalog.GenRawExcel.IsGenerated; }
+        inline bool GetRawExcelNeedRebuild() const { return m_Catalog.GenRawExcel.NeedRebuild; }
 
-        inline bool GetRawExcelUseCutPatternImgs() const { return m_GenRawExcel.UseCutPattern; }
+        inline bool GetRawExcelUseCutPatternImgs() const { return m_Catalog.GenRawExcel.UseCutPattern; }
         inline void SetRawExcelUseCutPatternImgs(bool _UseCutPatternImgs)
         {
-            m_GenRawExcel.UseCutPattern = _UseCutPatternImgs;
-            m_GenRawExcel.NeedRebuild = true;
+            m_Catalog.GenRawExcel.UseCutPattern = _UseCutPatternImgs;
+            m_Catalog.GenRawExcel.NeedRebuild = true;
         }
 
         // =========== Catalog Exclude Pages ==================================
-        const std::vector<uint32_t>& GetGeneratedCatalogExcludePages() const { return m_GeneratedCatalogExcludePages; }
+        const std::vector<uint32_t>& GetGeneratedCatalogExcludePages() const
+        {
+            return m_Catalog.GeneratedCatalogExcludePages;
+        }
         bool IsPageInGeneratedCatalogExcludePages(uint32_t _PageId) const;
         bool AddGeneratedCatalogExcludePage(uint32_t _PageId);
         bool RemoveGeneratedCatalogExcludePage(uint32_t _PageId);
@@ -178,7 +139,11 @@ namespace LM
 
         XlsxPageViewData& GetXlsxPageViewData();
 
-        const VariantExcelTables& GetVariantExcelTables() const { return m_VariantExcelTables; }
+        const ProjectVariantExcelTablesHelpers& GetVariantExcelTablesHelpers() const
+        {
+            return m_VariantExcelTablesHelpers;
+        }
+        ProjectVariantExcelTables& GetVariantExcelTables() { return m_VariantExcelTables; }
 
     public:
         friend SerializerGetPropertiesAll;
@@ -195,16 +160,12 @@ namespace LM
         std::string m_Folder;
 
         Catalog m_Catalog;
-
         Catalog m_LastBuildCatalog;
-        GenRawExcel m_GenRawExcel;
-        GenImgsByCutPattern m_GenImgsByCutPattern;
-
-        std::vector<uint32_t> m_GeneratedCatalogExcludePages;
 
         std::optional<XlsxPageViewData> m_XlsxPageViewData;
 
-        VariantExcelTables m_VariantExcelTables { this };
+        ProjectVariantExcelTablesHelpers m_VariantExcelTablesHelpers { this };
+        ProjectVariantExcelTables m_VariantExcelTables;
     };
 
 }    // namespace LM

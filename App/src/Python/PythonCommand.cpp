@@ -69,7 +69,7 @@ namespace LM
     {
         std::array<char, 1024> buffer;
 
-        std::string command = GetFullCommand() + " 2>&1";  // Перенаправляем stderr в stdout
+        std::string command = GetFullCommand() + " 2>&1";    // Перенаправляем stderr в stdout
         LOG_CORE_INFO("Start python command: {}", command);
 
         std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(command.c_str(), "r"), pclose);
@@ -77,7 +77,7 @@ namespace LM
         {
             throw std::runtime_error("popen() failed!");
         }
-        while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr)
+        while (fgets(buffer.data(), static_cast<int>(buffer.size()), pipe.get()) != nullptr)
         {
             std::cout << "[Python]: " << buffer.data();
             if (_LinePrintCallback)
@@ -87,7 +87,7 @@ namespace LM
         }
 
         int exitCode = pclose(pipe.release());
-        
+
 #ifdef _WIN32
         // В Windows pclose возвращает код возврата напрямую
         LOG_CORE_INFO("Python command finished with exit code: {}", exitCode);
@@ -104,12 +104,12 @@ namespace LM
             exitCode = -1;
         }
 #endif
-        
+
         if (exitCode != 0)
         {
             LOG_CORE_ERROR("Python command failed with exit code: {}", exitCode);
         }
-        
+
         return exitCode;
     }
 

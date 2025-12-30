@@ -14,10 +14,13 @@ namespace LM
         virtual void OnAttach() override;
         virtual void OnDetach() override;
 
-        virtual void* GetTextureId() const override { return reinterpret_cast<void*>(m_TextureID); }
+        virtual void* GetTextureId() const override
+        {
+            return reinterpret_cast<void*>(static_cast<uintptr_t>(m_TextureID));
+        }
 
-        virtual float GetWidth() const override { return m_Width; }
-        virtual float GetHeight() const override { return m_Height; }
+        virtual float GetWidth() const override { return static_cast<float>(m_Width); }
+        virtual float GetHeight() const override { return static_cast<float>(m_Height); }
 
     protected:
         void LoadOnFileReadError();

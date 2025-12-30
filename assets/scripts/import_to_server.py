@@ -1,11 +1,10 @@
 import json
 import os
-import traceback
 
 import pandas as pd
 import pydantic
-from base import (DEFAULT_CONNECTION_CONFIG_PATH, ArgsBase, import_connection_config, interp_model, parse_args_new,
-                  print_to_cpp)
+from base import (DEFAULT_CONNECTION_CONFIG_PATH, ArgsBase, import_connection_config, interp_model, log_info_to_cpp,
+                  log_space_to_cpp, log_trace_to_cpp, log_warning_to_cpp, start_program)
 from pg_shared import create_sqlalchemy_engine
 from sqlalchemy import text
 from sqlalchemy.engine import Connection, Engine
@@ -54,7 +53,7 @@ def convert_to_boolean(value):
 def update_displayfields_map(constr_set: set[str], sqlalchemy_engine: Engine, displayfields_map: dict[str, list[str]]):
     for constr in constr_set:
         if displayfields_map.get(constr) is None:
-            print_to_cpp(f"Загружаются отображаемые поля для конструкции: {constr}")
+            log_trace_to_cpp(f"Загружаются отображаемые поля для конструкции: {constr}")
             displayfields_map[constr] = []
             with sqlalchemy_engine.begin() as connection:
                 query = text("SELECT displayfields FROM tools.gen_constructions WHERE constr = :constr")
@@ -62,7 +61,7 @@ def update_displayfields_map(constr_set: set[str], sqlalchemy_engine: Engine, di
 
                 if displayfields_db is None:
                     raise ValueError(f"Не найдены отображаемые поля для конструкции: {constr}")
-                print_to_cpp(f"Полученные отображаемые поля: {displayfields_db[0]}")
+                log_trace_to_cpp(f"Полученные отображаемые поля: {displayfields_db[0]}")
                 displayfields_map[constr] = list(displayfields_db[0])
 
 
@@ -159,7 +158,7 @@ def insert_into_pic_tools(sqlalchemy_engine: Engine, row: pd.Series, tool_id: in
                     'link_to_image': img_path,
                 }).first()
                 if result is not None:
-                    print_to_cpp(f"Изображение уже существует в базе: {img_path}, пропуск...")
+                    log_warning_to_cpp(f"Изображение уже существует в базе: {img_path}, пропуск...")
                     continue
 
                 query_insert_img = text("""
@@ -185,15 +184,15 @@ def insert_into_pic_tools(sqlalchemy_engine: Engine, row: pd.Series, tool_id: in
 
 
 def process_files(args: Args):
-    print_to_cpp("Начало импорта на сервер")
+    log_info_to_cpp("Начало импорта на сервер")
 
-    print_to_cpp("Подключение к базе данных")
+    log_info_to_cpp("Подключение к базе данных")
     connection_config = import_connection_config(args.connection_config_path)
     sqlalchemy_engine = create_sqlalchemy_engine(connection_config.db_user, connection_config.db_password,
                                                  connection_config.db_host, connection_config.db_port)
 
     skip_files = args.skip_files.split(';') if args.skip_files else []
-    print_to_cpp(f"Файлы для пропуска: {skip_files}")
+    log_info_to_cpp(f"Файлы для пропуска: {skip_files}")
 
     displayfields_map: dict[str, list[str]] = {}
     boolean_columns_map: dict[str, set[str]] = {}
@@ -215,7 +214,7 @@ def process_files(args: Args):
 
     for filename in os.scandir(args.xlsx_path):
         if filename.is_file() and not filename.name.startswith("~$") and filename.name not in skip_files:
-            print_to_cpp(f"Импортируется файл: {filename.name}")
+            log_info_to_cpp(f"Импортируется файл: {filename.name}")
 
             df = pd.read_excel(filename.path, dtype=dtype_dict)
             df["interpmodel"] = df["model"].map(interp_model).fillna(df["model"])
@@ -223,7 +222,7 @@ def process_files(args: Args):
 
             constr_set = set(df["constr"].replace('', pd.NA).dropna().astype(str))
             constr_set = set(df["constr"].replace('', pd.NA).dropna().astype(str))
-            print_to_cpp(f"Найденные конструкции в файле {filename.name}: {constr_set}")
+            log_info_to_cpp(f"Найденные конструкции в файле {filename.name}: {constr_set}")
 
             update_displayfields_map(constr_set, sqlalchemy_engine, displayfields_map)
 
@@ -232,7 +231,7 @@ def process_files(args: Args):
                     boolean_columns_map[constr] = get_boolean_columns(sqlalchemy_engine, constr)
 
             for _, row in df.iterrows():
-                print_to_cpp(f"Обрабатывается строка: {row['manuf']} - {row['model']}")
+                log_info_to_cpp(f"Обрабатывается строка: {row['manuf']} - {row['model']}")
                 constr = str(row["constr"])
                 displayfields = displayfields_map.get(constr)
                 if displayfields is None or len(displayfields) == 0:
@@ -243,39 +242,35 @@ def process_files(args: Args):
                     for field in displayfields
                     if field in row and pd.notna(row[field])
                 }
-                # print_to_cpp(f"Вставка записи: {json_attributes}")
+                # log_trace_to_cpp(f"Вставка записи: {json_attributes}")
 
-                print_to_cpp("Вставка/обновление в gen_tools")
+                log_trace_to_cpp("Вставка/обновление в gen_tools")
                 tool_id = insert_into_gen_tools(sqlalchemy_engine, row)
 
                 if args.remove_previous_images:
-                    print_to_cpp("Удаление предыдущих изображений для инструмента")
+                    log_trace_to_cpp("Удаление предыдущих изображений для инструмента")
                     with sqlalchemy_engine.begin() as connection:
                         query_delete_imgs = text("""
                             DELETE FROM tools.pic_tools WHERE tool_id = :tool_id;
                         """)
                         connection.execute(query_delete_imgs, {'tool_id': tool_id})
 
-                print_to_cpp("Вставка/обновление ссылок на изображения")
+                log_trace_to_cpp("Вставка/обновление ссылок на изображения")
                 insert_into_pic_tools(sqlalchemy_engine, row, tool_id)
 
                 with sqlalchemy_engine.begin() as connection:
-                    print_to_cpp("Вставка/обновление в gen_items")
+                    log_trace_to_cpp("Вставка/обновление в gen_items")
                     item_id = insert_into_gen_items(connection, row, tool_id=tool_id, json_attributes=json_attributes)
 
-                    print_to_cpp(f"Вставка/обновление в {constr} таблицу")
+                    log_trace_to_cpp(f"Вставка/обновление в {constr} таблицу")
                     ctd_row = row.drop(
                         ["codem", "moq", "fulldescription", "interpmodel", "img_pic", "img_drw", "constr"])
                     boolean_columns = boolean_columns_map.get(constr, set())
                     insert_into_ctd_table(connection, constr, ctd_row, tool_id, item_id, boolean_columns)
 
-                print_to_cpp(f"Импорт на сервер завершен успешно tool_id: {tool_id}, item_id: {item_id }")
+                log_info_to_cpp(f"Импорт на сервер завершен успешно tool_id: {tool_id}, item_id: {item_id }")
+                log_space_to_cpp()
 
 
-try:
-    process_files(parse_args_new(Args))
-except KeyboardInterrupt:
-    pass
-except Exception as e:                                                                                                  # pylint: disable=broad-exception-caught
-    formatted_traceback = traceback.format_exc()                                                                        # pylint: disable=invalid-name
-    print_to_cpp(f"An error occurred:\n{formatted_traceback}")
+if __name__ == "__main__":
+    start_program(process_files, Args)

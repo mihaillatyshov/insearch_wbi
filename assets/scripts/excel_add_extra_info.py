@@ -1,12 +1,11 @@
 import json
 import os
-import traceback
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import pydantic
-from base import ArgsBase, parse_args_new, print_to_cpp
+from base import ArgsBase, log_info_to_cpp, log_warning_to_cpp, log_error_to_cpp, start_program
 from pydantic import BaseModel
 
 # IMGS_FOLDER_SUFFIX_PRIORITY = ["_no_bg_webp_crop", "_webp_crop", "_no_bg_webp", "_no_bg", ""]
@@ -19,6 +18,7 @@ class Args(ArgsBase):
     rules_path: str = pydantic.Field(description="Путь к файлу с правилами")
     per_page_img_folder: str = pydantic.Field(description="Папка с картинками по странице")
     per_page_rule_img_folder: str = pydantic.Field(description="Папка с картинками по правилам")
+    no_condition_img_folder: str = pydantic.Field(description="Папка с картинками без условий")
     extra_parser_type: str = pydantic.Field(default="", description="Выбор дополнительного обработчика полей")
 
 
@@ -74,8 +74,8 @@ class PerPageSimpleRuleImgListObject(BaseModel):
 
 
 class ExtraInfoRules(BaseModel):
-    global_add_list: list[GlobalAddListObject]
-    simple_add_list: list[SimpleAddListObject]
+    global_add_list: list[GlobalAddListObject] | None = None
+    simple_add_list: list[SimpleAddListObject] | None = None
     simple_rename_list: list[SimpleRenameListObject] | None = None
     constr_rename_list: dict[str, str] | None = None                                                                    # ConstrRenameList
     per_page_calc_list: list[PerPageCalcListObject] | None = None
@@ -160,16 +160,19 @@ def get_col_index(df: pd.DataFrame, col: str) -> int:
     raise TypeError(f"Неизвестный тип результата: {type(loc)}")
 
 
-def handle_glob_add_list(df: pd.DataFrame, page_id: int, global_add_list: list[GlobalAddListObject]):
+def handle_glob_add_list(df: pd.DataFrame, page_id: int, global_add_list: list[GlobalAddListObject] | None):
+    if global_add_list is None:
+        return
+
     for glob_add_list_obj in global_add_list:
         to_add_value = glob_add_list_obj.value
         if to_add_value is None:
-            print_to_cpp(f"[WARN]: Для столбца '{glob_add_list_obj.name}' на странице '{page_id}' не найдено значение")
+            log_warning_to_cpp(f"Для столбца '{glob_add_list_obj.name}' на странице '{page_id}' не найдено значение")
             continue
 
         pos: None | int = None
         if glob_add_list_obj.name in df.columns:
-            # print_to_cpp("[WARN]:", f"Столбец '{glob_add_list_obj.name}' уже есть на странице '{page_id}'")
+            # log_warning_to_cpp(f"Столбец '{glob_add_list_obj.name}' уже есть на странице '{page_id}'")
             pos = get_col_index(df, glob_add_list_obj.name)
             df.drop(glob_add_list_obj.name, axis=1, inplace=True)
 
@@ -178,18 +181,19 @@ def handle_glob_add_list(df: pd.DataFrame, page_id: int, global_add_list: list[G
         df.insert(pos, glob_add_list_obj.name, to_add_value)
 
 
-def handle_simple_add_list(df: pd.DataFrame, page_id: int, simple_add_list: list[SimpleAddListObject]):
+def handle_simple_add_list(df: pd.DataFrame, page_id: int, simple_add_list: list[SimpleAddListObject] | None):
+    if simple_add_list is None:
+        return
+
     for simple_add_list_obj in simple_add_list:
         to_add_value = get_simple_add_list(page_id, simple_add_list_obj.values)
         if to_add_value is None:
             # if not simple_add_list_obj.ignore_warns:
-            #     print_to_cpp(
-            #         f"[WARN]: Для столбца '{simple_add_list_obj.name}' на странице '{page_id}' не найдено значение"
-            #     )
+            #     log_warning_to_cpp(f"Для столбца '{simple_add_list_obj.name}' на странице '{page_id}' не найдено значение")
             continue
         pos: None | int = None
         if simple_add_list_obj.name in df.columns:
-            # print_to_cpp("[WARN]:", f"Столбец '{simple_add_list_obj.name}' уже есть на странице '{page_id}'")
+            # log_warning_to_cpp(f"Столбец '{simple_add_list_obj.name}' уже есть на странице '{page_id}'")
             pos = get_col_index(df, simple_add_list_obj.name)
             df.drop(simple_add_list_obj.name, axis=1, inplace=True)
 
@@ -206,8 +210,8 @@ def handle_per_page_calc_list(df: pd.DataFrame, page_id: int, per_page_calc_list
         calc_to_add_value = get_per_page_calc_list_result(page_id, df, per_page_calc_list_obj)
 
         if calc_to_add_value is not None:
-            if not (per_page_calc_list_obj.name in df.columns):
-                # print_to_cpp("[WARN]:", f"Столбец '{per_page_calc_list_obj.name}' уже есть на странице '{page_id}'")
+            if not per_page_calc_list_obj.name in df.columns:
+                # log_warning_to_cpp(f"Столбец '{per_page_calc_list_obj.name}' уже есть на странице '{page_id}'")
                 # df.drop(per_page_calc_list_obj.name, axis=1, inplace=True)
                 df.insert(len(df.columns), per_page_calc_list_obj.name, None)
             for i in df.index:
@@ -223,12 +227,37 @@ def find_img_file_with_any_extension(base_path: str, base_name: str) -> str | No
     return None
 
 
+def handle_no_condition_img_list_row(row: str, no_condition_img_folder: str, extra_parser_type: str):
+    if pd.isna(row) or row is None or row == "":
+        return None
+
+    img_full_path = os.path.join(no_condition_img_folder, row)
+    if os.path.isfile(img_full_path):
+        return get_img_with_prefix(img_full_path, extra_parser_type)
+
+    log_warning_to_cpp(f"Изображение не найдено в папке без условий: '{img_full_path}'")
+    return None
+
+
+def handle_no_condition_img_list(df: pd.DataFrame, no_condition_img_folder: str, extra_parser_type: str):
+    for col in ["img_pic", "img_drw"]:
+        if col not in df.columns:
+            continue
+        df[col] = df[col].map(
+            lambda row: handle_no_condition_img_list_row(row, no_condition_img_folder, extra_parser_type))
+
+
 def handle_per_page_img_folder(df: pd.DataFrame, xlsx_path_name: str, per_page_img_folder: str, extra_parser_type: str):
     img_pic = find_img_file_with_any_extension(per_page_img_folder, f"{Path(xlsx_path_name).stem}_pic")
     img_drw = find_img_file_with_any_extension(per_page_img_folder, f"{Path(xlsx_path_name).stem}_drw")
 
-    df["img_pic"] = get_img_with_prefix(img_pic, extra_parser_type) if img_pic is not None else None
-    df["img_drw"] = get_img_with_prefix(img_drw, extra_parser_type) if img_drw is not None else None
+    new_img_pic = get_img_with_prefix(img_pic, extra_parser_type) if img_pic is not None else None
+    if new_img_pic is not None:
+        df["img_pic"] = new_img_pic
+
+    new_img_drw = get_img_with_prefix(img_drw, extra_parser_type) if img_drw is not None else None
+    if new_img_drw is not None:
+        df["img_drw"] = new_img_drw
 
 
 def handle_per_page_simple_rule_img_list(df: pd.DataFrame, page_id: int, per_page_rule_img_folder: str,
@@ -264,8 +293,8 @@ def handle_per_page_simple_rule_img_list(df: pd.DataFrame, page_id: int, per_pag
 # NOTE: cols_count = len(df.columns)
 # NOTE: cols_names = list(df.columns)
 def add_extra_info_single(xlsx_path: os.DirEntry[str], save_path: str, extra_info_rules: ExtraInfoRules,
-                          per_page_img_folder: str, per_page_rule_img_folder: str, extra_parser_type: str):
-    print_to_cpp(xlsx_path.name)
+                          per_page_img_folder: str, per_page_rule_img_folder: str, no_condition_img_folder: str,
+                          extra_parser_type: str):
     page_id = int(xlsx_path.name.split('.')[0].split("_")[0])
 
     df = pd.read_excel(xlsx_path.path, index_col=None, engine="openpyxl")
@@ -280,11 +309,16 @@ def add_extra_info_single(xlsx_path: os.DirEntry[str], save_path: str, extra_inf
 
     # ? TODO: Handle per_constr_calc_list
 
+    handle_no_condition_img_list(df, no_condition_img_folder, extra_parser_type)
     handle_per_page_img_folder(df, xlsx_path.name, per_page_img_folder, extra_parser_type)
     handle_per_page_simple_rule_img_list(df, page_id, per_page_rule_img_folder, extra_parser_type,
                                          extra_info_rules.per_page_simple_rule_img_list)
 
     # ! TODO: Add remove list
+    # NOTE: Tmp remove list here:
+    for col in ["Раздел 1", "Раздел 2", "Раздел 3"]:
+        if col in df.columns:
+            df.drop(col, axis=1, inplace=True)
 
     writer = pd.ExcelWriter(os.path.join(save_path, xlsx_path.name), engine="xlsxwriter")                               # pylint: disable=abstract-class-instantiated
     df.to_excel(writer, sheet_name="sm", freeze_panes=(1, 0), index=False)
@@ -295,32 +329,31 @@ def add_extra_info_single(xlsx_path: os.DirEntry[str], save_path: str, extra_inf
 
 def add_extra_info(args: Args):
     extra_info_rules: ExtraInfoRules | None = None
+    log_info_to_cpp(f"Открытие файла с правилами: '{args.rules_path}'")
     with open(args.rules_path, encoding="utf-8") as conf_file:
-        extra_info_rules = ExtraInfoRules(**json.load(conf_file))
+        json_data = json.load(conf_file)
+        if json_data is not None:
+            extra_info_rules = ExtraInfoRules(**json_data)
+        else:
+            extra_info_rules = ExtraInfoRules()
 
-    if extra_info_rules == None:
-        print_to_cpp(f"[ERROR] Не удалось открыть файл с правилами: '{args.rules_path}'")
+    if extra_info_rules is None:
+        log_error_to_cpp(f"Не удалось открыть файл с правилами: '{args.rules_path}'")
         return
 
     os.makedirs(args.save_path, exist_ok=True)
     for filename in os.scandir(args.xlsx_path):
-        if filename.is_file():
-            # print_to_cpp(f"{filename.path} {filename.name}")
-            if (filename.name.startswith("~$")): continue
+        if filename.is_file() and not filename.name.startswith("~$"):
+            log_info_to_cpp(f"Обработка файла: {filename.name}")
             add_extra_info_single(filename, args.save_path, extra_info_rules, args.per_page_img_folder,
-                                  args.per_page_rule_img_folder, args.extra_parser_type)
+                                  args.per_page_rule_img_folder, args.no_condition_img_folder, args.extra_parser_type)
+            log_info_to_cpp("Файл обработан успешно!")
 
-    print_to_cpp("Все файлы обработаны успешно!")
+    log_info_to_cpp("Все файлы обработаны успешно!")
 
 
-try:
-    add_extra_info(parse_args_new(Args))
-except KeyboardInterrupt:
-    pass
-except Exception as e:
-    # exc_type, exc_value, exc_traceback = sys.exc_info()
-    formatted_traceback = traceback.format_exc()
-    print_to_cpp(f"An error occurred:\n{formatted_traceback}")
+if __name__ == "__main__":
+    start_program(add_extra_info, Args)
 
 # * python add_extra_info_drill.py C:/Coding/works/wbi/amati_drill/xlsx_fix_values/ C:/Coding/works/wbi/amati_drill/xlsx_add_info/
 
