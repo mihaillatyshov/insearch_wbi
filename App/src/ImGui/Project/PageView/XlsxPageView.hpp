@@ -142,6 +142,7 @@ namespace LM
         void LoadConstrExample(std::string_view _Constr);
 
         void LoadAmatiCodems();
+        const std::unordered_map<std::string, std::string>& GetAmatiCodemsWithLoad();
 
         void FindAndInsertAmatiCodems(XlsxPageViewData& _XlsxViewData, XlsxPageViewDataTypes::TableData& _TableData);
 
@@ -174,6 +175,7 @@ namespace LM
         std::unordered_map<std::string, std::unordered_map<std::string, std::vector<std::string>>> m_ConstrExamples;
 
         std::unordered_map<std::string, std::string> m_AmatiCodems;
+        bool m_IsAmatiCodemsLoaded = false;
 
         bool m_IsJoinModalOpen = false;
         bool m_IsFindAndReplaceModalOpen = false;

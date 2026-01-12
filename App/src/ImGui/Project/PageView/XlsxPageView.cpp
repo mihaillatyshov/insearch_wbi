@@ -21,6 +21,7 @@
 #include <imstb_textedit.h>
 #include <misc/cpp/imgui_stdlib.h>
 #include <random>
+#include <unordered_map>
 #include <xlnt/xlnt.hpp>
 
 #include <array>
@@ -214,7 +215,6 @@ namespace LM
         LoadConstructionsFields();
         LoadFieldsDescription();
         LoadRepresentationFieldsDescription();
-        LoadAmatiCodems();
     }
 
     XlsxPageView::~XlsxPageView() { }
@@ -2395,6 +2395,17 @@ namespace LM
             }
             m_AmatiCodems[InterpolateModel(row[0].to_string())] = StrTrim(row[1].to_string());
         }
+
+        m_IsAmatiCodemsLoaded = true;
+    }
+
+    const std::unordered_map<std::string, std::string>& XlsxPageView::GetAmatiCodemsWithLoad()
+    {
+        if (m_AmatiCodems.empty())
+        {
+            LoadAmatiCodems();
+        }
+        return m_AmatiCodems;
     }
 
     void XlsxPageView::FindAndInsertAmatiCodems(XlsxPageViewData& _XlsxViewData,
@@ -2426,12 +2437,14 @@ namespace LM
             return;
         }
 
+        const std::unordered_map<std::string, std::string>& amatiCodems = GetAmatiCodemsWithLoad();
+
         for (auto& row : _TableData)
         {
             std::string iterpmodel = InterpolateModel(row[*modelColId].Value);
-            if (m_AmatiCodems.contains(iterpmodel))
+            if (amatiCodems.contains(iterpmodel))
             {
-                row[*codemColId].Value = m_AmatiCodems[iterpmodel];
+                row[*codemColId].Value = amatiCodems.at(iterpmodel);
             }
         }
 
