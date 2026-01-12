@@ -55,6 +55,11 @@ namespace LM
         return m_Owner->GetPathInFolderAndCreateDirs("data/excel/img_processed/");
     }
 
+    std::filesystem::path ProjectVariantExcelTablesHelpers::GetJsonPrevProcessedImagesFilePath() const
+    {
+        return m_Owner->GetPathInFolder("data/excel/prev_imgs_hash_and_map.json");
+    }
+
     const std::vector<std::string>& ProjectVariantExcelTables::GetPageNamesToSkipOnServerImport() const
     {
         return m_PageNamesToSkipOnServerImport;

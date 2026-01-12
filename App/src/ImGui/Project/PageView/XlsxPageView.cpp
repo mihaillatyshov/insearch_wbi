@@ -115,10 +115,6 @@ namespace LM
     const std::array kInterpModelSuffixesToRemove = { "_AMATI"sv, "_ASKUP"sv, "_DEREK"sv, "_HT"sv,
                                                       "_PL"sv,    "_LIK"sv,   "_ТИЗ"sv };
 
-    constexpr std::string_view kImgsSuffixNoBG = "_no_bg";
-    constexpr std::string_view kImgsSuffixWebp = "_webp";
-    constexpr std::string_view kImgsSuffixCrop = "_crop";
-
     static const std::array kInterpModelLettersToRemove = {
         std::pair {  " "sv,  ""sv },
          std::pair { " "sv,  ""sv },
@@ -2461,6 +2457,8 @@ namespace LM
         pythonCommand.AddPathArg(m_Project->GetVariantExcelTablesHelpers().GetXlsxAddExtraInfoPath(), "--xlsx_path");
         pythonCommand.AddPathArg(m_Project->GetVariantExcelTablesHelpers().GetXlsxAddExtraInfoWithProcessedImagesPath(),
                                  "--xlsx_save_path");
+        pythonCommand.AddPathArg(m_Project->GetVariantExcelTablesHelpers().GetJsonPrevProcessedImagesFilePath(),
+                                 "--prev_imgs_hash_and_map_filepath");
         pythonCommand.AddPathArg(m_Project->GetVariantExcelTablesHelpers().GetImgsProcessedPath(), "--imgs_save_path");
 
         ScriptPopup::Get()->OpenPopup(pythonCommand, { "Обработка изображений",
@@ -2513,8 +2511,7 @@ namespace LM
         Save();
 
         PythonCommand pythonCommand("./assets/scripts/import_to_server.py");
-        pythonCommand.AddPathArg(m_Project->GetVariantExcelTablesHelpers().GetXlsxAddExtraInfoWithProcessedImagesPath(),
-                                 "--xlsx_path");
+        pythonCommand.AddPathArg(m_Project->GetVariantExcelTablesHelpers().GetXlsxForServerImportPath(), "--xlsx_path");
         pythonCommand.AddArg(false, "--remove_previous_images");
         pythonCommand.AddArg(StrJoin(m_Project->GetVariantExcelTables().GetPageNamesToSkipOnServerImport(), ";"),
                              "--skip_files");

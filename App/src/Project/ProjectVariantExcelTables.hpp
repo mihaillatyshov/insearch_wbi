@@ -23,6 +23,7 @@ namespace LM
         std::filesystem::path GetImgsSimpleRulePath() const;
         std::filesystem::path GetImgsNoConditionPath() const;
         std::filesystem::path GetImgsProcessedPath() const;
+        std::filesystem::path GetJsonPrevProcessedImagesFilePath() const;
 
     protected:
         const Project* m_Owner;

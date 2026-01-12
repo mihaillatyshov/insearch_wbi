@@ -138,14 +138,12 @@ namespace LM
             if (errorTracebackStatus == ErrorTracebackStatus::kStarted)
             {
                 isErrorTracebackOpened = ImGui::TreeNodeEx("ERROR TRACEBACK", ImGuiTreeNodeFlags_Framed);
-                LOG_CORE_WARN("TTreeNodeEx Opening");
                 errorTracebackStatus = ErrorTracebackStatus::kInProgress;
             }
             if (errorTracebackStatus == ErrorTracebackStatus::kEnded)
             {
                 if (isErrorTracebackOpened)
                 {
-                    LOG_CORE_WARN("TTreeNodeEx Closing");
                     ImGui::TreePop();
                     isErrorTracebackOpened = false;
                 }
@@ -170,7 +168,6 @@ namespace LM
         {
             if (isErrorTracebackOpened)
             {
-                LOG_CORE_WARN("TTreeNodeEx Closing");
                 ImGui::TreePop();
                 isErrorTracebackOpened = false;
             }

@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import pydantic
-from base import ArgsBase, log_info_to_cpp, log_warning_to_cpp, log_error_to_cpp, start_program
+from base import ArgsBase, log_info_to_cpp, log_warning_to_cpp, log_error_to_cpp, remove_model_suffix, start_program
 from pydantic import BaseModel
 
 # IMGS_FOLDER_SUFFIX_PRIORITY = ["_no_bg_webp_crop", "_webp_crop", "_no_bg_webp", "_no_bg", ""]
@@ -289,6 +289,11 @@ def handle_per_page_simple_rule_img_list(df: pd.DataFrame, page_id: int, per_pag
 #     return base_folder
 
 
+def df_remove_model_suffix(df: pd.DataFrame):
+    if "model" in df.columns:
+        df["model"] = df["model"].map(lambda x: remove_model_suffix(x) if pd.notna(x) else x)
+
+
 # NOTE: rows_count = len(df.index)
 # NOTE: cols_count = len(df.columns)
 # NOTE: cols_names = list(df.columns)
@@ -297,18 +302,37 @@ def add_extra_info_single(xlsx_path: os.DirEntry[str], save_path: str, extra_inf
                           extra_parser_type: str):
     page_id = int(xlsx_path.name.split('.')[0].split("_")[0])
 
-    df = pd.read_excel(xlsx_path.path, index_col=None, engine="openpyxl")
+    dtype_dict = {
+        "model": str,
+        "codem": str,
+        "manuf": str,
+        "constr": str,
+        "fulldescription": str,
+        "lcs": int,
+        "moq": float,
+        "img_pic": str,
+        "img_drw": str,
+        "serie": str,
+        "cle": str,
+        "cs1": str,
+    }
 
+    df = pd.read_excel(xlsx_path.path, index_col=None, engine="openpyxl", dtype=dtype_dict)
+
+    df_remove_model_suffix(df)
     handle_glob_add_list(df, page_id, extra_info_rules.global_add_list)
+    df_remove_model_suffix(df)
     handle_simple_add_list(df, page_id, extra_info_rules.simple_add_list)
 
     # NOTE: Simple rename list
     # df.rename(columns=get_simple_rename_list(page_id, extra_info_rules.simple_rename_list), inplace=True)
 
+    df_remove_model_suffix(df)
     handle_per_page_calc_list(df, page_id, extra_info_rules.per_page_calc_list)
 
     # ? TODO: Handle per_constr_calc_list
 
+    df_remove_model_suffix(df)
     handle_no_condition_img_list(df, no_condition_img_folder, extra_parser_type)
     handle_per_page_img_folder(df, xlsx_path.name, per_page_img_folder, extra_parser_type)
     handle_per_page_simple_rule_img_list(df, page_id, per_page_rule_img_folder, extra_parser_type,

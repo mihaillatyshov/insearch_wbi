@@ -209,7 +209,7 @@ def process_files(args: Args):
         "img_drw": str,
         "serie": str,
         "cle": str,
-        "sc1": str,
+        "cs1": str,
     }
 
     for filename in os.scandir(args.xlsx_path):
