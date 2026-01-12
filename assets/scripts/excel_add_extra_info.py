@@ -308,7 +308,7 @@ def add_extra_info_single(xlsx_path: os.DirEntry[str], save_path: str, extra_inf
         "manuf": str,
         "constr": str,
         "fulldescription": str,
-        "lcs": int,
+        "lcs": "Int64",
         "moq": float,
         "img_pic": str,
         "img_drw": str,
