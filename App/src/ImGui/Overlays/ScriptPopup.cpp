@@ -2,9 +2,6 @@
 
 #include "imgui.h"
 
-#include "Engine/Utils/Log.hpp"
-#include "Engine/Utils/utf8.h"
-
 namespace LM
 {
     void ScriptPopup::OpenPopup(const PythonCommand& _Command, const ScriptPopupProps& _Props)
@@ -13,10 +10,11 @@ namespace LM
         m_ScriptBuffer = "";
         m_Props = _Props;
         m_NeedOpenPopup = true;
+        m_ScritpReturnCode = 0;
 
         std::thread thread(
             [&](PythonCommand command) {
-                command.Execute([&](const char* buffer) {
+                m_ScritpReturnCode = command.Execute([&](const char* buffer) {
                     std::lock_guard lock(m_ScriptBufferMtx);
                     m_ScriptBuffer += buffer;
                 });
@@ -70,7 +68,7 @@ namespace LM
 
             if (m_Props.EndCallback && !isScriptRunning)
             {
-                m_Props.EndCallback();
+                m_Props.EndCallback(m_ScritpReturnCode);
                 m_Props.EndCallback = nullptr;
             }
 
@@ -173,5 +171,20 @@ namespace LM
             }
             errorTracebackStatus = ErrorTracebackStatus::kNone;
         }
+
+        if (!m_IsScriptRuning)
+        {
+            if (m_ScritpReturnCode != 0)
+            {
+                ImGui::TextColored(errorColor, "\nСкрипт завершился с ошибками. Код возврата: %d",
+                                   m_ScritpReturnCode.load());
+            }
+            else
+            {
+                ImGui::TextColored(ImVec4(0.2f, 0.3f, 0.9f, 1.0f), "\nСкрипт успешно завершился. Код возврата: %d",
+                                   m_ScritpReturnCode.load());
+            }
+        }
     }
+
 }    // namespace LM

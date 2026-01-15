@@ -377,7 +377,7 @@ namespace LM
                                                            ImGui::Text("Это может занять несколько минут");
                                                            ImGui::Text("После его завершения можно закрыть это окно");
                                                        },
-                                                       [=]() {
+                                                       [=](int) {
                                                            _Project->OnGenCatalogRawImgs();
                                                            Project::Save(_Project);
                                                            TextureManager::RemoveAll();
@@ -423,7 +423,7 @@ namespace LM
                                                            ImGui::Text("Это может занять несколько минут");
                                                            ImGui::Text("После его завершения можно закрыть это окно");
                                                        },
-                                                       [=]() {
+                                                       [=](int) {
                                                            _Project->OnGenImgsByCutPattern();
                                                            Project::Save(_Project);
                                                            TextureManager::RemoveAll();
@@ -461,7 +461,7 @@ namespace LM
                                                            ImGui::Text("Это может занять несколько минут");
                                                            ImGui::Text("После его завершения можно закрыть это окно");
                                                        },
-                                                       [=]() {
+                                                       [=](int) {
                                                            _Project->OnGenRawExcel();
                                                            Project::Save(_Project);
                                                        } });

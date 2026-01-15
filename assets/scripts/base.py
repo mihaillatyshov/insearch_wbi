@@ -96,6 +96,7 @@ def start_program(program_function: Callable[[TArgs], None], args_type: type[TAr
         formatted_traceback = traceback.format_exc()                                                                    # pylint: disable=invalid-name
         log_error_to_cpp(f"Ошибка во время выполнения скрипта: {e}")
         log_error_trace_to_cpp(f"{formatted_traceback}")
+        sys.exit(-1)
 
 
 def file_format_id(index: int) -> str:

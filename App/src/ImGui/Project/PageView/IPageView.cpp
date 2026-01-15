@@ -9,12 +9,8 @@ namespace LM
 
     IPageView::IPageView() { }
 
-    void IPageView::Draw(Ref<Project> _Project, int _PageId)
+    void IPageView::Draw()
     {
-        m_Project = _Project;
-        m_PageId = _PageId;
-        m_BasePath = GetBasePath();
-
         if (ImGui::Begin(GetWindowName()))
         {
             PageViewManager::GetCurrent()->DrawViewTopMenu();
@@ -25,8 +21,15 @@ namespace LM
             DrawExtras();
         }
         ImGui::End();
-
-        m_Project = Project::s_ProjectNotOpen;
     }
+
+    void IPageView::SetContext(Ref<Project> _Project, int _PageId)
+    {
+        m_Project = _Project;
+        m_PageId = _PageId;
+        m_BasePath = GetBasePath();
+    }
+
+    void IPageView::ClearContext() { m_Project = Project::s_ProjectNotOpen; }
 
 }    // namespace LM

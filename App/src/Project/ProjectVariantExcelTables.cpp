@@ -78,4 +78,18 @@ namespace LM
         }
     }
 
+    void ProjectVariantExcelTables::SetIsAddExtraInfoNeedRebuild(bool _NeedRebuild)
+    {
+        IsAddExtraInfoNeedRebuild = _NeedRebuild;
+        if (_NeedRebuild)
+        {
+            SetIsProcessImagesNeedRebuild(true);
+        }
+    }
+
+    void ProjectVariantExcelTables::SetIsProcessImagesNeedRebuild(bool _NeedRebuild)
+    {
+        IsProcessImagesNeedRebuild = _NeedRebuild;
+    }
+
 }    // namespace LM

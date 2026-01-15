@@ -20,6 +20,7 @@ set(SOURCES
     src/Engine/ImGui/imgui_impl_glfw.h                          src/Engine/ImGui/imgui_impl_glfw.cpp
     src/Engine/ImGui/imgui_impl_opengl3.h                       src/Engine/ImGui/imgui_impl_opengl3.cpp
     src/Engine/ImGui/imgui_impl_opengl3_loader.h            
+    src/Engine/ImGui/ImGuiButtonColored.hpp                     src/Engine/ImGui/ImGuiButtonColored.cpp
 
     src/Engine/Textures/Texture2D.h                             src/Engine/Textures/Texture2D.cpp
     src/Engine/Textures/TextureLoader.h                         src/Engine/Textures/TextureLoader.cpp

@@ -36,11 +36,19 @@ namespace LM
 
         void TogglePageNameToSkipOnServerImport(const std::string& pageName);
 
+        bool GetIsAddExtraInfoNeedRebuild() const { return IsAddExtraInfoNeedRebuild; }
+        void SetIsAddExtraInfoNeedRebuild(bool _NeedRebuild);
+
+        bool GetIsProcessImagesNeedRebuild() const { return IsProcessImagesNeedRebuild; }
+        void SetIsProcessImagesNeedRebuild(bool _NeedRebuild);
+
     public:
         friend SerializerGetPropertiesAll;
 
     private:
         std::vector<std::string> m_PageNamesToSkipOnServerImport;
+        bool IsAddExtraInfoNeedRebuild = true;
+        bool IsProcessImagesNeedRebuild = true;
     };
 
 }    // namespace LM

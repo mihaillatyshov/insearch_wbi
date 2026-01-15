@@ -165,7 +165,9 @@ namespace LM
         for (size_t i = 0; i < m_Views.size(); ++i)
         {
             ImGui::PushID(static_cast<int>(i));
-            m_Views[i]->Draw(m_Project, m_PageId);
+            m_Views[i]->SetContext(m_Project, m_PageId);
+            m_Views[i]->Draw();
+            m_Views[i]->DrawOtherWindows();
             ImGui::PopID();
         }
 

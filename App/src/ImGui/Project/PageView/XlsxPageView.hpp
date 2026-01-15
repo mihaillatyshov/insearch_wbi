@@ -75,6 +75,7 @@ namespace LM
         std::string GetFileName() const override;
 
         void DrawWindowContent() override;
+        void DrawOtherWindows() override;
 
     protected:
         void DrawTableActions(XlsxPageViewData& _XlsxViewData, XlsxPageViewDataTypes::TableData& _TableData);
@@ -148,7 +149,13 @@ namespace LM
 
         bool IsExtraInfoAutoFocusField(std::string_view _WindowName, std::string_view _FieldName);
 
-        void ProcessImagesAndPrepareXlsxForWbiTools();
+        void DrawProcessingScriptsWindow();
+
+        void ProcessAddExtraInfo(std::string_view _ParserName);
+
+        void ProcessImages();
+
+        void UploadImagesAndPrepareXlsxForWbiTools();
 
         void ViewNotInDbAdintFields();
         void AddNotInDbAdintFieldsToServer();

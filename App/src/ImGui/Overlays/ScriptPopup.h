@@ -3,9 +3,11 @@
 #include <atomic>
 #include <functional>
 #include <mutex>
+#include <queue>
 #include <string>
+#include <utility>
 
-#include"Engine/Core/Base.h"
+#include "Engine/Core/Base.h"
 
 #include "Python/PythonCommand.h"
 
@@ -16,7 +18,7 @@ namespace LM
     {
         std::string WindowName = "";
         std::function<void(void)> PopupDesc = nullptr;
-        std::function<void(void)> EndCallback = nullptr;
+        std::function<void(int)> EndCallback = nullptr;
     };
 
     class ScriptPopup
@@ -39,12 +41,13 @@ namespace LM
 
     protected:
         std::atomic_bool m_IsScriptRuning = false;
+        std::atomic_int32_t m_ScritpReturnCode = 0;
         std::mutex m_ScriptBufferMtx;
         std::string m_ScriptBuffer;
 
         bool m_NeedOpenPopup = false;
 
-        ScriptPopupProps m_Props;
+        std::queue<std::pair<PythonCommand, ScriptPopupProps>> m_PendingPopups;
     };
 
 }    // namespace LM
