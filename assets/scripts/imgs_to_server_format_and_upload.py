@@ -46,7 +46,7 @@ class SshOrLocalConnection:
 
 def file_exists_on_server(remote_base_path: str, pathname: str, sftp_client: paramiko.SFTPClient) -> bool:
     try:
-        sftp_client.stat(os.path.join(remote_base_path, pathname))
+        sftp_client.stat(os.path.join(remote_base_path, pathname).replace("\\", "/"))
         return True
     except IOError:
         return False
@@ -173,15 +173,15 @@ def sha256_org_not_exists(
         is_file_exists = is_file_exists_cb(server_img_path, pathname)
         print_to_cpp(
             f"Проверка существования файла на сервере: {pathname} - {'найден' if is_file_exists else 'не найден'}")
-        is_files_equal = is_files_equal_cb(fname, os.path.join(server_img_path, pathname))
+        is_files_equal = is_files_equal_cb(fname, os.path.join(server_img_path, pathname).replace("\\", "/"))
         if is_file_exists and not is_files_equal:
             print_to_cpp("Файл с таким именем существует, но содержимое отличается. Повторное хеширование...")
             iteration += 1
             continue
 
-        # os.makedirs(os.path.join(img_tmp_path, path), exist_ok=True)
-        # shutil.copyfile(fname, os.path.join(img_tmp_path, pathname))
-        # sftp_upload_file(fname, os.path.join(server_img_path, pathname), sftp_client)
+        # os.makedirs(os.path.join(img_tmp_path, path).replace("\\", "/"), exist_ok=True)
+        # shutil.copyfile(fname, os.path.join(img_tmp_path, pathname).replace("\\", "/"))
+        # sftp_upload_file(fname, os.path.join(server_img_path, pathname).replace("\\", "/"), sftp_client)
         return pathname
 
 
@@ -218,9 +218,10 @@ def process_files(args: Args):
                               connection_config.ssh_port) as (ssh_client, sftp_client):
         print_to_cpp("Создание карты замены изображений и загрузка на сервер")
 
-        is_file_exists_cb = (lambda remote_base_path, pathname: file_exists_on_server(
-            remote_base_path, pathname, sftp_client)) if not is_local else (
-                lambda remote_base_path, pathname: os.path.isfile(os.path.join(remote_base_path, pathname)))
+        is_file_exists_cb = (
+            lambda remote_base_path, pathname: file_exists_on_server(remote_base_path, pathname, sftp_client)
+        ) if not is_local else (lambda remote_base_path, pathname: os.path.isfile(
+            os.path.join(remote_base_path, pathname).replace("\\", "/")))
         is_files_equal_cb = (lambda local_path, remote_path: sftp_files_content_equal(
             local_path, remote_path, sftp_client)) if not is_local else local_files_content_equal
 
@@ -231,9 +232,11 @@ def process_files(args: Args):
                                                     is_files_equal_cb)
             imgs_replace_map[img_name] = server_pathname
             if is_local:
-                local_copy_file(img_name, os.path.join(connection_config.server_imgs_path, server_pathname))
+                local_copy_file(img_name,
+                                os.path.join(connection_config.server_imgs_path, server_pathname).replace("\\", "/"))
             else:
-                sftp_upload_file(img_name, os.path.join(connection_config.server_imgs_path, server_pathname),
+                sftp_upload_file(img_name,
+                                 os.path.join(connection_config.server_imgs_path, server_pathname).replace("\\", "/"),
                                  sftp_client)
 
     print_to_cpp("Создание новых xlsx файлов с обновленными ссылками на изображения")
@@ -244,7 +247,7 @@ def process_files(args: Args):
             for col in ['img_pic', 'img_drw']:
                 if col in df.columns:
                     df[col] = df[col].map(lambda x: imgs_replace_map.get(x, x) if pd.notna(x) else x)
-            save_path = os.path.join(args.xlsx_save_path, filename.name)
+            save_path = os.path.join(args.xlsx_save_path, filename.name).replace("\\", "/")
 
             writer = pd.ExcelWriter(save_path, engine="xlsxwriter")                                                     # pylint: disable=abstract-class-instantiated
             df.to_excel(writer, sheet_name="sm", freeze_panes=(1, 0), index=False)

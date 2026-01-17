@@ -42,6 +42,15 @@ namespace LM
         bool GetIsProcessImagesNeedRebuild() const { return IsProcessImagesNeedRebuild; }
         void SetIsProcessImagesNeedRebuild(bool _NeedRebuild);
 
+        bool GetIsUploadImagesAndPrepareXlsxForWbiToolsNeedRebuild() const
+        {
+            return IsUploadImagesAndPrepareXlsxForWbiToolsNeedRebuild;
+        }
+        void SetIsUploadImagesAndPrepareXlsxForWbiToolsNeedRebuild(bool _NeedRebuild);
+
+        bool GetIsImportDataToWbiToolsServerNeedRebuild() const { return IsImportDataToWbiToolsServerNeedRebuild; }
+        void SetIsImportDataToWbiToolsServerNeedRebuild(bool _NeedRebuild);
+
     public:
         friend SerializerGetPropertiesAll;
 
@@ -49,6 +58,8 @@ namespace LM
         std::vector<std::string> m_PageNamesToSkipOnServerImport;
         bool IsAddExtraInfoNeedRebuild = true;
         bool IsProcessImagesNeedRebuild = true;
+        bool IsUploadImagesAndPrepareXlsxForWbiToolsNeedRebuild = true;
+        bool IsImportDataToWbiToolsServerNeedRebuild = true;
     };
 
 }    // namespace LM

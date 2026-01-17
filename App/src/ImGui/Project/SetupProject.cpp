@@ -371,17 +371,18 @@ namespace LM
         pythonCommand.AddArg(_Project->GetCatalogImgQuality());
         pythonCommand.AddArg(_Project->GetCatalogSplitPages());
 
-        ScriptPopup::Get()->OpenPopup(pythonCommand, { "Генерация картинок из PDF",
-                                                       []() {
-                                                           ImGui::Text("Работает скрипт преобразования pdf в картинки");
-                                                           ImGui::Text("Это может занять несколько минут");
-                                                           ImGui::Text("После его завершения можно закрыть это окно");
-                                                       },
-                                                       [=](int) {
-                                                           _Project->OnGenCatalogRawImgs();
-                                                           Project::Save(_Project);
-                                                           TextureManager::RemoveAll();
-                                                       } });
+        ScriptPopup::Get()->AddToQueue(pythonCommand,
+                                       { "Генерация картинок из PDF",
+                                         []() {
+                                             ImGui::Text("Работает скрипт преобразования pdf в картинки");
+                                             ImGui::Text("Это может занять несколько минут");
+                                             ImGui::Text("После его завершения можно закрыть это окно");
+                                         },
+                                         [=](int) {
+                                             _Project->OnGenCatalogRawImgs();
+                                             Project::Save(_Project);
+                                             TextureManager::RemoveAll();
+                                         } });
     }
 
     void SetupProject::GenImgsByCutPattern(Ref<Project> _Project)
@@ -417,17 +418,17 @@ namespace LM
         pythonCommand.AddArg(_Project->GetCatalogSplitPages());
         pythonCommand.AddArg("0.99");
 
-        ScriptPopup::Get()->OpenPopup(pythonCommand, { "Обрезание картинок каталога",
-                                                       []() {
-                                                           ImGui::Text("Работает скрипт обрезания картинок");
-                                                           ImGui::Text("Это может занять несколько минут");
-                                                           ImGui::Text("После его завершения можно закрыть это окно");
-                                                       },
-                                                       [=](int) {
-                                                           _Project->OnGenImgsByCutPattern();
-                                                           Project::Save(_Project);
-                                                           TextureManager::RemoveAll();
-                                                       } });
+        ScriptPopup::Get()->AddToQueue(pythonCommand, { "Обрезание картинок каталога",
+                                                        []() {
+                                                            ImGui::Text("Работает скрипт обрезания картинок");
+                                                            ImGui::Text("Это может занять несколько минут");
+                                                            ImGui::Text("После его завершения можно закрыть это окно");
+                                                        },
+                                                        [=](int) {
+                                                            _Project->OnGenImgsByCutPattern();
+                                                            Project::Save(_Project);
+                                                            TextureManager::RemoveAll();
+                                                        } });
     }
 
     void SetupProject::GenRawExcel(Ref<Project> _Project)
@@ -455,16 +456,16 @@ namespace LM
         pythonCommand.AddArg(_Project->GetPdfTablesWithOcrTypeRawExcelPath());
         pythonCommand.AddArg(6);
 
-        ScriptPopup::Get()->OpenPopup(pythonCommand, { "Генерация Excel из картинок",
-                                                       []() {
-                                                           ImGui::Text("Работает скрипт генерации Excel");
-                                                           ImGui::Text("Это может занять несколько минут");
-                                                           ImGui::Text("После его завершения можно закрыть это окно");
-                                                       },
-                                                       [=](int) {
-                                                           _Project->OnGenRawExcel();
-                                                           Project::Save(_Project);
-                                                       } });
+        ScriptPopup::Get()->AddToQueue(pythonCommand, { "Генерация Excel из картинок",
+                                                        []() {
+                                                            ImGui::Text("Работает скрипт генерации Excel");
+                                                            ImGui::Text("Это может занять несколько минут");
+                                                            ImGui::Text("После его завершения можно закрыть это окно");
+                                                        },
+                                                        [=](int) {
+                                                            _Project->OnGenRawExcel();
+                                                            Project::Save(_Project);
+                                                        } });
     }
 
 }    // namespace LM

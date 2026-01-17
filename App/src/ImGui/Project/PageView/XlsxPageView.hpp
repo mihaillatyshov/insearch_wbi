@@ -151,16 +151,16 @@ namespace LM
 
         void DrawProcessingScriptsWindow();
 
-        void ProcessAddExtraInfo(std::string_view _ParserName);
+        void ProcessAddExtraInfo(std::string_view _ParserName, bool _IsNeedRunWithoutCheckIsDone = true);
 
-        void ProcessImages();
+        void ProcessImages(bool _IsNeedRunWithoutCheckIsDone = true);
 
-        void UploadImagesAndPrepareXlsxForWbiTools();
+        void UploadImagesAndPrepareXlsxForWbiTools(bool _IsNeedRunWithoutCheckIsDone = true);
 
-        void ViewNotInDbAdintFields();
-        void AddNotInDbAdintFieldsToServer();
+        void ViewNotInDbAdintFields(bool _IsNeedRunWithoutCheckIsDone = true);
+        void AddNotInDbAdintFieldsToServer(bool _IsNeedRunWithoutCheckIsDone = true);
 
-        void ImportDataToWbiToolsServer();
+        void ImportDataToWbiToolsServer(bool _IsNeedRunWithoutCheckIsDone = true);
 
     protected:
         bool m_IsMainWindowFocused = false;

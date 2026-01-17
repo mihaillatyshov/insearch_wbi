@@ -4,33 +4,19 @@
 
 namespace LM
 {
-    void ScriptPopup::OpenPopup(const PythonCommand& _Command, const ScriptPopupProps& _Props)
+    void ScriptPopup::AddToQueue(const PythonCommand& _Command, const ScriptPopupProps& _Props)
     {
-        m_IsScriptRuning = true;
-        m_ScriptBuffer = "";
-        m_Props = _Props;
-        m_NeedOpenPopup = true;
-        m_ScritpReturnCode = 0;
-
-        std::thread thread(
-            [&](PythonCommand command) {
-                m_ScritpReturnCode = command.Execute([&](const char* buffer) {
-                    std::lock_guard lock(m_ScriptBufferMtx);
-                    m_ScriptBuffer += buffer;
-                });
-
-                m_IsScriptRuning = false;
-            },
-            _Command);
-        thread.detach();
+        m_ScriptsQueue.push(std::make_pair(_Command, _Props));
     }
 
     void ScriptPopup::Draw()
     {
-        if (m_NeedOpenPopup)
+        TryStartNewScript();
+
+        if (m_IsNeedOpenPopup)
         {
-            ImGui::OpenPopup(m_Props.WindowName.c_str());
-            m_NeedOpenPopup = false;
+            ImGui::OpenPopup(m_LastScriptProps.WindowName.c_str());
+            m_IsNeedOpenPopup = false;
         }
 
         ImVec2 center = ImGui::GetMainViewport()->GetCenter();
@@ -39,11 +25,11 @@ namespace LM
         ImGuiWindowFlags popupFlags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove;
         ImGui::SetNextWindowSize(ImVec2(viewportSize.x * 0.8f, 0), ImGuiCond_Always);
 
-        if (ImGui::BeginPopupModal(m_Props.WindowName.c_str(), NULL, popupFlags))
+        if (ImGui::BeginPopupModal(m_LastScriptProps.WindowName.c_str(), NULL, popupFlags))
         {
-            if (m_Props.PopupDesc)
+            if (m_LastScriptProps.PopupDesc)
             {
-                m_Props.PopupDesc();
+                m_LastScriptProps.PopupDesc();
             }
 
             ImGui::Separator();
@@ -64,15 +50,16 @@ namespace LM
 
             ImGui::Separator();
 
-            bool isScriptRunning = m_IsScriptRuning.load();
-
-            if (m_Props.EndCallback && !isScriptRunning)
+            if (m_ScriptRuningState.load() == ScriptPopupRuningState::kWaitingForClose)
             {
-                m_Props.EndCallback(m_ScritpReturnCode);
-                m_Props.EndCallback = nullptr;
+                if (m_LastScriptProps.EndCallback)
+                {
+                    m_LastScriptProps.EndCallback(m_ScritpReturnCode);
+                }
+                m_ScriptRuningState = ScriptPopupRuningState::kFinished;
             }
 
-            ImGui::BeginDisabled(isScriptRunning);
+            ImGui::BeginDisabled(m_ScriptRuningState.load() != ScriptPopupRuningState::kFinished);
             if (ImGui::Button("Закрыть", ImVec2(120, 0)))
             {
                 ImGui::CloseCurrentPopup();
@@ -172,7 +159,8 @@ namespace LM
             errorTracebackStatus = ErrorTracebackStatus::kNone;
         }
 
-        if (!m_IsScriptRuning)
+        if (m_ScriptRuningState.load() == ScriptPopupRuningState::kFinished ||
+            m_ScriptRuningState == ScriptPopupRuningState::kWaitingForClose)
         {
             if (m_ScritpReturnCode != 0)
             {
@@ -185,6 +173,53 @@ namespace LM
                                    m_ScritpReturnCode.load());
             }
         }
+    }
+
+    void ScriptPopup::TryStartNewScript()
+    {
+        if (m_ScriptRuningState.load() != ScriptPopupRuningState::kFinished || m_ScriptsQueue.empty())
+        {
+            return;
+        }
+
+        if (m_ScritpReturnCode != 0)
+        {
+            while (!m_ScriptsQueue.empty())
+            {
+                auto [command, props] = m_ScriptsQueue.front();
+                if (props.IsStartOnPrevFail)
+                {
+                    break;
+                }
+                m_ScriptsQueue.pop();
+            }
+        }
+
+        if (m_ScriptsQueue.empty())
+        {
+            return;
+        }
+
+        auto [command, props] = m_ScriptsQueue.front();
+        m_ScriptsQueue.pop();
+
+        m_ScriptRuningState = ScriptPopupRuningState::kRunning;
+        m_ScritpReturnCode = 0;
+        m_ScriptBuffer = "";
+        m_IsNeedOpenPopup = true;
+        m_LastScriptProps = props;
+
+        std::thread thread(
+            [&](PythonCommand command) {
+                m_ScritpReturnCode = command.Execute([&](const char* buffer) {
+                    std::lock_guard lock(m_ScriptBufferMtx);
+                    m_ScriptBuffer += buffer;
+                });
+
+                m_ScriptRuningState.store(ScriptPopupRuningState::kWaitingForClose);
+            },
+            command);
+        thread.detach();
     }
 
 }    // namespace LM

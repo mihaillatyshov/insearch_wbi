@@ -90,6 +90,24 @@ namespace LM
     void ProjectVariantExcelTables::SetIsProcessImagesNeedRebuild(bool _NeedRebuild)
     {
         IsProcessImagesNeedRebuild = _NeedRebuild;
+        if (_NeedRebuild)
+        {
+            SetIsUploadImagesAndPrepareXlsxForWbiToolsNeedRebuild(true);
+        }
+    }
+
+    void ProjectVariantExcelTables::SetIsUploadImagesAndPrepareXlsxForWbiToolsNeedRebuild(bool _NeedRebuild)
+    {
+        IsUploadImagesAndPrepareXlsxForWbiToolsNeedRebuild = _NeedRebuild;
+        if (_NeedRebuild)
+        {
+            SetIsImportDataToWbiToolsServerNeedRebuild(true);
+        }
+    }
+
+    void ProjectVariantExcelTables::SetIsImportDataToWbiToolsServerNeedRebuild(bool _NeedRebuild)
+    {
+        IsImportDataToWbiToolsServerNeedRebuild = _NeedRebuild;
     }
 
 }    // namespace LM
