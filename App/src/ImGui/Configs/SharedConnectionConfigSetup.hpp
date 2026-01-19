@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Engine/Core/Assert.h"
+
 #include <chrono>
 #include <filesystem>
 
@@ -37,10 +39,20 @@ namespace LM
 
         void SaveConfig();
 
+        static SharedConnectionConfigSetup& Get()
+        {
+            CORE_ASSERT(s_Instance, "SharedConnectionConfigSetup instance is not initialized!");
+            return *s_Instance;
+        }
+
+        static std::string_view GetCurrentConfigName() { return Get().m_CurrentConfigName; }
+
     private:
         void LoadConfig();
 
     private:
+        static inline SharedConnectionConfigSetup* s_Instance = nullptr;
+
         std::vector<SharedConnectionConfig> m_Configs;
         std::string m_CurrentConfigName;
         std::chrono::steady_clock::time_point m_LastChangeTime;

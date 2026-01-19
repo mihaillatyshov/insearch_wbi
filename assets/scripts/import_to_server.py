@@ -235,17 +235,10 @@ def process_files(args: Args):
 
             for _, row in df.iterrows():
                 log_info_to_cpp(f"Обрабатывается строка: {row['manuf']} - {row['model']}")
-                constr = str(row["constr"])
+                constr = row["constr"]
                 displayfields = displayfields_map.get(constr)
-                if displayfields is None or len(displayfields) == 0:
+                if (displayfields is None or len(displayfields) == 0) and constr is not None:
                     raise ValueError(f"Отсутствуют отображаемые поля для конструкции {constr}, файл {filename.name}")
-
-                json_attributes = {
-                    field: row[field]
-                    for field in displayfields
-                    if field in row and pd.notna(row[field])
-                }
-                # log_trace_to_cpp(f"Вставка записи: {json_attributes}")
 
                 log_trace_to_cpp("Вставка/обновление в gen_tools")
                 tool_id = insert_into_gen_tools(sqlalchemy_engine, row)
@@ -261,15 +254,28 @@ def process_files(args: Args):
                 log_trace_to_cpp("Вставка/обновление ссылок на изображения")
                 insert_into_pic_tools(sqlalchemy_engine, row, tool_id)
 
-                with sqlalchemy_engine.begin() as connection:
-                    log_trace_to_cpp("Вставка/обновление в gen_items")
-                    item_id = insert_into_gen_items(connection, row, tool_id=tool_id, json_attributes=json_attributes)
+                if displayfields is None or len(displayfields) == 0 or constr is None:
+                    log_warning_to_cpp(
+                        "Пропуск вставки в таблицу конструкции и в таблицу gen_items из-за отсутствия конструкции")
+                else:
+                    with sqlalchemy_engine.begin() as connection:
+                        log_trace_to_cpp("Вставка/обновление в gen_items")
+                        json_attributes = {
+                            field: row[field]
+                            for field in displayfields
+                            if field in row and pd.notna(row[field])
+                        }
 
-                    log_trace_to_cpp(f"Вставка/обновление в {constr} таблицу")
-                    ctd_row = row.drop(
-                        ["codem", "moq", "fulldescription", "interpmodel", "img_pic", "img_drw", "constr"])
-                    boolean_columns = boolean_columns_map.get(constr, set())
-                    insert_into_ctd_table(connection, constr, ctd_row, tool_id, item_id, boolean_columns)
+                        item_id = insert_into_gen_items(connection,
+                                                        row,
+                                                        tool_id=tool_id,
+                                                        json_attributes=json_attributes)
+
+                        log_trace_to_cpp(f"Вставка/обновление в {constr} таблицу")
+                        ctd_row = row.drop(
+                            ["codem", "moq", "fulldescription", "interpmodel", "img_pic", "img_drw", "constr"])
+                        boolean_columns = boolean_columns_map.get(constr, set())
+                        insert_into_ctd_table(connection, constr, ctd_row, tool_id, item_id, boolean_columns)
 
                 log_info_to_cpp(f"Импорт на сервер завершен успешно tool_id: {tool_id}, item_id: {item_id }")
                 log_space_to_cpp()

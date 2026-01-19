@@ -1,6 +1,7 @@
 import hashlib
 import json
 import os
+import pathlib
 import random
 import shutil
 import string
@@ -11,7 +12,9 @@ import torch
 from base import (ArgsBase, log_info_to_cpp, log_space_to_cpp, log_trace_to_cpp, start_program)
 # pip install -e "git+https://github.com/PramaLLC/BEN2.git#egg=ben2"
 from ben2 import BEN_Base                                                                                               # type: ignore
-from PIL import Image, ImageChops
+from PIL import Image, ImageChops, PngImagePlugin
+
+PngImagePlugin.MAX_TEXT_CHUNK = 10 * 1024 * 1024                                                                        # или больше
 
 
 class Args(ArgsBase):
@@ -99,6 +102,9 @@ def process_images(args: Args):
     img_drw_set: set[str] = set()
     img_new_name_set: set[str] = set()
 
+    for item in prev_imgs_hash_and_map.imgs.values():
+        img_new_name_set.add(pathlib.Path(item.img_new_path).stem)
+
     log_info_to_cpp(f"Создание списка изображений из файлов в папке: {args.xlsx_path}")
     for filename in os.scandir(args.xlsx_path):
         if filename.is_file() and not filename.name.startswith("~$"):
@@ -109,11 +115,22 @@ def process_images(args: Args):
                     img_set.update(df[col_name].replace('', pd.NA).dropna().astype(str))
 
     log_info_to_cpp("Преобразование изображений и создание карты замены имен для изображений")
+    log_space_to_cpp()
+    img_counter = 0
     for img_set, suffix in [(img_pic_set, "_pic"), (img_drw_set, "_drw")]:
-        for img_path in img_set:
+        log_info_to_cpp(f"Обработка изображений типа: {suffix}")
+        for img_index, img_path in enumerate(img_set):
+            img_counter += 1
+            log_info_to_cpp(
+                f"Обработка изображения {img_counter}/{len(img_pic_set) + len(img_drw_set)} ({img_index + 1}/{len(img_set)}): {img_path}"
+            )
             file_hash = sha512_org(img_path)
-            if img_path in prev_imgs_hash_and_map.imgs and file_hash == prev_imgs_hash_and_map.imgs[img_path].img_hash:
-                log_info_to_cpp(f"Пропуск обработки изображения (уже обработано ранее): {img_path}")
+            if img_path in prev_imgs_hash_and_map.imgs and file_hash == prev_imgs_hash_and_map.imgs[
+                    img_path].img_hash and os.path.isfile(prev_imgs_hash_and_map.imgs[img_path].img_new_path):
+                log_info_to_cpp(
+                    f"Пропуск обработки изображения (уже обработано ранее): {prev_imgs_hash_and_map.imgs[img_path].img_new_path}"
+                )
+                log_space_to_cpp()
                 continue
 
             log_info_to_cpp(f"Открытие изображения: {img_path}")
@@ -129,7 +146,9 @@ def process_images(args: Args):
                 raise RuntimeError(f"[ERROR] Не удалось обработать изображение: {img_path}")
 
             log_info_to_cpp(f"Обрезка изображения: {img_path}")
-            img_cropped = trim(image_base.convert('RGB'), img_extracted)
+            white_bg = Image.new("RGB", img_extracted.size, (255, 255, 255))
+            white_bg.paste(img_extracted, mask=img_extracted.split()[-1])
+            img_cropped = trim(white_bg.convert('RGB'), img_extracted)                                                  # image_base.convert('RGB')
 
             new_name = generate_new_image_name(img_new_name_set)
             save_file_path = os.path.join(args.imgs_save_path, f"{new_name}.webp")
@@ -140,7 +159,21 @@ def process_images(args: Args):
             img_cropped.save(save_file_path, format='WEBP')
 
             log_info_to_cpp(f"Изображение обработано и сохранено: {save_file_path}")
+
+            with open(args.prev_imgs_hash_and_map_filepath, "w", encoding="utf-8") as conf_file:
+                conf_file.write(prev_imgs_hash_and_map.model_dump_json(indent=4))
+
             log_space_to_cpp()
+
+    imgs_hash_trace_set: set[str] = set()
+    imgs_save_trace_set: set[str] = set()
+    log_trace_to_cpp("Проверка уникальности хэшей обработанных изображений")
+    for item in prev_imgs_hash_and_map.imgs.values():
+        imgs_hash_trace_set.add(item.img_hash)
+        imgs_save_trace_set.add(item.img_new_path)
+
+    log_trace_to_cpp(f"Уникальных хэшей обработанных изображений: {len(imgs_hash_trace_set)}")
+    log_trace_to_cpp(f"Уникальных путей сохраненных обработанных изображений: {len(imgs_save_trace_set)}")
 
     log_info_to_cpp(f"Сохранение обработанных xlsx файлов в папку: {args.xlsx_save_path}")
     for filename in os.scandir(args.xlsx_path):

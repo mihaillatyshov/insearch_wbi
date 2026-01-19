@@ -1,10 +1,10 @@
 import os
-import traceback
 from pathlib import Path
 from functools import partial
+import sys
 
 import pandas as pd
-from base import ArgsBase, parse_args_new, print_to_cpp, remove_model_suffix
+from base import ArgsBase, log_error_to_cpp, log_info_to_cpp, remove_model_suffix, start_program
 import pydantic
 
 SECTION_1_FIELD = "Название раздела {ISECT1_NAME}"
@@ -157,7 +157,7 @@ constr_to_lvl = {
         "l1": "Сверла",
         "l2": "Сверла монолитные",
     },
-    "ctd_inserts": {
+    "ctd_inserts_turning": {
         "dop": "Токарная пластина",
         "l1": "Пластины",
         "l2": "Токарные пластины",
@@ -174,7 +174,7 @@ constr_to_lvl = {
         "l2": "Микрорасточные цельные вставки",
         "l3": "Вставки расточные",
     },
-    "ctd_tsmb_turn": {
+    "ctd_rm1": {
         "dop": "Развертка цельная машинная концевая",
         "l1": "Развертки",
     }
@@ -188,7 +188,10 @@ class Args(ArgsBase):
 
 
 def get_img_with_prefix(img_prefix: str, img_full_path: str):
-    return os.path.join(img_prefix, img_full_path).replace("\"", "/") if img_prefix != "" else img_full_path
+    return os.path.join(img_prefix,
+                        Path(img_full_path).parent.parent.parent.parent.name,
+                        Path(img_full_path).parent.name,
+                        Path(img_full_path).name).replace("\\", "/")
 
 
 def process_row(img_prefix: str, row):
@@ -220,11 +223,15 @@ def process_row(img_prefix: str, row):
     row[FIELDS_MAP["model"]] = remove_model_suffix(row[FIELDS_MAP["model"]])
 
     lvl = constr_to_lvl.get(row["constr"])
-    if lvl is not None:
-        row[SECTION_1_FIELD] = lvl.get("l1")
-        row[SECTION_2_FIELD] = lvl.get("l2")
-        row[SECTION_3_FIELD] = lvl.get("l3")
-        row["DOP_NAIMENOVANIE"] = lvl.get("dop")
+
+    if lvl is None:
+        log_error_to_cpp(f"Не найдена информация для конструкции {row["constr"]}")
+        sys.exit(-1)
+
+    row[SECTION_1_FIELD] = lvl.get("l1")
+    row[SECTION_2_FIELD] = lvl.get("l2")
+    row[SECTION_3_FIELD] = lvl.get("l3")
+    row["DOP_NAIMENOVANIE"] = lvl.get("dop")
     return row
 
 
@@ -239,7 +246,7 @@ def add_extra_info(args: Args):
             if (filename.name.startswith("~$")):
                 continue
 
-            print_to_cpp(filename.name)
+            log_info_to_cpp(filename.name)
 
             df = pd.read_excel(filename, index_col=None, engine="openpyxl")
             for key, value in FIELDS_MAP.items():
@@ -261,17 +268,11 @@ def add_extra_info(args: Args):
     worksheet.autofit()
     writer.close()
 
-    print_to_cpp("Все файлы обработаны успешно!")
+    log_info_to_cpp("Все файлы обработаны успешно!")
 
 
-try:
-    add_extra_info(parse_args_new(Args))
-except KeyboardInterrupt:
-    pass
-except Exception as e:
-    # exc_type, exc_value, exc_traceback = sys.exc_info()
-    formatted_traceback = traceback.format_exc()
-    print_to_cpp(f"An error occurred:\n{formatted_traceback}")
+if __name__ == "__main__":
+    start_program(add_extra_info, Args)
 
 # python excel_add_extra_info.py `
 # --xlsx_path W:\Work\WBI\ToolinformProjects\WBI_Stock_2\data\excel\xlsx_add_info `

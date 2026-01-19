@@ -1,15 +1,23 @@
 #include "SharedConnectionConfigSetup.hpp"
+
 #include "Engine/Utils/Log.hpp"
 #include "Engine/Utils/json.hpp"
+
 #include "imgui.h"
 #include "misc/cpp/imgui_stdlib.h"
+
 #include <fstream>
 #include <string>
 
 namespace LM
 {
 
-    SharedConnectionConfigSetup::SharedConnectionConfigSetup() { LoadConfig(); }
+    SharedConnectionConfigSetup::SharedConnectionConfigSetup()
+    {
+        LoadConfig();
+        CORE_ASSERT(!s_Instance, "SharedConnectionConfigSetup instance already exists!");
+        s_Instance = this;
+    }
 
     SharedConnectionConfigSetup::~SharedConnectionConfigSetup() { SaveConfig(); }
 

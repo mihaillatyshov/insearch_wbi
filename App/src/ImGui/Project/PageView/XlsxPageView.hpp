@@ -151,7 +151,7 @@ namespace LM
 
         void DrawProcessingScriptsWindow();
 
-        void ProcessAddExtraInfo(std::string_view _ParserName, bool _IsNeedRunWithoutCheckIsDone = true);
+        void ProcessAddExtraInfo(bool _IsNeedRunWithoutCheckIsDone = true);
 
         void ProcessImages(bool _IsNeedRunWithoutCheckIsDone = true);
 

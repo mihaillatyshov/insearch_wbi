@@ -5,6 +5,9 @@
 namespace LM
 {
 
+    constexpr std::string_view kAddExtraInfoYg1Parser = "yg1-shop";
+    constexpr std::string_view kAddExtraInfoWbiToolsParser = "wbi-tools";
+
     struct SerializerGetPropertiesAll;
 
     class Project;
@@ -17,8 +20,7 @@ namespace LM
         std::filesystem::path GetXlsxStartupPath() const;
         std::filesystem::path GetXlsxAddExtraInfoPath() const;
         std::filesystem::path GetXlsxAddExtraInfoWithProcessedImagesPath() const;
-        std::filesystem::path GetXlsxForServerImportPath() const;
-        std::filesystem::path GetXlsxAddExtraInfoYg1Path() const;
+        std::filesystem::path GetXlsxForServerImportPath(std::string_view _ParserName) const;
         std::filesystem::path GetImgsPerPagePath() const;
         std::filesystem::path GetImgsSimpleRulePath() const;
         std::filesystem::path GetImgsNoConditionPath() const;
@@ -34,7 +36,7 @@ namespace LM
     public:
         const std::vector<std::string>& GetPageNamesToSkipOnServerImport() const;
 
-        void TogglePageNameToSkipOnServerImport(const std::string& pageName);
+        void TogglePageNameToSkipOnServerImport(const std::string& _PageName);
 
         bool GetIsAddExtraInfoNeedRebuild() const { return IsAddExtraInfoNeedRebuild; }
         void SetIsAddExtraInfoNeedRebuild(bool _NeedRebuild);
@@ -56,8 +58,10 @@ namespace LM
 
     private:
         std::vector<std::string> m_PageNamesToSkipOnServerImport;
+
         bool IsAddExtraInfoNeedRebuild = true;
         bool IsProcessImagesNeedRebuild = true;
+
         bool IsUploadImagesAndPrepareXlsxForWbiToolsNeedRebuild = true;
         bool IsImportDataToWbiToolsServerNeedRebuild = true;
     };

@@ -2,6 +2,9 @@
 
 #include "Project.h"
 
+#include <Engine/Core/Assert.h>
+#include <format>
+
 namespace LM
 {
 
@@ -25,14 +28,11 @@ namespace LM
         return m_Owner->GetPathInFolderAndCreateDirs("data/excel/xlsx_add_info_with_processed_images/");
     }
 
-    std::filesystem::path ProjectVariantExcelTablesHelpers::GetXlsxForServerImportPath() const
+    std::filesystem::path
+    ProjectVariantExcelTablesHelpers::GetXlsxForServerImportPath(std::string_view _ParserName) const
     {
-        return m_Owner->GetPathInFolderAndCreateDirs("data/excel/xlsx_for_server_import/");
-    }
-
-    std::filesystem::path ProjectVariantExcelTablesHelpers::GetXlsxAddExtraInfoYg1Path() const
-    {
-        return m_Owner->GetPathInFolderAndCreateDirs("data/excel/xlsx_add_info_yg1-shop/");
+        return m_Owner->GetPathInFolderAndCreateDirs(std::format(
+            "data/excel/xlsx_for_server_import{}/", _ParserName == kAddExtraInfoWbiToolsParser ? "" : "_yg1-shop"));
     }
 
     std::filesystem::path ProjectVariantExcelTablesHelpers::GetImgsPerPagePath() const

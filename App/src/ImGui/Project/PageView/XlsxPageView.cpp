@@ -4,6 +4,7 @@
 #include "Engine/Layers/ImGuiLayer.h"
 #include "Engine/Utils/Utf8Extras.hpp"
 #include "Engine/Utils/utf8.h"
+#include "ImGui/Configs/SharedConnectionConfigSetup.hpp"
 #include "ImGui/Overlays/Overlay.h"
 #include "ImGui/Overlays/ScriptPopup.h"
 #include "Managers/TextureManager.h"
@@ -110,9 +111,6 @@ namespace LM
     constexpr std::string_view kDefaultFieldsDescriptionFile = "assets/constructions/gen_fields.json";
     constexpr std::string_view kDefaultRepresentationFieldsDescriptionFile = "assets/constructions/repr_fields.json";
     constexpr std::string_view kDefaultAmatiCodemsFile = "assets/data/amati_codem.xlsx";
-
-    constexpr std::string_view kAddExtraInfoYg1Parser = "yg1-shop";
-    constexpr std::string_view kAddExtraInfoWbiToolsParser = "wbi-tools";
 
     const std::vector<std::string> kProductBaseFields = { "fulldescription", "lcs", "moq", "codem" };
     const std::vector<std::string> kImgFileTypeList = { "pic", "drw" };
@@ -2350,6 +2348,9 @@ namespace LM
     {
         if (ImGui::Begin("Обработка и импорт данных"))
         {
+            ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Выбранная конфигурация подключения: %s",
+                               SharedConnectionConfigSetup::GetCurrentConfigName().data());
+
             ImGui::TextColored(
                 ImVec4(1.0f, 1.0f, 0.0f, 1.0f),
                 "Если предыдущие шаги не были выполнены, то они будут выполнены автоматически перед запуском скрипта.");
@@ -2357,20 +2358,21 @@ namespace LM
             ImVec4 needProcessColor = ImVec4(0.5f, 0.0f, 0.0f, 1.0f);
             ImVec4 processedColor = ImVec4(0.0f, 0.5f, 0.0f, 1.0f);
 
-            ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Кнопка данного цвета - процесс нужно выполнить.");
+            ImGui::TextColored(ImVec4(0.85f, 0.0f, 0.0f, 1.0f), "Кнопка данного цвета - процесс нужно выполнить.");
 
-            ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "Кнопка данного цвета - процесс уже выполнен.");
+            ImGui::TextColored(ImVec4(0.0f, 0.85f, 0.0f, 1.0f), "Кнопка данного цвета - процесс уже выполнен.");
 
             if (ImGui::TreeNodeEx("WBI Tools", ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_DefaultOpen))
             {
                 ImGui::SeparatorText("Заполнение данных по правилам");
 
-                bool isAddExtraInfoNeedRebuild = m_Project->GetVariantExcelTables().GetIsAddExtraInfoNeedRebuild();
-                if (ImGuiButtonColored("Обработать файлы (парсер WBI Tools)",
-                                       isAddExtraInfoNeedRebuild ? needProcessColor : processedColor))
+                if (ImGuiButtonColored("Обработать файлы по правилам",
+                                       m_Project->GetVariantExcelTables().GetIsAddExtraInfoNeedRebuild()
+                                           ? needProcessColor
+                                           : processedColor))
                 {
                     Save();
-                    ProcessAddExtraInfo(kAddExtraInfoWbiToolsParser);
+                    ProcessAddExtraInfo();
                 }
 
                 ImGui::SeparatorText("Обработка изображений");
@@ -2420,20 +2422,37 @@ namespace LM
 
             if (ImGui::TreeNodeEx("YG1-Shop", ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_DefaultOpen))
             {
-                if (ImGuiButtonColored("Обработать файлы (парсер yg1-shop)", processedColor))
+                if (ImGuiButtonColored("Обработать файлы по правилам",
+                                       m_Project->GetVariantExcelTables().GetIsAddExtraInfoNeedRebuild()
+                                           ? needProcessColor
+                                           : processedColor))
                 {
                     Save();
-                    ProcessAddExtraInfo(kAddExtraInfoYg1Parser);
+                    ProcessAddExtraInfo();
+                }
+
+                ImGui::SeparatorText("Обработка изображений");
+
+                if (ImGuiButtonColored("Обработать картинки",
+                                       m_Project->GetVariantExcelTables().GetIsProcessImagesNeedRebuild()
+                                           ? needProcessColor
+                                           : processedColor))
+                {
+                    Save();
+                    ProcessImages();
                 }
 
                 if (ImGui::Button("Собрать файлы в один и добавить доп. поля для yg1-shop"))
                 {
                     Save();
                     PythonCommand pythonCommand("./assets/scripts/excel_add_extra_info-yg1-shop.py");
-                    pythonCommand.AddPathArg(m_Project->GetVariantExcelTablesHelpers().GetXlsxAddExtraInfoPath(),
-                                             "--xlsx_path");
-                    pythonCommand.AddPathArg(m_Project->GetVariantExcelTablesHelpers().GetXlsxAddExtraInfoYg1Path(),
-                                             "--save_path");
+                    pythonCommand.AddPathArg(
+                        m_Project->GetVariantExcelTablesHelpers().GetXlsxAddExtraInfoWithProcessedImagesPath(),
+                        "--xlsx_path");
+                    pythonCommand.AddPathArg(
+                        m_Project->GetVariantExcelTablesHelpers().GetXlsxForServerImportPath(kAddExtraInfoYg1Parser),
+                        "--save_path");
+                    pythonCommand.AddPathArg("http://194.113.153.157/nameduploads/", "--img_prefix");
 
                     ScriptPopup::Get()->AddToQueue(pythonCommand,
                                                    { "Заполнение данных для yg1-shop",
@@ -2451,7 +2470,7 @@ namespace LM
         ImGui::End();
     }
 
-    void XlsxPageView::ProcessAddExtraInfo(std::string_view _ParserName, bool _IsNeedRunWithoutCheckIsDone)
+    void XlsxPageView::ProcessAddExtraInfo(bool _IsNeedRunWithoutCheckIsDone)
     {
         if (!_IsNeedRunWithoutCheckIsDone && !m_Project->GetVariantExcelTables().GetIsAddExtraInfoNeedRebuild())
         {
@@ -2468,7 +2487,6 @@ namespace LM
                                  "--per_page_rule_img_folder");
         pythonCommand.AddPathArg(m_Project->GetVariantExcelTablesHelpers().GetImgsNoConditionPath(),
                                  "--no_condition_img_folder");
-        pythonCommand.AddArg(_ParserName, "--extra_parser_type");
 
         ScriptPopup::Get()->AddToQueue(
             pythonCommand, { "Заполнение данных по правилам",
@@ -2487,7 +2505,7 @@ namespace LM
             return;
         }
 
-        ProcessAddExtraInfo(kAddExtraInfoWbiToolsParser, false);
+        ProcessAddExtraInfo(false);
 
         PythonCommand pythonCommand("./assets/scripts/imgs_process.py");
         pythonCommand.AddPathArg(m_Project->GetVariantExcelTablesHelpers().GetXlsxAddExtraInfoPath(), "--xlsx_path");
@@ -2522,8 +2540,9 @@ namespace LM
         PythonCommand pythonCommand("./assets/scripts/imgs_to_server_format_and_upload.py");
         pythonCommand.AddPathArg(m_Project->GetVariantExcelTablesHelpers().GetXlsxAddExtraInfoWithProcessedImagesPath(),
                                  "--xlsx_path");
-        pythonCommand.AddPathArg(m_Project->GetVariantExcelTablesHelpers().GetXlsxForServerImportPath(),
-                                 "--xlsx_save_path");
+        pythonCommand.AddPathArg(
+            m_Project->GetVariantExcelTablesHelpers().GetXlsxForServerImportPath(kAddExtraInfoWbiToolsParser),
+            "--xlsx_save_path");
 
         ScriptPopup::Get()->AddToQueue(
             pythonCommand,
@@ -2595,7 +2614,9 @@ namespace LM
         UploadImagesAndPrepareXlsxForWbiTools(false);
 
         PythonCommand pythonCommand("./assets/scripts/import_to_server.py");
-        pythonCommand.AddPathArg(m_Project->GetVariantExcelTablesHelpers().GetXlsxForServerImportPath(), "--xlsx_path");
+        pythonCommand.AddPathArg(
+            m_Project->GetVariantExcelTablesHelpers().GetXlsxForServerImportPath(kAddExtraInfoWbiToolsParser),
+            "--xlsx_path");
         pythonCommand.AddArg(false, "--remove_previous_images");
         pythonCommand.AddArg(StrJoin(m_Project->GetVariantExcelTables().GetPageNamesToSkipOnServerImport(), ";"),
                              "--skip_files");
