@@ -60,11 +60,6 @@ namespace LM
         return m_Owner->GetPathInFolder("data/excel/prev_imgs_hash_and_map.json");
     }
 
-    const std::vector<std::string>& ProjectVariantExcelTables::GetPageNamesToSkipOnServerImport() const
-    {
-        return m_PageNamesToSkipOnServerImport;
-    }
-
     void ProjectVariantExcelTables::TogglePageNameToSkipOnServerImport(const std::string& pageName)
     {
         auto it = std::find(m_PageNamesToSkipOnServerImport.begin(), m_PageNamesToSkipOnServerImport.end(), pageName);
@@ -75,6 +70,19 @@ namespace LM
         else
         {
             m_PageNamesToSkipOnServerImport.push_back(pageName);
+        }
+    }
+
+    void ProjectVariantExcelTables::TogglePicImgNameToSkipBgRemove(const std::string& _ImgName)
+    {
+        auto it = std::find(m_PicImgNamesToSkipBgRemove.begin(), m_PicImgNamesToSkipBgRemove.end(), _ImgName);
+        if (it != m_PicImgNamesToSkipBgRemove.end())
+        {
+            m_PicImgNamesToSkipBgRemove.erase(it);
+        }
+        else
+        {
+            m_PicImgNamesToSkipBgRemove.push_back(_ImgName);
         }
     }
 

@@ -34,9 +34,16 @@ namespace LM
     class ProjectVariantExcelTables
     {
     public:
-        const std::vector<std::string>& GetPageNamesToSkipOnServerImport() const;
+        const std::vector<std::string>& GetPageNamesToSkipOnServerImport() const
+        {
+            return m_PageNamesToSkipOnServerImport;
+        }
 
         void TogglePageNameToSkipOnServerImport(const std::string& _PageName);
+
+        const std::vector<std::string>& GetPicImgNamesToSkipBgRemove() const { return m_PicImgNamesToSkipBgRemove; }
+
+        void TogglePicImgNameToSkipBgRemove(const std::string& _ImgName);
 
         bool GetIsAddExtraInfoNeedRebuild() const { return IsAddExtraInfoNeedRebuild; }
         void SetIsAddExtraInfoNeedRebuild(bool _NeedRebuild);
@@ -58,6 +65,8 @@ namespace LM
 
     private:
         std::vector<std::string> m_PageNamesToSkipOnServerImport;
+
+        std::vector<std::string> m_PicImgNamesToSkipBgRemove;
 
         bool IsAddExtraInfoNeedRebuild = true;
         bool IsProcessImagesNeedRebuild = true;

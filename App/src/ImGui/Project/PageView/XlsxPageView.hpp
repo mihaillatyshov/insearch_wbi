@@ -150,6 +150,7 @@ namespace LM
         bool IsExtraInfoAutoFocusField(std::string_view _WindowName, std::string_view _FieldName);
 
         void DrawProcessingScriptsWindow();
+        void DrawImgsToSkipBgRemoveWindow();
 
         void ProcessAddExtraInfo(bool _IsNeedRunWithoutCheckIsDone = true);
 
@@ -188,6 +189,8 @@ namespace LM
         bool m_IsFindAndReplaceModalOpen = false;
 
         bool m_IsShowConstrExamples = false;
+
+        std::string m_TMP_SkippedBgRemoveImgNames;
     };
 
 }    // namespace LM

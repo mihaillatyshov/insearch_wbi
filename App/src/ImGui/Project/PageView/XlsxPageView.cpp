@@ -557,7 +557,11 @@ namespace LM
         }
     }
 
-    void XlsxPageView::DrawOtherWindows() { DrawProcessingScriptsWindow(); }
+    void XlsxPageView::DrawOtherWindows()
+    {
+        DrawProcessingScriptsWindow();
+        DrawImgsToSkipBgRemoveWindow();
+    }
 
     void XlsxPageView::DrawTableActions(XlsxPageViewData& _XlsxViewData, XlsxPageViewDataTypes::TableData& _TableData)
     {
@@ -2362,10 +2366,8 @@ namespace LM
 
             ImGui::TextColored(ImVec4(0.0f, 0.85f, 0.0f, 1.0f), "Кнопка данного цвета - процесс уже выполнен.");
 
-            if (ImGui::TreeNodeEx("WBI Tools", ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_DefaultOpen))
+            if (ImGui::TreeNodeEx("Общее", ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_DefaultOpen))
             {
-                ImGui::SeparatorText("Заполнение данных по правилам");
-
                 if (ImGuiButtonColored("Обработать файлы по правилам",
                                        m_Project->GetVariantExcelTables().GetIsAddExtraInfoNeedRebuild()
                                            ? needProcessColor
@@ -2374,8 +2376,6 @@ namespace LM
                     Save();
                     ProcessAddExtraInfo();
                 }
-
-                ImGui::SeparatorText("Обработка изображений");
 
                 if (ImGuiButtonColored("Обработать картинки",
                                        m_Project->GetVariantExcelTables().GetIsProcessImagesNeedRebuild()
@@ -2386,6 +2386,11 @@ namespace LM
                     ProcessImages();
                 }
 
+                ImGui::TreePop();
+            }
+
+            if (ImGui::TreeNodeEx("WBI Tools", ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_DefaultOpen))
+            {
                 if (ImGuiButtonColored(
                         "Загрузить картинки и подготовить Xlsx",
                         m_Project->GetVariantExcelTables().GetIsUploadImagesAndPrepareXlsxForWbiToolsNeedRebuild()
@@ -2422,26 +2427,6 @@ namespace LM
 
             if (ImGui::TreeNodeEx("YG1-Shop", ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_DefaultOpen))
             {
-                if (ImGuiButtonColored("Обработать файлы по правилам",
-                                       m_Project->GetVariantExcelTables().GetIsAddExtraInfoNeedRebuild()
-                                           ? needProcessColor
-                                           : processedColor))
-                {
-                    Save();
-                    ProcessAddExtraInfo();
-                }
-
-                ImGui::SeparatorText("Обработка изображений");
-
-                if (ImGuiButtonColored("Обработать картинки",
-                                       m_Project->GetVariantExcelTables().GetIsProcessImagesNeedRebuild()
-                                           ? needProcessColor
-                                           : processedColor))
-                {
-                    Save();
-                    ProcessImages();
-                }
-
                 if (ImGui::Button("Собрать файлы в один и добавить доп. поля для yg1-shop"))
                 {
                     Save();
@@ -2466,6 +2451,19 @@ namespace LM
 
                 ImGui::TreePop();
             }
+        }
+        ImGui::End();
+    }
+
+    void XlsxPageView::DrawImgsToSkipBgRemoveWindow()
+    {
+        if (ImGui::Begin("Изображения, пропускаемые при удалении фона"))
+        {
+            ImGui::TextWrapped("Список изображений, которые не будут обрабатываться скриптом удаления фона из-за "
+                               "особенностей их структуры. "
+                               "Каждое имя файла должно быть на новой строке. (Временно строка)");
+
+            ImGui::InputTextMultiline("##imgs_to_skip", &m_TMP_SkippedBgRemoveImgNames);
         }
         ImGui::End();
     }
@@ -2514,6 +2512,9 @@ namespace LM
         pythonCommand.AddPathArg(m_Project->GetVariantExcelTablesHelpers().GetJsonPrevProcessedImagesFilePath(),
                                  "--prev_imgs_hash_and_map_filepath");
         pythonCommand.AddPathArg(m_Project->GetVariantExcelTablesHelpers().GetImgsProcessedPath(), "--imgs_save_path");
+        std::string bgSkipListPath = m_TMP_SkippedBgRemoveImgNames;
+        StrReplaceAll(bgSkipListPath, "\n", ";");
+        pythonCommand.AddArg(bgSkipListPath, "--bg_remove_skip_list_path");
 
         ScriptPopup::Get()->AddToQueue(
             pythonCommand,

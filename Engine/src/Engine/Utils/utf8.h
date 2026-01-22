@@ -76,9 +76,34 @@ inline std::string StrJoin(const std::vector<std::string>& _Array, const std::st
     return result;
 }
 
-inline std::string StrTrim(const std::string& s)
+inline std::string StrTrim(const std::string& _Str)
 {
-    auto start = std::find_if_not(s.begin(), s.end(), [](unsigned char ch) { return std::isspace(ch); });
-    auto end = std::find_if_not(s.rbegin(), s.rend(), [](unsigned char ch) { return std::isspace(ch); }).base();
+    auto start = std::find_if_not(_Str.begin(), _Str.end(), [](unsigned char ch) { return std::isspace(ch); });
+    auto end = std::find_if_not(_Str.rbegin(), _Str.rend(), [](unsigned char ch) { return std::isspace(ch); }).base();
     return (start < end ? std::string(start, end) : std::string());
+}
+
+inline bool StrReplace(std::string& _Str, const std::string& _From, const std::string& _To)
+{
+    size_t startPos = _Str.find(_From);
+    if (startPos == std::string::npos)
+    {
+        return false;
+    }
+    _Str.replace(startPos, _From.length(), _To);
+    return true;
+}
+
+inline void StrReplaceAll(std::string& _Str, const std::string& _From, const std::string& _To)
+{
+    if (_From.empty())
+    {
+        return;
+    }
+    size_t startPos = 0;
+    while ((startPos = _Str.find(_From, startPos)) != std::string::npos)
+    {
+        _Str.replace(startPos, _From.length(), _To);
+        startPos += _To.length();
+    }
 }

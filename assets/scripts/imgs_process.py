@@ -24,6 +24,8 @@ class Args(ArgsBase):
         description=
         "Папка с предыдущими хэшами (исходных файлов) и картой изображений (для пропуска уже обработанных изображений)")
     imgs_save_path: str = pydantic.Field(description="Папка для сохранения изображений")
+    bg_remove_skip_list_path: str = pydantic.Field(
+        description="Файл со списком имен изображений (через ';'), для которых не нужно удалять фон", default="")
 
 
 class PrevImgsHashAndMapItem(pydantic.BaseModel):
@@ -84,7 +86,7 @@ def process_images(args: Args):
     else:
         prev_imgs_hash_and_map = PrevImgsHashAndMap(imgs={})
 
-    log_info_to_cpp("Удаление старых xlsx файлов с обработанными картинками и создание папок")
+    log_info_to_cpp("Удаление старых xlsx файлов и создание папок")
     shutil.rmtree(args.xlsx_save_path, ignore_errors=True)
     os.makedirs(args.xlsx_save_path, exist_ok=True)
     os.makedirs(args.imgs_save_path, exist_ok=True)
@@ -114,6 +116,13 @@ def process_images(args: Args):
                 if col_name in df.columns:
                     img_set.update(df[col_name].replace('', pd.NA).dropna().astype(str))
 
+    bg_remove_skip_list: set[str] = set()
+    if args.bg_remove_skip_list_path:
+        log_info_to_cpp(
+            f"Загрузка списка имен изображений для пропуска удаления фона из файла: {args.bg_remove_skip_list_path}")
+        bg_remove_skip_list = set(x.strip() for x in args.bg_remove_skip_list_path.split(";"))
+        log_info_to_cpp(f"Загружено имен изображений для пропуска удаления фона: {len(bg_remove_skip_list)}")
+
     log_info_to_cpp("Преобразование изображений и создание карты замены имен для изображений")
     log_space_to_cpp()
     img_counter = 0
@@ -136,14 +145,18 @@ def process_images(args: Args):
             log_info_to_cpp(f"Открытие изображения: {img_path}")
             image_base = Image.open(img_path)
 
-            log_info_to_cpp(f"Удаление фона для изображения: {img_path}")
-            img_extracted = model.inference(
-                image_base,
-                refine_foreground=True,
-            ) if suffix == "_pic" else image_base
+            if pathlib.Path(img_path).name not in bg_remove_skip_list:
+                log_info_to_cpp(f"Удаление фона для изображения: {img_path}")
+                img_extracted = model.inference(
+                    image_base,
+                    refine_foreground=True,
+                ) if suffix == "_pic" else image_base
 
-            if img_extracted is None:
-                raise RuntimeError(f"[ERROR] Не удалось обработать изображение: {img_path}")
+                if img_extracted is None:
+                    raise RuntimeError(f"[ERROR] Не удалось обработать изображение: {img_path}")
+            else:
+                log_info_to_cpp(f"Пропуск удаления фона для изображения: {img_path}")
+                img_extracted = image_base
 
             log_info_to_cpp(f"Обрезка изображения: {img_path}")
             white_bg = Image.new("RGB", img_extracted.size, (255, 255, 255))
