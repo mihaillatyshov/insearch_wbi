@@ -33,7 +33,7 @@ namespace LM
         return nullptr;
     }
 
-    void SharedConnectionConfigSetup::OnImGuiRender()
+    void SharedConnectionConfigSetup::OnImGuiRender(Ref<Project> _Project)
     {
         // Проверяем нужно ли сохранить с debounce
         if (m_HasChanges)
@@ -42,6 +42,10 @@ namespace LM
             if (now - m_LastChangeTime >= kSaveDebounceDelay)
             {
                 SaveConfig();
+                if (_Project)
+                {
+                    _Project->GetVariantExcelTables().SetIsUploadImagesAndPrepareXlsxForWbiToolsNeedRebuild(true);
+                }
                 m_HasChanges = false;
             }
         }
