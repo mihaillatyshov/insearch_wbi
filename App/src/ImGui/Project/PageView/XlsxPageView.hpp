@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Database/DatabaseData.hpp"
 #include "IPageView.h"
 #include "ImGui/Constructions/SelectConstructionFromTree.hpp"
 #include "Project/Processing/XlsxPageViewData.h"
@@ -30,26 +31,6 @@ namespace LM
             size_t StartCol = 0;
             size_t RowsCount = 0;
             size_t ColsCount = 0;
-        };
-
-        struct FieldDescription
-        {
-            std::string Type;
-            std::optional<std::string> UnitRu;
-            std::string RuDescription;
-            bool AllowNulls;
-            std::optional<std::string> IfBooleanTrue;
-            std::optional<std::string> IfBooleanFalse;
-            int QType;
-            bool IsDescr;
-            std::string Description;
-        };
-
-        struct FieldRepresentationItem
-        {
-            std::string Key;
-            std::string RuShort;
-            std::string Ru;
         };
 
         struct ExtraInfoAutoFocusField
@@ -141,12 +122,6 @@ namespace LM
         void ChangeHeadersByConstruction(XlsxPageViewData& _XlsxViewData, XlsxPageViewDataTypes::TableData& _TableData,
                                          std::string_view _ConstrKey);
 
-        void LoadConstructionsTree();
-        void LoadConstructionsFields();
-        void LoadFieldsDescription();
-        void LoadRepresentationFieldsDescription();
-        void LoadConstrExample(std::string_view _Constr);
-
         void LoadAmatiCodems();
         const std::unordered_map<std::string, std::string>& GetAmatiCodemsWithLoad();
 
@@ -183,13 +158,7 @@ namespace LM
         std::optional<size_t> m_DeleteCol = std::nullopt;
         std::optional<size_t> m_DeleteRow = std::nullopt;
 
-        std::vector<ConstructionTreeConstr> m_Constructions;
-        std::unordered_map<std::string, std::vector<std::string>> m_ConstructionsFields;
-        std::unordered_map<std::string, FieldDescription> m_FieldsDescription;
-        std::unordered_map<std::string, std::vector<FieldRepresentationItem>> m_FieldsRepresentation;
-
         std::optional<ExtraInfoAutoFocusField> m_ExtraInfoAutoFocusField = std::nullopt;
-        std::unordered_map<std::string, std::unordered_map<std::string, std::vector<std::string>>> m_ConstrExamples;
 
         std::unordered_map<std::string, std::string> m_AmatiCodems;
         bool m_IsAmatiCodemsLoaded = false;

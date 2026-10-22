@@ -6,8 +6,11 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.exc import SQLAlchemyError
 
 
-def create_sqlalchemy_engine(user: str, password: str, host: str, port: int) -> Engine:
-    database = "toolz370_01"
+def create_sqlalchemy_engine(user: str,
+                             password: str,
+                             host: str,
+                             port: int,
+                             database: str = "toolz370_01") -> Engine:
     try:
         return create_engine(
             f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{database}",

@@ -52,6 +52,7 @@ namespace LM
         }
 
         static std::string_view GetCurrentConfigName() { return Get().m_CurrentConfigName; }
+        static const SharedConnectionConfig* GetCurrentConfig();
 
     private:
         void LoadConfig();

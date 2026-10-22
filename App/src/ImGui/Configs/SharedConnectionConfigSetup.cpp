@@ -21,6 +21,18 @@ namespace LM
 
     SharedConnectionConfigSetup::~SharedConnectionConfigSetup() { SaveConfig(); }
 
+    const SharedConnectionConfig* SharedConnectionConfigSetup::GetCurrentConfig()
+    {
+        for (const auto& config : Get().m_Configs)
+        {
+            if (config.Name == Get().m_CurrentConfigName)
+            {
+                return &config;
+            }
+        }
+        return nullptr;
+    }
+
     void SharedConnectionConfigSetup::OnImGuiRender()
     {
         // Проверяем нужно ли сохранить с debounce

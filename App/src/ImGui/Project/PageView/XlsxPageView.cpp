@@ -47,38 +47,6 @@
 
 #define _CRT_SECURE_NO_WARNINGS
 
-NLOHMANN_JSON_NAMESPACE_BEGIN
-template <typename T>
-struct adl_serializer<std::optional<T>>
-{
-    static void to_json(json& j, const std::optional<T>& opt)
-    {
-        if (opt == std::nullopt)
-        {
-            j = nullptr;
-        }
-        else
-        {
-            j = *opt;    // this will call adl_serializer<T>::to_json which will
-                         // find the free function to_json in T's namespace!
-        }
-    }
-
-    static void from_json(const json& j, std::optional<T>& opt)
-    {
-        if (j.is_null())
-        {
-            opt = std::nullopt;
-        }
-        else
-        {
-            opt = j.template get<T>();    // same as above, but with
-                                          // adl_serializer<T>::from_json
-        }
-    }
-};
-NLOHMANN_JSON_NAMESPACE_END
-
 bool CustomPassFilter(const ImGuiTextFilter& _TextFilter, std::string_view text)
 {
     if (_TextFilter.Filters.Size == 0)
@@ -116,10 +84,6 @@ namespace LM
 {
     using namespace std::literals;
 
-    constexpr std::string_view kDefaultConstructionsTreeFile = "assets/constructions/constructions_tree.json";
-    constexpr std::string_view kDefaultConstructionsFieldsFile = "assets/constructions/ctd_fields.json";
-    constexpr std::string_view kDefaultFieldsDescriptionFile = "assets/constructions/gen_fields.json";
-    constexpr std::string_view kDefaultRepresentationFieldsDescriptionFile = "assets/constructions/repr_fields.json";
     constexpr std::string_view kDefaultAmatiCodemsFile = "assets/data/amati_codem.xlsx";
 
     const std::vector<std::string> kProductBaseFields = { "fulldescription", "lcs", "moq", "codem" };
@@ -225,13 +189,7 @@ namespace LM
         return ImVec4(1.0f, 0.0f, 0.0f, _Alpha);
     }
 
-    XlsxPageView::XlsxPageView()
-    {
-        LoadConstructionsTree();
-        LoadConstructionsFields();
-        LoadFieldsDescription();
-        LoadRepresentationFieldsDescription();
-    }
+    XlsxPageView::XlsxPageView() { }
 
     XlsxPageView::~XlsxPageView() { }
 
@@ -379,10 +337,10 @@ namespace LM
             if (constrItem.has_value() && m_IsShowConstrExamples)
             {
                 const auto& constr = constrItem->get().Value;
-                LoadConstrExample(constr);
-                if (m_ConstrExamples.contains(constr))
+                const ConstrExample* constrExamplePtr = DatabaseData::Get().FindConstrExample(constr);
+                if (constrExamplePtr && !constrExamplePtr->empty())
                 {
-                    auto& constrExample = m_ConstrExamples[constr];
+                    const ConstrExample& constrExample = *constrExamplePtr;
                     size_t rowsCount = (*constrExample.begin()).second.size();
 
                     ImGui::PushStyleColor(ImGuiCol_TableRowBg, 0x0a00ff00);
@@ -404,8 +362,8 @@ namespace LM
                             const std::string& header = tableData[0][colId].Value;
                             if (constrExample.contains(header))
                             {
-                                ImGui::Text("  %s  ", constrExample[header][rowId - 1].c_str());
-                                float cellTextSize = ImGui::CalcTextSize(constrExample[header][rowId - 1].c_str()).x +
+                                ImGui::Text("  %s  ", constrExample.at(header)[rowId - 1].c_str());
+                                float cellTextSize = ImGui::CalcTextSize(constrExample.at(header)[rowId - 1].c_str()).x +
                                                      ImGui::CalcTextSize("    ").x;
                                 columnWidths[colId + 1] = std::max(columnWidths[colId + 1], cellTextSize);
                             }
@@ -712,9 +670,10 @@ namespace LM
 
             ImGui::BeginChild("ConstrList", ImVec2(0.0f, ImGui::GetFontSize() * 24.0f),
                               ImGuiChildFlags_AutoResizeX | ImGuiChildFlags_NavFlattened);
-            for (size_t i = 0; i < m_Constructions.size(); ++i)
+            const auto& constructions = DatabaseData::Get().GetConstructionsList();
+            for (size_t i = 0; i < constructions.size(); ++i)
             {
-                const auto& constr = m_Constructions[i];
+                const auto& constr = constructions[i];
                 if (CustomPassFilter(constrFilter, constr.Label.c_str()) ||
                     CustomPassFilter(constrFilter, constr.Key.c_str()))
                 {
@@ -804,7 +763,7 @@ namespace LM
                                   ImGuiChildFlags_AutoResizeX | ImGuiChildFlags_NavFlattened);
                 for (const std::string& fieldName : GetSortedFieldNamesByHeaderAndColumnFill(_XlsxViewData))
                 {
-                    const FieldDescription& fieldDescr = m_FieldsDescription.at(fieldName);
+                    const FieldDescription& fieldDescr = DatabaseData::Get().GetFieldsDescription().at(fieldName);
 
                     if (globalAddList.contains(fieldName))
                     {
@@ -916,7 +875,7 @@ namespace LM
                                   ImGuiChildFlags_AutoResizeX | ImGuiChildFlags_NavFlattened);
                 for (const std::string& fieldName : GetSortedFieldNamesByHeaderAndColumnFill(_XlsxViewData))
                 {
-                    const FieldDescription& fieldDescr = m_FieldsDescription.at(fieldName);
+                    const FieldDescription& fieldDescr = DatabaseData::Get().GetFieldsDescription().at(fieldName);
 
                     if (globalCalcList.contains(fieldName))
                     {
@@ -1029,7 +988,7 @@ namespace LM
                               ImGuiChildFlags_AutoResizeX | ImGuiChildFlags_NavFlattened);
             for (const std::string& fieldName : GetSortedFieldNamesByHeaderAndColumnFill(_XlsxViewData))
             {
-                const FieldDescription& fieldDescr = m_FieldsDescription.at(fieldName);
+                const FieldDescription& fieldDescr = DatabaseData::Get().GetFieldsDescription().at(fieldName);
 
                 if (_XlsxViewData.IsItemInSimpleListForCurrentPage(_SimpleList, fieldName))
                 {
@@ -1100,8 +1059,10 @@ namespace LM
     std::vector<std::string>
     XlsxPageView::GetSortedFieldNamesByHeaderAndColumnFill(XlsxPageViewData& _XlsxViewData) const
     {
+        const auto& fieldsDescription = DatabaseData::Get().GetFieldsDescription();
+
         std::vector<std::string> sortedFieldNames;
-        sortedFieldNames.reserve(m_FieldsDescription.size());
+        sortedFieldNames.reserve(fieldsDescription.size());
 
         std::unordered_map<std::string, size_t> headerOrder;
         std::unordered_map<std::string, bool> headerHasNonEmptyValues;
@@ -1113,7 +1074,7 @@ namespace LM
             for (size_t colId = 0; colId < headerRow.size(); ++colId)
             {
                 const std::string& header = headerRow[colId].Value;
-                if (!m_FieldsDescription.contains(header) || headerOrder.contains(header))
+                if (!fieldsDescription.contains(header) || headerOrder.contains(header))
                 {
                     continue;
                 }
@@ -1133,7 +1094,7 @@ namespace LM
             }
         }
 
-        for (const auto& [fieldName, _] : m_FieldsDescription)
+        for (const auto& [fieldName, _] : fieldsDescription)
         {
             sortedFieldNames.push_back(fieldName);
         }
@@ -1187,9 +1148,9 @@ namespace LM
                 ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize("X").x -
                                         style.ItemSpacing.x - style.FramePadding.x * 2.0f);
 
-                if (m_FieldsRepresentation.contains(_SimpleListFieldName.data()))
+                if (const auto* itemsPtr = DatabaseData::Get().FindFieldRepresentation(_SimpleListFieldName))
                 {
-                    const auto& items = m_FieldsRepresentation[_SimpleListFieldName.data()];
+                    const auto& items = *itemsPtr;
 
                     std::string displayName = _SimpleListItem.Value;
                     for (const auto& item : items)
@@ -1802,13 +1763,13 @@ namespace LM
             {
                 headerColor = 0xFF555555;
             }
-            else if (m_FieldsDescription.contains(t))
+            else if (const FieldDescription* fieldDescr = DatabaseData::Get().FindFieldDescription(t))
             {
-                if (m_FieldsDescription[t].IsDescr)
+                if (fieldDescr->IsDescr)
                 {
                     headerColor = 0xFF008CFF;
                 }
-                else if (!m_FieldsDescription[t].AllowNulls)
+                else if (!fieldDescr->AllowNulls)
                 {
                     headerColor = 0xFFCC3299;
                 }
@@ -1823,9 +1784,9 @@ namespace LM
             {
                 result.HoveredCol = colId;
 
-                if (m_FieldsDescription.contains(t))
+                if (const FieldDescription* fieldDescr = DatabaseData::Get().FindFieldDescription(t))
                 {
-                    ImGui::SetTooltip("%s", m_FieldsDescription[t].Description.c_str());
+                    ImGui::SetTooltip("%s", fieldDescr->Description.c_str());
                 }
             }
 
@@ -2306,7 +2267,8 @@ namespace LM
                                                    XlsxPageViewDataTypes::TableData& _TableData,
                                                    std::string_view _ConstrKey)
     {
-        if (!m_ConstructionsFields.contains(_ConstrKey.data()))
+        const std::vector<std::string>* constrFields = DatabaseData::Get().FindConstructionFields(_ConstrKey);
+        if (!constrFields)
         {
             Overlay::Get()->Start(Format("Не найдены поля для конструкции: \n{}", _ConstrKey));
         }
@@ -2321,209 +2283,16 @@ namespace LM
         {
             headerRow.push_back({ .Value = field });
         }
-        for (std::string& field : m_ConstructionsFields[_ConstrKey.data()])
+        if (constrFields)
         {
-            headerRow.push_back({ .Value = field });
+            for (const std::string& field : *constrFields)
+            {
+                headerRow.push_back({ .Value = field });
+            }
         }
 
         FixDimensions(_TableData);
         _XlsxViewData.PushHistory();
-    }
-
-    void XlsxPageView::LoadConstructionsTree()
-    {
-        std::ifstream infile(kDefaultConstructionsTreeFile.data());
-        if (!infile.is_open())
-        {
-            Overlay::Get()->Start(
-                Format("Не удалось открыть стандартный файл дерева конструкций: \n{}", kDefaultConstructionsTreeFile));
-        }
-
-        try
-        {
-            nlohmann::json json;
-            infile >> json;
-
-            for (const auto& jsonEntity : json["nodes"])
-            {
-                for (const auto& jsonGroup : jsonEntity["nodes"])
-                {
-                    for (const auto& jsonConstr : jsonGroup["nodes"])
-                    {
-                        ConstructionTreeConstr constr {
-                            { .Img = jsonConstr["img_link"], .Label = jsonConstr["text"], .Key = jsonConstr["key"] },
-                        };
-                        constr.Drw = jsonConstr["drw_link"];
-                        m_Constructions.emplace_back(std::move(constr));
-                    }
-                }
-            }
-        }
-        catch (...)
-        {
-            Overlay::Get()->Start(Format("Ошибка во время чтения формата json: \n{}", kDefaultConstructionsTreeFile));
-        }
-    }
-
-    void XlsxPageView::LoadConstructionsFields()
-    {
-        std::ifstream infile(kDefaultConstructionsFieldsFile.data());
-        if (!infile.is_open())
-        {
-            Overlay::Get()->Start(
-                Format("Не удалось открыть стандартный файл конструкций: \n{}", kDefaultConstructionsFieldsFile));
-        }
-
-        try
-        {
-            nlohmann::json json;
-            infile >> json;
-
-            for (const auto& element : json.items())
-            {
-                std::vector<std::string> v;
-                element.value().get_to(v);
-                m_ConstructionsFields[element.key()] = v;
-            }
-        }
-        catch (...)
-        {
-            Overlay::Get()->Start(Format("Ошибка во время чтения формата json: \n{}", kDefaultConstructionsFieldsFile));
-        }
-    }
-
-    void XlsxPageView::LoadFieldsDescription()
-    {
-        std::ifstream infile(kDefaultFieldsDescriptionFile.data());
-        if (!infile.is_open())
-        {
-            Overlay::Get()->Start(Format("Не удалось открыть стандартный файл описания полей конструкций: \n{}",
-                                         kDefaultFieldsDescriptionFile));
-        }
-
-        try
-        {
-            nlohmann::json json;
-            infile >> json;
-
-            for (const auto& element : json)
-            {
-                m_FieldsDescription[element["fieldname"].get<std::string>()] = FieldDescription {
-                    .Type = element["typ"],
-                    .UnitRu = element.at("unitru").get<std::optional<std::string>>(),
-                    .RuDescription = element["rudescription"],
-                    .AllowNulls = element["allownulls"],
-                    .IfBooleanTrue = element.at("ifbooleantrue").get<std::optional<std::string>>(),
-                    .IfBooleanFalse = element.at("ifbooleanfalse").get<std::optional<std::string>>(),
-                    .QType = element["qtyp"],
-                    .IsDescr = element["is_descr"],
-                    .Description = element["descr"],
-                };
-            }
-        }
-        catch (std::exception& e)
-        {
-            LOG_CORE_WARN("{}", e.what());
-            Overlay::Get()->Start(Format("Ошибка во время чтения формата json: \n{}", kDefaultFieldsDescriptionFile));
-        }
-    }
-
-    void XlsxPageView::LoadRepresentationFieldsDescription()
-    {
-        std::ifstream infile(kDefaultRepresentationFieldsDescriptionFile.data());
-        if (!infile.is_open())
-        {
-            Overlay::Get()->Start(Format("Не удалось открыть стандартный файл представления полей: \n{}",
-                                         kDefaultRepresentationFieldsDescriptionFile));
-        }
-
-        try
-        {
-            nlohmann::json json;
-            infile >> json;
-
-            for (const auto& element : json.items())
-            {
-                std::vector<FieldRepresentationItem> v;
-                for (const auto& item : element.value())
-                {
-                    std::string key;
-                    if (item["key"].is_number())
-                    {
-                        uint32_t val = item["key"];
-                        key = std::to_string(val);
-                    }
-                    else
-                    {
-                        key = item["key"];
-                    }
-
-                    v.push_back({
-                        .Key = key,
-                        .RuShort = item["rushort"],
-                        .Ru = item["ru"],
-                    });
-                }
-                m_FieldsRepresentation[element.key()] = v;
-            }
-        }
-        catch (std::exception& e)
-        {
-            LOG_CORE_WARN("{}", e.what());
-            Overlay::Get()->Start(
-                Format("Ошибка во время чтения формата json: \n{}", kDefaultRepresentationFieldsDescriptionFile));
-        }
-    }
-
-    void XlsxPageView::LoadConstrExample(std::string_view _Constr)
-    {
-        if (m_ConstrExamples.contains(_Constr.data()))
-        {
-            return;
-        }
-
-        std::filesystem::path path = std::filesystem::path("assets/constructions/examples") /
-                                     std::filesystem::path(std::format("{}.xlsx", _Constr));
-
-        LOG_CORE_INFO("Loading file: {}", path.string());
-
-        if (!std::filesystem::exists(path))
-        {
-            return;
-        }
-
-        xlnt::workbook wb;
-
-        try
-        {
-            wb.load(path);
-        }
-        catch (const std::exception& e)
-        {
-            LOG_CORE_ERROR("Failed to load workbook: {}", e.what());
-            return;
-        }
-
-        xlnt::worksheet ws = wb.active_sheet();
-
-        m_ConstrExamples[_Constr.data()] = {};
-        auto& constr = m_ConstrExamples[_Constr.data()];
-        for (const auto& col : ws.columns(true))
-        {
-            if (col.length() < 2 || !col[0].has_value())
-            {
-                continue;
-            }
-
-            std::vector<std::string> values;
-            auto begin = col.begin();
-            ++begin;
-            for (const auto& cell : std::ranges::subrange(begin, col.end()))
-            {
-                values.push_back(cell.has_value() ? cell.to_string() : "");
-            }
-            constr[col[0].to_string()] = values;
-        }
     }
 
     void XlsxPageView::LoadAmatiCodems()
