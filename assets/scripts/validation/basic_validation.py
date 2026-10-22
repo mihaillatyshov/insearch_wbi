@@ -80,6 +80,9 @@ def validate_jse_bsg(df: pd.DataFrame, page_id: int):
 
 
 def validate_bsg(df: pd.DataFrame, page_id: int):
+    if not "bsg" in df.columns:
+        return
+
     for func in [validate_jse_bsg]:
         func(df, page_id)
 
