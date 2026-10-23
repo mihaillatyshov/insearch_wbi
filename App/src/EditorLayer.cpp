@@ -163,6 +163,12 @@ namespace LM
                         m_IsDrawTestTableWindow = !m_IsDrawTestTableWindow;
                     }
 
+                    if (bool& isOpen = m_DatabaseDataLoader.GetIsOpen();
+                        ImGui::MenuItem("Database Data", nullptr, isOpen))
+                    {
+                        isOpen = !isOpen;
+                    }
+
                     ImGui::Separator();
 
                     if (ImGui::MenuItem("ImGui Demo", nullptr, m_IsDrawImGuiDemoWindow))
@@ -291,6 +297,7 @@ namespace LM
 
         m_SharedConnectionConfigSetup.OnImGuiRender(m_Project);
         m_Yg1ShopConstructionLevelConfigSetup.OnImGuiRender();
+        m_DatabaseDataLoader.Draw();
 
         if (m_Project)
         {

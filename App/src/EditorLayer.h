@@ -3,6 +3,7 @@
 #include "Engine/Textures/Texture2D.h"
 #include "ImGui/Configs/SharedConnectionConfigSetup.hpp"
 #include "ImGui/Configs/Yg1ShopConstructionLevelConfigSetup.hpp"
+#include "ImGui/Database/DatabaseDataLoader.hpp"
 #include "ImGui/Project/CreateNewProject.h"
 #include "ImGui/Project/SetupProject.h"
 #include "Project/Project.h"
@@ -37,6 +38,7 @@ namespace LM
         CreateNewProject m_CreateNewProject;
         SharedConnectionConfigSetup m_SharedConnectionConfigSetup;
         Yg1ShopConstructionLevelConfigSetup m_Yg1ShopConstructionLevelConfigSetup;
+        DatabaseDataLoader m_DatabaseDataLoader;
 
         Ref<Texture2D> m_AppLogoLight;
 

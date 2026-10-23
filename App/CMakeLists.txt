@@ -43,6 +43,10 @@ set(SOURCES
 
     src/ImGui/Configs/SharedConnectionConfigSetup.cpp           src/ImGui/Configs/SharedConnectionConfigSetup.hpp
     src/ImGui/Configs/Yg1ShopConstructionLevelConfigSetup.cpp   src/ImGui/Configs/Yg1ShopConstructionLevelConfigSetup.hpp
+
+    src/ImGui/Database/DatabaseDataLoader.cpp                   src/ImGui/Database/DatabaseDataLoader.hpp
+
+    src/Database/DatabaseData.cpp                               src/Database/DatabaseData.hpp
     
     src/Serializer/Serializer.cpp                               src/Serializer/Serializer.h
 
@@ -62,7 +66,7 @@ include(FetchContent)
 FetchContent_Declare(
     xlnt
     GIT_REPOSITORY https://github.com/mihaillatyshov/xlnt.git
-    GIT_TAG d43656421f8b3c3deadae759aa5b3bdc3db4202b
+    GIT_TAG 4ffd78ba3f9b99432455feef77ada9728785f7f0
 )
 FetchContent_MakeAvailable(xlnt)
 
