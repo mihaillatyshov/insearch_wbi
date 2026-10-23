@@ -23,7 +23,7 @@ namespace LM
 {
 
     constexpr std::string_view kLastProjectPath = "./assets/last_project.json";
-    constexpr std::string_view kAppLogoLight = "./assets/textures/wbi_white_logo.png";
+    constexpr std::string_view kAppLogoLight = "./assets/textures/logo_wt_dark.png";
     const std::string kJsonLastProjectPath = "folder";
     constexpr float kMainMenuFramePadding = 16.0f;
 
@@ -46,7 +46,7 @@ namespace LM
             m_SetupProjectWindow.Open();
         }
 
-        m_AppLogoLight = Texture2D::Create(kAppLogoLight);
+        m_AppLogoLight = Texture2D::Create(kAppLogoLight, Texture2D::NO_SRGB);
         m_AppLogoLight->OnAttach();
 
         SelectConstructionFromTree::LoadTreeFromDefaultFile();

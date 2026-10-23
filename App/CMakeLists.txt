@@ -59,6 +59,10 @@ set(SOURCES
     src/Utils/MakeScreenshot.hpp                                src/Utils/MakeScreenshot.cpp      
 )
 
+if(WIN32)
+    list(APPEND SOURCES res/app.rc)
+endif()
+
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SOURCES})
 
 include(FetchContent)

@@ -1,0 +1,2 @@
+// "GLFW_ICON" is picked up by GLFW for the window/taskbar icon and by Explorer for the .exe icon
+GLFW_ICON ICON "app.ico"
